@@ -1,0 +1,83 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: org_ai_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-org_ai}
+      POSTGRES_USER: ${DATABASE_USER:-org_ai_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD must be set in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - org_ai_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U org_ai_user -d org_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama LLM Runtime (CPU-only by default)
+  # For GPU support: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+  ollama:
+    image: ollama/ollama:latest
+    container_name: org_ai_ollama
+    restart: unless-stopped
+    environment:
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-8}
+      OLLAMA_MAX_QUEUE: ${OLLAMA_MAX_QUEUE:-1024}
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - org_ai_net
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: org_ai_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - org_ai_net
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: org_ai_frontend
+    restart: unless-stopped
+    ports:
+      - "3005:80"
+    depends_on:
+      - backend
+    networks:
+      - org_ai_net
+
+volumes:
+  pgdata:
+  ollama_data:
+
+networks:
+  org_ai_net:
+    driver: bridge

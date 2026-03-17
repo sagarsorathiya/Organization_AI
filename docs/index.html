@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization AI — Secure In-House Enterprise AI Portal</title>
+    <meta name="description" content="A 100% on-premises, enterprise-grade AI chat assistant. Active Directory SSO, zero cloud dependency, your data never leaves your network.">
+    <style>
+        /* ── Reset & Base ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0a0e1a;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2236;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.25);
+            --accent-secondary: #06b6d4;
+            --green: #22c55e;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --border: #1e293b;
+            --radius: 12px;
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+        a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--accent-secondary); }
+        img { max-width: 100%; }
+        code {
+            font-family: var(--mono);
+            background: rgba(59,130,246,0.1);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.88em;
+        }
+        ::selection { background: var(--accent); color: #fff; }
+
+        /* ── Layout ── */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        section { padding: 100px 0; }
+
+        /* ── Navigation ── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            transition: box-shadow 0.3s;
+        }
+        nav.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.4); }
+        .nav-inner {
+            max-width: 1200px; margin: 0 auto; padding: 0 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 64px;
+        }
+        .nav-logo {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 1.15rem; color: var(--text);
+        }
+        .nav-logo .shield { font-size: 1.5rem; }
+        .nav-links { display: flex; gap: 32px; list-style: none; }
+        .nav-links a {
+            color: var(--text-muted); font-size: 0.9rem; font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: #fff; }
+        .nav-cta {
+            background: var(--accent); color: #fff !important; padding: 8px 20px;
+            border-radius: 8px; font-weight: 600; font-size: 0.9rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .nav-cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .hamburger { display: none; background: none; border: none; color: var(--text); cursor: pointer; font-size: 1.5rem; }
+
+        /* ── Hero ── */
+        .hero {
+            padding: 160px 0 120px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25);
+            padding: 6px 16px; border-radius: 50px; font-size: 0.85rem;
+            color: var(--accent); margin-bottom: 28px; font-weight: 500;
+        }
+        .hero-badge .dot {
+            width: 8px; height: 8px; background: var(--green);
+            border-radius: 50%; animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.2rem);
+            font-weight: 800; line-height: 1.15;
+            letter-spacing: -0.03em; margin-bottom: 24px;
+        }
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p {
+            font-size: 1.2rem; color: var(--text-muted);
+            max-width: 640px; margin: 0 auto 40px;
+        }
+        .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 28px; border-radius: 10px; font-weight: 600;
+            font-size: 1rem; cursor: pointer; transition: all 0.25s;
+            border: none;
+        }
+        .btn-primary {
+            background: var(--accent); color: #fff;
+            box-shadow: 0 4px 24px var(--accent-glow);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px var(--accent-glow);
+            color: #fff;
+        }
+        .btn-outline {
+            background: transparent; color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-outline:hover {
+            border-color: var(--accent); color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        /* ── Trust Banner ── */
+        .trust-bar {
+            display: flex; justify-content: center; gap: 48px; flex-wrap: wrap;
+            padding: 40px 0; border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .trust-item {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.95rem; color: var(--text-muted); font-weight: 500;
+        }
+        .trust-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+        .trust-icon.green { background: rgba(34,197,94,0.12); color: var(--green); }
+        .trust-icon.blue { background: rgba(59,130,246,0.12); color: var(--accent); }
+        .trust-icon.orange { background: rgba(245,158,11,0.12); color: var(--orange); }
+
+        /* ── Section Headers ── */
+        .section-label {
+            text-transform: uppercase; font-size: 0.8rem; font-weight: 700;
+            color: var(--accent); letter-spacing: 0.1em; margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px;
+        }
+        .section-subtitle {
+            font-size: 1.1rem; color: var(--text-muted);
+            max-width: 600px; margin-bottom: 60px;
+        }
+        .centered { text-align: center; }
+        .centered .section-subtitle { margin-left: auto; margin-right: auto; }
+
+        /* ── Data Privacy Section ── */
+        .privacy { background: linear-gradient(180deg, var(--bg) 0%, #0d1320 100%); }
+        .privacy-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 60px;
+            align-items: center;
+        }
+        .privacy-visual {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 40px; position: relative;
+            overflow: hidden;
+        }
+        .privacy-visual::after {
+            content: ''; position: absolute; top: 0; right: 0;
+            width: 120px; height: 120px;
+            background: radial-gradient(circle, rgba(34,197,94,0.1), transparent 70%);
+        }
+        .data-flow { display: flex; flex-direction: column; gap: 16px; }
+        .flow-row {
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,0.03); padding: 14px 18px;
+            border-radius: 10px; border: 1px solid var(--border);
+            font-size: 0.92rem;
+        }
+        .flow-icon { font-size: 1.3rem; flex-shrink: 0; }
+        .flow-arrow { color: var(--text-dim); flex-shrink: 0; }
+        .flow-check { color: var(--green); font-weight: 700; flex-shrink: 0; }
+        .flow-block { color: var(--red); font-weight: 700; flex-shrink: 0; }
+        .privacy-points { display: flex; flex-direction: column; gap: 24px; }
+        .priv-point { display: flex; gap: 16px; }
+        .priv-icon {
+            width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; background: rgba(34,197,94,0.1);
+        }
+        .priv-point h3 { font-size: 1.1rem; margin-bottom: 4px; }
+        .priv-point p { color: var(--text-muted); font-size: 0.92rem; }
+
+        /* ── Features Grid ── */
+        .features-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        .feature-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 32px;
+            transition: all 0.3s; position: relative; overflow: hidden;
+        }
+        .feature-card:hover {
+            border-color: rgba(59,130,246,0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon {
+            width: 52px; height: 52px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; margin-bottom: 20px;
+        }
+        .feature-icon.blue { background: rgba(59,130,246,0.12); }
+        .feature-icon.green { background: rgba(34,197,94,0.12); }
+        .feature-icon.cyan { background: rgba(6,182,212,0.12); }
+        .feature-icon.orange { background: rgba(245,158,11,0.12); }
+        .feature-icon.purple { background: rgba(139,92,246,0.12); }
+        .feature-icon.pink { background: rgba(236,72,153,0.12); }
+        .feature-card h3 { font-size: 1.1rem; margin-bottom: 8px; font-weight: 700; }
+        .feature-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+
+        /* ── Architecture ── */
+        .architecture { background: #0d1320; }
+        .arch-diagram {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 48px; position: relative;
+            overflow: hidden;
+        }
+        .arch-diagram::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.04), transparent 60%);
+        }
+        .arch-layers { display: flex; flex-direction: column; gap: 28px; position: relative; z-index: 1; }
+        .arch-layer {
+            display: flex; align-items: center; gap: 20px;
+            padding: 20px 24px; border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.02);
+        }
+        .arch-layer-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; flex-shrink: 0;
+        }
+        .arch-layer-icon.user { background: rgba(59,130,246,0.12); }
+        .arch-layer-icon.auth { background: rgba(245,158,11,0.12); }
+        .arch-layer-icon.api { background: rgba(6,182,212,0.12); }
+        .arch-layer-icon.ai { background: rgba(139,92,246,0.12); }
+        .arch-layer-icon.db { background: rgba(34,197,94,0.12); }
+        .arch-layer-label {
+            font-weight: 700; font-size: 0.95rem; min-width: 140px;
+        }
+        .arch-layer-desc { color: var(--text-muted); font-size: 0.88rem; flex: 1; }
+        .arch-layer-tag {
+            font-size: 0.75rem; padding: 4px 10px; border-radius: 6px;
+            font-weight: 600; flex-shrink: 0;
+        }
+        .tag-internal { background: rgba(34,197,94,0.12); color: var(--green); }
+        .tag-secured { background: rgba(245,158,11,0.12); color: var(--orange); }
+        .arch-firewall {
+            display: flex; align-items: center; justify-content: center;
+            gap: 12px; padding: 12px;
+            border: 2px dashed rgba(239, 68, 68, 0.3);
+            border-radius: 10px; color: var(--red);
+            font-weight: 700; font-size: 0.88rem;
+        }
+
+        /* ── Quick Start ── */
+        .quickstart-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+        .tab-btn {
+            padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-muted); cursor: pointer;
+            font-size: 0.9rem; font-weight: 600; transition: all 0.2s;
+            font-family: var(--font);
+        }
+        .tab-btn.active {
+            background: var(--accent); color: #fff;
+            border-color: var(--accent);
+        }
+        .tab-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .code-block {
+            background: #0d1117; border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+        }
+        .code-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 20px; background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border);
+        }
+        .code-header span { font-size: 0.8rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; }
+        .copy-btn {
+            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+            color: var(--text-muted); padding: 4px 12px; border-radius: 6px;
+            font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
+            font-family: var(--font);
+        }
+        .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .code-block pre {
+            padding: 20px; overflow-x: auto; font-family: var(--mono);
+            font-size: 0.88rem; line-height: 1.7; color: var(--text-muted);
+        }
+        .code-block pre .comment { color: #6a737d; }
+        .code-block pre .cmd { color: var(--accent-secondary); }
+        .code-block pre .flag { color: var(--orange); }
+
+        /* ── Scaling Table ── */
+        .scale-table-wrap {
+            overflow-x: auto; border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .scale-table {
+            width: 100%; border-collapse: collapse; font-size: 0.9rem;
+        }
+        .scale-table th {
+            background: rgba(59,130,246,0.08); padding: 14px 20px;
+            text-align: left; font-weight: 700; font-size: 0.8rem;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--accent); border-bottom: 1px solid var(--border);
+        }
+        .scale-table td {
+            padding: 14px 20px; border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .scale-table tr:last-child td { border-bottom: none; }
+        .scale-table tr:hover td { background: rgba(59,130,246,0.03); }
+        .user-badge {
+            display: inline-block; padding: 3px 10px; border-radius: 6px;
+            font-weight: 700; font-size: 0.82rem;
+        }
+        .user-badge.sm { background: rgba(34,197,94,0.12); color: var(--green); }
+        .user-badge.md { background: rgba(6,182,212,0.12); color: var(--accent-secondary); }
+        .user-badge.lg { background: rgba(59,130,246,0.12); color: var(--accent); }
+        .user-badge.xl { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+
+        /* ── CTA ── */
+        .cta-section {
+            text-align: center;
+            background: linear-gradient(180deg, #0d1320 0%, var(--bg) 100%);
+        }
+        .cta-box {
+            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(6,182,212,0.05));
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 20px; padding: 64px;
+        }
+        .cta-box h2 { font-size: 2rem; margin-bottom: 16px; }
+        .cta-box p { color: var(--text-muted); margin-bottom: 36px; font-size: 1.1rem; }
+
+        /* ── Footer ── */
+        footer {
+            padding: 40px 0; text-align: center;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem; color: var(--text-dim);
+        }
+        footer a { color: var(--text-muted); }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .features-grid { grid-template-columns: 1fr 1fr; }
+            .privacy-grid { grid-template-columns: 1fr; }
+            .arch-layer-desc { display: none; }
+        }
+        @media (max-width: 640px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+            .hamburger { display: block; }
+            .nav-links.open {
+                display: flex; flex-direction: column;
+                position: absolute; top: 64px; left: 0; right: 0;
+                background: var(--bg); border-bottom: 1px solid var(--border);
+                padding: 20px 24px; gap: 16px;
+            }
+            .hero { padding: 120px 0 80px; }
+            .cta-box { padding: 40px 24px; }
+            .trust-bar { gap: 24px; }
+            .arch-layer { flex-wrap: wrap; }
+        }
+
+        /* ── Animations ── */
+        .reveal {
+            opacity: 0; transform: translateY(30px);
+            transition: opacity 0.6s, transform 0.6s;
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+<!-- ==================== NAVIGATION ==================== -->
+<nav id="navbar">
+    <div class="nav-inner">
+        <a href="#" class="nav-logo">
+            <span class="shield">&#128737;</span> Organization AI
+        </a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#privacy">Data Privacy</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#quickstart">Quick Start</a></li>
+            <li><a href="#scaling">Scaling</a></li>
+        </ul>
+        <a href="#quickstart" class="nav-cta">Get Started</a>
+        <button class="hamburger" id="hamburger" aria-label="Menu">&#9776;</button>
+    </div>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            100% On-Premises &middot; Zero Cloud Dependency
+        </div>
+        <h1>
+            Secure, In-House<br>
+            <span class="gradient">Enterprise AI Portal</span>
+        </h1>
+        <p>
+            Deploy a powerful AI chat assistant inside your corporate network.
+            Employees authenticate with Active Directory &mdash; all data stays
+            within your organization. No external API calls. Ever.
+        </p>
+        <div class="hero-actions">
+            <a href="#quickstart" class="btn btn-primary">
+                &#9889; Deploy Now
+            </a>
+            <a href="https://github.com/sagarsorathiya/Organization_AI" class="btn btn-outline" target="_blank" rel="noopener">
+                &#11088; Star on GitHub
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== TRUST BAR ==================== -->
+<div class="trust-bar container">
+    <div class="trust-item">
+        <div class="trust-icon green">&#128274;</div>
+        <span>Zero Data Leakage</span>
+    </div>
+    <div class="trust-item">
+        <div class="trust-icon blue">&#127970;</div>
+        <span>Active Directory SSO</span>
+    </div>
+    <div class="trust-item">
+        <div class="trust-icon orange">&#9889;</div>
+        <span>200 Parallel Users</span>
+    </div>
+    <div class="trust-item">
+        <div class="trust-icon blue">&#128187;</div>
+        <span>Runs on Your Hardware</span>
+    </div>
+</div>
+
+<!-- ==================== DATA PRIVACY ==================== -->
+<section class="privacy" id="privacy">
+    <div class="container">
+        <div class="privacy-grid reveal">
+            <div>
+                <div class="section-label">Data Privacy</div>
+                <h2 class="section-title">Your Data Never Leaves<br>Your Network</h2>
+                <p class="section-subtitle" style="margin-bottom:36px">
+                    Unlike cloud AI services, Organization AI runs entirely within your
+                    corporate infrastructure. Every conversation, every document, every prompt
+                    stays behind your firewall.
+                </p>
+                <div class="privacy-points">
+                    <div class="priv-point">
+                        <div class="priv-icon">&#128274;</div>
+                        <div>
+                            <h3>No External API Calls</h3>
+                            <p>The AI model runs locally via Ollama. Prompts and responses never
+                            touch the internet. No OpenAI, no Azure, no third-party services.</p>
+                        </div>
+                    </div>
+                    <div class="priv-point">
+                        <div class="priv-icon">&#127970;</div>
+                        <div>
+                            <h3>Active Directory Authentication</h3>
+                            <p>Employees log in with their existing corporate credentials.
+                            No separate accounts, no password fatigue, full audit trail.</p>
+                        </div>
+                    </div>
+                    <div class="priv-point">
+                        <div class="priv-icon">&#128218;</div>
+                        <div>
+                            <h3>Full Compliance Control</h3>
+                            <p>Data residency, access logs, and model governance are entirely
+                            under your IT team's control. Meet GDPR, HIPAA, and internal policies.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="privacy-visual">
+                <div class="data-flow">
+                    <div class="flow-row">
+                        <span class="flow-icon">&#128100;</span>
+                        <span>Employee Query</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span>AD Auth</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span>Internal Server</span>
+                        <span class="flow-check">&#10003;</span>
+                    </div>
+                    <div class="flow-row">
+                        <span class="flow-icon">&#129302;</span>
+                        <span>AI Processing</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span>Ollama (Local)</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span>Response</span>
+                        <span class="flow-check">&#10003;</span>
+                    </div>
+                    <div class="flow-row">
+                        <span class="flow-icon">&#128190;</span>
+                        <span>Conversation Data</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span>PostgreSQL (Local)</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span>Encrypted</span>
+                        <span class="flow-check">&#10003;</span>
+                    </div>
+                    <div class="flow-row" style="border-color: rgba(239,68,68,0.3);">
+                        <span class="flow-icon">&#127760;</span>
+                        <span>External Cloud / Internet</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span>BLOCKED</span>
+                        <span class="flow-block">&#10007;</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FEATURES ==================== -->
+<section id="features">
+    <div class="container centered">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Enterprise-Grade, Out of the Box</h2>
+        <p class="section-subtitle">
+            Everything you need to deploy a production-ready AI assistant
+            for your organization &mdash; with zero cloud dependencies.
+        </p>
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="feature-icon green">&#128274;</div>
+                <h3>AD / LDAP Single Sign-On</h3>
+                <p>Authenticate users against your existing Active Directory or LDAP server.
+                Supports LDAP and LDAPS. Role-based access via AD security groups.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon blue">&#129302;</div>
+                <h3>Multi-Model AI Engine</h3>
+                <p>Download, update, and delete AI models directly from the admin panel &mdash;
+                no command line needed. Supports Llama 3, Gemma, Mistral, DeepSeek, and 20+ models.
+                Live streaming progress, hot-swap without restart.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon cyan">&#9889;</div>
+                <h3>Real-Time Streaming</h3>
+                <p>Token-by-token streaming responses with 80ms throttled rendering.
+                Feels as fast as ChatGPT, running entirely on your hardware.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon orange">&#128196;</div>
+                <h3>File Attachments</h3>
+                <p>Upload and reference 14+ file formats in conversations: PDF, DOCX, XLSX,
+                CSV, images, code files, and more. Admin-controllable per policy.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon purple">&#128736;</div>
+                <h3>Admin Control Panel</h3>
+                <p>Full web-based admin panel: manage users, models, system prompts, view audit
+                logs, monitor health metrics, and configure all settings.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon pink">&#128200;</div>
+                <h3>200 Parallel Users, Production-Ready</h3>
+                <p>Engineered for 200 simultaneous users out of the box. 16 backend workers,
+                100-connection DB pool, 250-connection AI pool, and 16x parallel inference.
+                Auto-configured by the setup wizard based on your hardware.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== ARCHITECTURE ==================== -->
+<section class="architecture" id="architecture">
+    <div class="container centered">
+        <div class="section-label">Architecture</div>
+        <h2 class="section-title">Fully Air-Gapped Design</h2>
+        <p class="section-subtitle">
+            Every component runs inside your network perimeter.
+            The server requires zero outbound internet access after initial setup.
+        </p>
+        <div class="arch-diagram reveal">
+            <div class="arch-layers">
+                <div class="arch-layer">
+                    <div class="arch-layer-icon user">&#128100;</div>
+                    <div class="arch-layer-label">Employees</div>
+                    <div class="arch-layer-desc">Web browser access via internal URL (React SPA)</div>
+                    <span class="arch-layer-tag tag-internal">Internal Only</span>
+                </div>
+                <div class="arch-layer">
+                    <div class="arch-layer-icon auth">&#128273;</div>
+                    <div class="arch-layer-label">Authentication</div>
+                    <div class="arch-layer-desc">Active Directory / LDAP with JWT session tokens</div>
+                    <span class="arch-layer-tag tag-secured">Secured</span>
+                </div>
+                <div class="arch-layer">
+                    <div class="arch-layer-icon api">&#9881;</div>
+                    <div class="arch-layer-label">API Backend</div>
+                    <div class="arch-layer-desc">FastAPI + Uvicorn with async handlers and connection pooling</div>
+                    <span class="arch-layer-tag tag-internal">Internal Only</span>
+                </div>
+                <div class="arch-layer">
+                    <div class="arch-layer-icon ai">&#129302;</div>
+                    <div class="arch-layer-label">AI Engine</div>
+                    <div class="arch-layer-desc">Ollama running locally &mdash; CPU or GPU accelerated inference</div>
+                    <span class="arch-layer-tag tag-secured">Air-Gapped</span>
+                </div>
+                <div class="arch-layer">
+                    <div class="arch-layer-icon db">&#128190;</div>
+                    <div class="arch-layer-label">Database</div>
+                    <div class="arch-layer-desc">PostgreSQL with encrypted connections and connection pooling</div>
+                    <span class="arch-layer-tag tag-secured">Encrypted</span>
+                </div>
+                <div class="arch-firewall">
+                    &#128683; FIREWALL &mdash; No Outbound Internet Access Required
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== QUICK START ==================== -->
+<section id="quickstart">
+    <div class="container">
+        <div class="centered">
+            <div class="section-label">Quick Start</div>
+            <h2 class="section-title">Up and Running in Minutes</h2>
+            <p class="section-subtitle">
+                One-click setup scripts detect your hardware, install dependencies,
+                and configure everything automatically.
+            </p>
+        </div>
+
+        <div class="quickstart-tabs">
+            <button class="tab-btn active" data-tab="oneclick">One-Click Setup</button>
+            <button class="tab-btn" data-tab="docker">Docker</button>
+            <button class="tab-btn" data-tab="manual">Manual</button>
+        </div>
+
+        <!-- One-Click -->
+        <div class="tab-panel active" id="tab-oneclick">
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Windows (PowerShell)</span>
+                    <button class="copy-btn" data-copy="win-setup">Copy</button>
+                </div>
+                <pre id="win-setup"><span class="comment"># Clone the repository</span>
+<span class="cmd">git clone</span> https://github.com/sagarsorathiya/Organization_AI.git
+<span class="cmd">cd</span> organization-ai
+
+<span class="comment"># Run the setup wizard (detects hardware, installs everything)</span>
+<span class="cmd">powershell</span> <span class="flag">-ExecutionPolicy Bypass -File</span> setup.ps1</pre>
+            </div>
+            <br>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Linux / macOS (Bash)</span>
+                    <button class="copy-btn" data-copy="linux-setup">Copy</button>
+                </div>
+                <pre id="linux-setup"><span class="comment"># Clone the repository</span>
+<span class="cmd">git clone</span> https://github.com/sagarsorathiya/Organization_AI.git
+<span class="cmd">cd</span> organization-ai
+
+<span class="comment"># Run the setup wizard</span>
+<span class="cmd">chmod</span> +x setup.sh
+<span class="cmd">./setup.sh</span></pre>
+            </div>
+        </div>
+
+        <!-- Docker -->
+        <div class="tab-panel" id="tab-docker">
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Docker Compose</span>
+                    <button class="copy-btn" data-copy="docker-setup">Copy</button>
+                </div>
+                <pre id="docker-setup"><span class="comment"># Clone and configure</span>
+<span class="cmd">git clone</span> https://github.com/sagarsorathiya/Organization_AI.git
+<span class="cmd">cd</span> organization-ai
+<span class="cmd">cp</span> .env.example backend/.env
+<span class="comment"># Edit backend/.env with your settings</span>
+
+<span class="comment"># CPU-only (works on any server)</span>
+<span class="cmd">docker compose</span> up <span class="flag">-d</span>
+
+<span class="comment"># With NVIDIA GPU acceleration</span>
+<span class="cmd">docker compose</span> <span class="flag">-f</span> docker-compose.yml <span class="flag">-f</span> docker-compose.gpu.yml up <span class="flag">-d</span></pre>
+            </div>
+        </div>
+
+        <!-- Manual -->
+        <div class="tab-panel" id="tab-manual">
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Manual Setup</span>
+                    <button class="copy-btn" data-copy="manual-setup">Copy</button>
+                </div>
+                <pre id="manual-setup"><span class="comment"># 1. Backend</span>
+<span class="cmd">cd</span> backend
+<span class="cmd">python</span> <span class="flag">-m</span> venv venv
+<span class="cmd">source</span> venv/bin/activate      <span class="comment"># Linux</span>
+<span class="cmd">venv\Scripts\activate</span>        <span class="comment"># Windows</span>
+<span class="cmd">pip install</span> <span class="flag">-r</span> requirements.txt
+<span class="cmd">cp</span> ../.env.example .env       <span class="comment"># Configure .env</span>
+<span class="cmd">alembic</span> upgrade head
+<span class="cmd">uvicorn</span> app.main:app <span class="flag">--port</span> 8000
+
+<span class="comment"># 2. Frontend</span>
+<span class="cmd">cd</span> ../frontend
+<span class="cmd">npm install</span>
+<span class="cmd">npm run</span> dev
+
+<span class="comment"># 3. Pull an AI model</span>
+<span class="cmd">ollama pull</span> llama3.1:8b</pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== SCALING ==================== -->
+<section class="architecture" id="scaling">
+    <div class="container centered">
+        <div class="section-label">Scaling</div>
+        <h2 class="section-title">Built for 200 Concurrent Users</h2>
+        <p class="section-subtitle">
+            Tested and tuned for 200 simultaneous users. The setup wizard
+            auto-detects your hardware and configures optimal settings.
+        </p>
+        <div class="scale-table-wrap reveal">
+            <table class="scale-table">
+                <thead>
+                    <tr>
+                        <th>Users</th>
+                        <th>CPU</th>
+                        <th>RAM</th>
+                        <th>GPU</th>
+                        <th>Recommended Model</th>
+                        <th>Parallel</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="user-badge sm">1 &ndash; 30</span></td>
+                        <td>4+ cores</td>
+                        <td>16 GB</td>
+                        <td>Optional</td>
+                        <td><code>gemma3:4b</code></td>
+                        <td>4</td>
+                    </tr>
+                    <tr>
+                        <td><span class="user-badge md">30 &ndash; 80</span></td>
+                        <td>8+ cores</td>
+                        <td>32 GB</td>
+                        <td>4+ GB VRAM</td>
+                        <td><code>gemma3:4b</code></td>
+                        <td>8</td>
+                    </tr>
+                    <tr>
+                        <td><span class="user-badge lg">80 &ndash; 200</span></td>
+                        <td>16+ cores</td>
+                        <td>64 GB</td>
+                        <td>8+ GB VRAM</td>
+                        <td><code>llama3.1:8b</code></td>
+                        <td>12</td>
+                    </tr>
+                    <tr>
+                        <td><span class="user-badge xl">200+</span></td>
+                        <td>32+ cores</td>
+                        <td>128 GB</td>
+                        <td>16+ GB VRAM</td>
+                        <td><code>llama3.1:8b</code></td>
+                        <td>16</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-box reveal">
+            <h2>Ready to Deploy AI for Your Organization?</h2>
+            <p>
+                Open source, MIT licensed, and free forever.<br>
+                Give your employees the power of AI &mdash; without giving away your data.
+            </p>
+            <div class="hero-actions">
+                <a href="https://github.com/sagarsorathiya/Organization_AI" class="btn btn-primary" target="_blank" rel="noopener">
+                    &#128187; View on GitHub
+                </a>
+                <a href="https://github.com/sagarsorathiya/Organization_AI/archive/refs/heads/main.zip" class="btn btn-outline" target="_blank" rel="noopener">
+                    &#11015; Download ZIP
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer>
+    <div class="container">
+        <p>
+            Organization AI &mdash; MIT License &middot;
+            <a href="https://github.com/sagarsorathiya/Organization_AI">GitHub</a> &middot;
+            <a href="https://github.com/sagarsorathiya/Organization_AI/issues">Report Issue</a>
+        </p>
+    </div>
+</footer>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script>
+    // ── Navbar scroll effect ──
+    const nav = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+        nav.classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // ── Mobile menu ──
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('navLinks');
+    hamburger.addEventListener('click', () => {
+        navLinks.classList.toggle('open');
+    });
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => navLinks.classList.remove('open'));
+    });
+
+    // ── Tabs ──
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+    });
+
+    // ── Copy buttons ──
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = document.getElementById(btn.dataset.copy);
+            const text = target.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = orig; }, 1500);
+            });
+        });
+    });
+
+    // ── Reveal on scroll ──
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

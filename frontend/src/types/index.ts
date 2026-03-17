@@ -1,0 +1,204 @@
+/* TypeScript interfaces matching the backend API schemas */
+
+export interface User {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string | null;
+  department: string | null;
+  is_admin: boolean;
+  is_local_account: boolean;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: User;
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  is_pinned: boolean;
+  archived_at: string | null;
+  last_message_preview: string | null;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  model: string | null;
+  token_count: number | null;
+  created_at: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  conversation_id?: string;
+  model?: string;
+}
+
+export interface ChatResponse {
+  message: Message;
+  conversation_id: string;
+}
+
+// Streaming response types (NDJSON)
+export interface StreamMeta {
+  type: "meta";
+  conversation_id: string;
+  message_id: string;
+}
+
+export interface StreamToken {
+  type: "token";
+  content: string;
+}
+
+export interface StreamDone {
+  type: "done";
+  message_id: string;
+}
+
+export type StreamChunk = StreamMeta | StreamToken | StreamDone;
+
+export interface UserSettings {
+  theme: "light" | "dark" | "system";
+  preferred_model: string | null;
+  data_retention_days: number;
+  system_prompt: string | null;
+}
+
+export interface ChangePasswordRequest {
+  old_password: string;
+  new_password: string;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  display_name: string;
+  email?: string;
+  department?: string;
+  is_admin?: boolean;
+}
+
+export interface ModelsResponse {
+  models: string[];
+  default: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  user_id: string | null;
+  username: string | null;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  details: string | null;
+  ip_address: string | null;
+  timestamp: string;
+}
+
+export interface SystemHealth {
+  status: string;
+  database: string;
+  llm_service: string;
+  active_users_24h: number;
+  total_conversations: number;
+  total_messages: number;
+  uptime_seconds: number;
+}
+
+export interface UsageMetrics {
+  total_users: number;
+  active_users_today: number;
+  active_users_week: number;
+  total_conversations: number;
+  total_messages: number;
+  messages_today: number;
+  avg_messages_per_conversation: number;
+}
+
+export interface ModelInfo {
+  name: string;
+  size: string | null;
+  size_bytes: number | null;
+  modified_at: string | null;
+  digest: string | null;
+  family: string | null;
+  parameter_size: string | null;
+  quantization_level: string | null;
+}
+
+export interface PullProgress {
+  status: string;
+  digest?: string;
+  total?: number;
+  completed?: number;
+  error?: string;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string | null;
+  department: string | null;
+  is_admin: boolean;
+  is_active: boolean;
+  last_login: string | null;
+  created_at: string;
+}
+
+export interface AdminSettings {
+  app_name: string;
+  app_env: string;
+  ad_enabled: boolean;
+  ad_server: string;
+  ad_port: number;
+  ad_use_ssl: boolean;
+  ad_domain: string;
+  ad_base_dn: string;
+  ad_user_search_base: string;
+  ad_group_search_base: string;
+  ad_bind_user: string;
+  ad_admin_group: string;
+  llm_provider: string;
+  llm_base_url: string;
+  llm_default_model: string;
+  llm_timeout: number;
+  llm_max_tokens: number;
+  llm_temperature: number;
+  session_expire_minutes: number;
+  session_cookie_secure: boolean;
+  session_cookie_samesite: string;
+  rate_limit_requests: number;
+  rate_limit_window_seconds: number;
+  attachments_enabled: boolean;
+  log_level: string;
+  local_admin_enabled: boolean;
+  local_admin_username: string;
+}
+
+export interface DatabaseInfo {
+  host: string;
+  port: number;
+  name: string;
+  user: string;
+  pool_size: number;
+  max_overflow: number;
+  db_size: string;
+  db_version: string;
+  tables: Record<string, number>;
+  total_rows: number;
+}
