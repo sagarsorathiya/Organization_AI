@@ -670,7 +670,7 @@ Write-Host ""
 Write-Host "    cd $ProjectRoot" -ForegroundColor Cyan
 Write-Host "    npm run dev" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  Then open: http://localhost:3000" -ForegroundColor White
+Write-Host "  Then open: http://localhost:3005" -ForegroundColor White
 Write-Host ""
 Write-Host "  Login:" -ForegroundColor White
 Write-Host "    Username: admin" -ForegroundColor Gray
