@@ -524,13 +524,25 @@ function Initialize-Database {
     $alembic = Join-Path $ProjectRoot "backend\venv\Scripts\alembic.exe"
 
     Push-Location (Join-Path $ProjectRoot "backend")
-    & $alembic upgrade head 2>&1 | ForEach-Object {
-        if ($_ -match "Running upgrade") { Write-Host "   $_" -ForegroundColor Gray }
-    }
-    if ($LASTEXITCODE -eq 0) {
+    $ErrorActionPreference_Bak = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    $migrationOutput = & $alembic upgrade head 2>&1
+    $migrationExit = $LASTEXITCODE
+    $ErrorActionPreference = $ErrorActionPreference_Bak
+
+    if ($migrationExit -eq 0) {
+        $migrationOutput | ForEach-Object {
+            if ("$_" -match "Running upgrade") { Write-Host "   $_" -ForegroundColor Gray }
+        }
         Write-Ok "Database migrations complete"
     } else {
-        Write-Fail "Migration failed -- check database connection settings in backend\.env"
+        Write-Fail "Migration failed. Error details:"
+        $migrationOutput | ForEach-Object { Write-Host "   $_" -ForegroundColor Red }
+        Write-Host ""
+        Write-Host "   Common fixes:" -ForegroundColor Yellow
+        Write-Host "   - Ensure PostgreSQL is running (check Services)" -ForegroundColor Gray
+        Write-Host "   - Ensure password in backend\.env matches the DB user password" -ForegroundColor Gray
+        Write-Host "   - Try manually: cd backend && venv\Scripts\alembic.exe upgrade head" -ForegroundColor Gray
     }
     Pop-Location
 }
