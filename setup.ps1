@@ -524,11 +524,13 @@ function Initialize-Database {
     $alembic = Join-Path $ProjectRoot "backend\venv\Scripts\alembic.exe"
 
     Push-Location (Join-Path $ProjectRoot "backend")
+    $env:PYTHONPATH = (Join-Path $ProjectRoot "backend")
     $ErrorActionPreference_Bak = $ErrorActionPreference
     $ErrorActionPreference = 'SilentlyContinue'
     $migrationOutput = & $alembic upgrade head 2>&1
     $migrationExit = $LASTEXITCODE
     $ErrorActionPreference = $ErrorActionPreference_Bak
+    $env:PYTHONPATH = $null
 
     if ($migrationExit -eq 0) {
         $migrationOutput | ForEach-Object {

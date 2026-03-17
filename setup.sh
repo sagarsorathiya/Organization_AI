@@ -429,7 +429,7 @@ setup_database() {
     echo -e "   ${GRAY}Running database migrations...${NC}"
     ALEMBIC="$PROJECT_ROOT/backend/venv/bin/alembic"
 
-    (cd "$PROJECT_ROOT/backend" && "$ALEMBIC" upgrade head 2>&1 | grep -i "running upgrade" | while read -r line; do
+    (cd "$PROJECT_ROOT/backend" && PYTHONPATH="$PROJECT_ROOT/backend" "$ALEMBIC" upgrade head 2>&1 | grep -i "running upgrade" | while read -r line; do
         echo -e "   ${GRAY}$line${NC}"
     done)
 
