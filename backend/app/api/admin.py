@@ -78,7 +78,11 @@ async def get_system_settings(
         rate_limit_requests=app_settings.RATE_LIMIT_REQUESTS,
         rate_limit_window_seconds=app_settings.RATE_LIMIT_WINDOW_SECONDS,
         attachments_enabled=app_settings.ATTACHMENTS_ENABLED,
+        attachments_max_size_mb=app_settings.ATTACHMENTS_MAX_SIZE_MB,
+        attachments_max_extract_chars=app_settings.ATTACHMENTS_MAX_EXTRACT_CHARS,
         log_level=app_settings.LOG_LEVEL,
+        chat_max_context_messages=app_settings.CHAT_MAX_CONTEXT_MESSAGES,
+        chat_max_context_chars=app_settings.CHAT_MAX_CONTEXT_CHARS,
         local_admin_enabled=app_settings.LOCAL_ADMIN_ENABLED,
         local_admin_username=app_settings.LOCAL_ADMIN_USERNAME,
     )
@@ -110,7 +114,11 @@ _SETTING_KEY_MAP = {
     "rate_limit_requests": "RATE_LIMIT_REQUESTS",
     "rate_limit_window_seconds": "RATE_LIMIT_WINDOW_SECONDS",
     "attachments_enabled": "ATTACHMENTS_ENABLED",
+    "attachments_max_size_mb": "ATTACHMENTS_MAX_SIZE_MB",
+    "attachments_max_extract_chars": "ATTACHMENTS_MAX_EXTRACT_CHARS",
     "log_level": "LOG_LEVEL",
+    "chat_max_context_messages": "CHAT_MAX_CONTEXT_MESSAGES",
+    "chat_max_context_chars": "CHAT_MAX_CONTEXT_CHARS",
     "local_admin_enabled": "LOCAL_ADMIN_ENABLED",
     "local_admin_username": "LOCAL_ADMIN_USERNAME",
 }

@@ -105,9 +105,15 @@ class SystemSettingsResponse(BaseModel):
 
     # Attachments
     attachments_enabled: bool
+    attachments_max_size_mb: int
+    attachments_max_extract_chars: int
 
     # Logging
     log_level: str
+
+    # Chat Context
+    chat_max_context_messages: int
+    chat_max_context_chars: int
 
     # Local Admin
     local_admin_enabled: bool
@@ -152,9 +158,15 @@ class SystemSettingsUpdate(BaseModel):
 
     # Attachments
     attachments_enabled: bool | None = None
+    attachments_max_size_mb: int | None = Field(None, ge=1, le=100)
+    attachments_max_extract_chars: int | None = Field(None, ge=1000, le=500000)
 
     # Logging
     log_level: str | None = None
+
+    # Chat Context
+    chat_max_context_messages: int | None = Field(None, ge=1, le=100)
+    chat_max_context_chars: int | None = Field(None, ge=1000, le=200000)
 
     # Local Admin
     local_admin_enabled: bool | None = None

@@ -29,9 +29,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
-# Maximum upload size: 10 MB
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-
 ALLOWED_EXTENSIONS = {
     ".txt", ".csv", ".md",
     ".pdf",
@@ -237,7 +234,10 @@ async def check_attachments_enabled(
     _user_id: uuid.UUID = Depends(get_current_user_id),
 ):
     """Check if file attachments are enabled by admin."""
-    return {"enabled": app_settings.ATTACHMENTS_ENABLED}
+    return {
+        "enabled": app_settings.ATTACHMENTS_ENABLED,
+        "max_size_mb": app_settings.ATTACHMENTS_MAX_SIZE_MB,
+    }
 
 
 @router.post("/upload")
@@ -262,8 +262,9 @@ async def upload_file(
         )
 
     data = await file.read()
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 10 MB.")
+    max_bytes = app_settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
+    if len(data) > max_bytes:
+        raise HTTPException(status_code=400, detail=f"File too large. Maximum size is {app_settings.ATTACHMENTS_MAX_SIZE_MB} MB.")
 
     extractor = EXTRACTOR_MAP.get(ext)
     if not extractor:
@@ -278,7 +279,7 @@ async def upload_file(
         raise HTTPException(status_code=422, detail="Failed to extract text from the uploaded file")
 
     # Truncate very long documents to avoid overloading the LLM context
-    max_chars = 50000
+    max_chars = app_settings.ATTACHMENTS_MAX_EXTRACT_CHARS
     truncated = len(extracted_text) > max_chars
     if truncated:
         extracted_text = extracted_text[:max_chars]

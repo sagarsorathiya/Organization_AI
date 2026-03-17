@@ -17,6 +17,7 @@ interface ChatState {
   defaultModel: string;
   selectedModel: string | null;
   attachmentsEnabled: boolean;
+  attachmentsMaxSizeMb: number;
 
   loadConversations: () => Promise<void>;
   selectConversation: (id: string) => Promise<void>;
@@ -53,6 +54,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
   defaultModel: "",
   selectedModel: null,
   attachmentsEnabled: true,
+  attachmentsMaxSizeMb: 10,
 
   loadConversations: async () => {
     set({ isLoadingConversations: true });
@@ -323,8 +325,8 @@ export const useChatStore = create<ChatState>((set, getState) => ({
 
   loadAttachmentsEnabled: async () => {
     try {
-      const data = await get<{ enabled: boolean }>("/chat/attachments-enabled");
-      set({ attachmentsEnabled: data.enabled });
+      const data = await get<{ enabled: boolean; max_size_mb: number }>("/chat/attachments-enabled");
+      set({ attachmentsEnabled: data.enabled, attachmentsMaxSizeMb: data.max_size_mb ?? 10 });
     } catch {
       // default to true if endpoint fails
     }

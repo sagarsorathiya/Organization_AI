@@ -1120,6 +1120,31 @@ export function AdminPage() {
                   />
                 </SettingsSection>
 
+                {/* Chat Context */}
+                <SettingsSection title="Chat Context" icon={MessageSquare}>
+                  <EditableNumber
+                    label="Max Context Messages"
+                    value={editSettings.chat_max_context_messages ?? 20}
+                    onChange={(v) => updateField("chat_max_context_messages", v)}
+                    min={1}
+                    max={100}
+                  />
+                  <EditableNumber
+                    label="Max Context Characters"
+                    value={editSettings.chat_max_context_chars ?? 16000}
+                    onChange={(v) => updateField("chat_max_context_chars", v)}
+                    min={1000}
+                    max={200000}
+                    step={1000}
+                  />
+                  <div className="px-4 py-2">
+                    <p className="text-xs text-surface-400">
+                      Controls how many previous messages and characters are sent as context to the LLM.
+                      Lower values improve response speed; higher values give the AI more conversation history.
+                    </p>
+                  </div>
+                </SettingsSection>
+
                 {/* Session / Security */}
                 <SettingsSection title="Session & Security" icon={Clock}>
                   <EditableNumber
@@ -1163,10 +1188,25 @@ export function AdminPage() {
                     value={editSettings.attachments_enabled ?? true}
                     onChange={(v) => updateField("attachments_enabled", v)}
                   />
+                  <EditableNumber
+                    label="Max File Size (MB)"
+                    value={editSettings.attachments_max_size_mb ?? 10}
+                    onChange={(v) => updateField("attachments_max_size_mb", v)}
+                    min={1}
+                    max={100}
+                  />
+                  <EditableNumber
+                    label="Max Extracted Characters"
+                    value={editSettings.attachments_max_extract_chars ?? 50000}
+                    onChange={(v) => updateField("attachments_max_extract_chars", v)}
+                    min={1000}
+                    max={500000}
+                    step={1000}
+                  />
                   <div className="px-4 py-2">
                     <p className="text-xs text-surface-400">
-                      When disabled, users cannot attach files to chat messages.
-                      Existing attachment records remain in the database until cleared.
+                      Max file size controls the upload limit per file. Max extracted characters
+                      controls how much text is extracted from documents before truncation.
                     </p>
                   </div>
                 </SettingsSection>

@@ -14,7 +14,6 @@ interface UploadResponse {
 
 const ACCEPTED_TYPES = ".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.md,.json,.xml,.html,.rtf";
 const ACCEPTED_EXTENSIONS = new Set(ACCEPTED_TYPES.split(","));
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export function ChatInput() {
   const [input, setInput] = useState("");
@@ -34,6 +33,7 @@ export function ChatInput() {
     loadModels,
     clearChat,
     attachmentsEnabled,
+    attachmentsMaxSizeMb,
     loadAttachmentsEnabled,
   } = useChatStore();
 
@@ -95,8 +95,8 @@ export function ChatInput() {
     // Reset input so the same file can be re-selected
     e.target.value = "";
 
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error("File too large. Maximum size is 10 MB.");
+    if (file.size > attachmentsMaxSizeMb * 1024 * 1024) {
+      toast.error(`File too large. Maximum size is ${attachmentsMaxSizeMb} MB.`);
       return;
     }
 

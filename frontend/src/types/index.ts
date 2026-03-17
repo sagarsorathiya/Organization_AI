@@ -185,7 +185,11 @@ export interface AdminSettings {
   rate_limit_requests: number;
   rate_limit_window_seconds: number;
   attachments_enabled: boolean;
+  attachments_max_size_mb: number;
+  attachments_max_extract_chars: number;
   log_level: string;
+  chat_max_context_messages: number;
+  chat_max_context_chars: number;
   local_admin_enabled: boolean;
   local_admin_username: string;
 }

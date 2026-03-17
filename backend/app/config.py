@@ -74,6 +74,8 @@ class Settings(BaseSettings):
 
     # Attachments
     ATTACHMENTS_ENABLED: bool = True
+    ATTACHMENTS_MAX_SIZE_MB: int = 10
+    ATTACHMENTS_MAX_EXTRACT_CHARS: int = 50000
 
     # Logging
     LOG_LEVEL: str = "INFO"
