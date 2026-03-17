@@ -19,7 +19,8 @@ export const useBookmarkStore = create<BookmarkState>((set, getState) => ({
   loadBookmarks: async () => {
     set({ isLoading: true });
     try {
-      const data = await get<MessageBookmark[]>("/bookmarks");
+      const raw = await get<{ bookmarks: MessageBookmark[] } | MessageBookmark[]>("/bookmarks");
+      const data = Array.isArray(raw) ? raw : raw.bookmarks ?? [];
       const ids = new Set(data.map((b) => b.message_id));
       set({ bookmarks: data, bookmarkedIds: ids, isLoading: false });
     } catch {

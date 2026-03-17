@@ -20,8 +20,9 @@ export const useTemplateStore = create<TemplateState>((set) => ({
     set({ isLoading: true });
     try {
       const url = category ? `/templates?category=${encodeURIComponent(category)}` : "/templates";
-      const data = await get<PromptTemplate[]>(url);
-      set({ templates: data, isLoading: false });
+      const data = await get<{ templates: PromptTemplate[] } | PromptTemplate[]>(url);
+      const list = Array.isArray(data) ? data : data.templates ?? [];
+      set({ templates: list, isLoading: false });
     } catch {
       set({ isLoading: false });
     }
@@ -29,8 +30,9 @@ export const useTemplateStore = create<TemplateState>((set) => ({
 
   loadCategories: async () => {
     try {
-      const data = await get<TemplateCategory[]>("/templates/categories");
-      set({ categories: data });
+      const data = await get<{ categories: TemplateCategory[] } | TemplateCategory[]>("/templates/categories");
+      const list = Array.isArray(data) ? data : data.categories ?? [];
+      set({ categories: list });
     } catch {
       // silent
     }

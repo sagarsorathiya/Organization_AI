@@ -221,8 +221,8 @@ export function AdminPage() {
   const fetchAnnouncements = async () => {
     setAnnLoading(true);
     try {
-      const data = await get<Announcement[]>("/announcements/all");
-      setAnnouncements(data);
+      const data = await get<{ announcements: Announcement[] } | Announcement[]>("/announcements/all");
+      setAnnouncements(Array.isArray(data) ? data : data.announcements ?? []);
     } catch {
       toast.error("Failed to load announcements");
     } finally {
@@ -265,8 +265,8 @@ export function AdminPage() {
   const fetchTemplates = async () => {
     setTplLoading(true);
     try {
-      const data = await get<PromptTemplate[]>("/templates");
-      setTemplates(data);
+      const data = await get<{ templates: PromptTemplate[] } | PromptTemplate[]>("/templates");
+      setTemplates(Array.isArray(data) ? data : data.templates ?? []);
     } catch {
       toast.error("Failed to load templates");
     } finally {

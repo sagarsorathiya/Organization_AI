@@ -16,8 +16,9 @@ export const useAnnouncementStore = create<AnnouncementState>((set, getState) =>
 
   loadAnnouncements: async () => {
     try {
-      const data = await get<Announcement[]>("/announcements");
-      set({ announcements: data });
+      const data = await get<{ announcements: Announcement[] } | Announcement[]>("/announcements");
+      const list = Array.isArray(data) ? data : data.announcements ?? [];
+      set({ announcements: list });
     } catch {
       // silent
     }

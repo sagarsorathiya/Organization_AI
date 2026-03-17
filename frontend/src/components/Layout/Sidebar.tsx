@@ -71,7 +71,9 @@ export function Sidebar() {
   const [newTagName, setNewTagName] = useState("");
 
   useEffect(() => {
-    get<ConversationTag[]>("/tags").then(setTags).catch(() => {});
+    get<{ tags: ConversationTag[] } | ConversationTag[]>("/tags")
+      .then((data) => setTags(Array.isArray(data) ? data : data.tags ?? []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
