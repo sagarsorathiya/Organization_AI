@@ -43,6 +43,7 @@ import {
   Plus,
   ToggleLeft,
   ToggleRight,
+  Key,
 } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
@@ -617,6 +618,18 @@ export function AdminPage() {
       fetchUsers();
     } catch {
       toast.error("Failed to update user status");
+    }
+  };
+
+  const resetUserPassword = async (userId: string, username: string) => {
+    const newPw = prompt(`Enter new password for ${username} (min 8 chars):`);
+    if (!newPw) return;
+    if (newPw.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    try {
+      await patch(`/admin/users/${userId}`, { password: newPw });
+      toast.success(`Password reset for ${username}`);
+    } catch {
+      toast.error("Failed to reset password (user may not be a local account)");
     }
   };
 
@@ -1590,6 +1603,12 @@ export function AdminPage() {
                                 )}
                               >
                                 {u.is_active ? "Deactivate" : "Activate"}
+                              </button>
+                              <button
+                                onClick={() => resetUserPassword(u.id, u.username)}
+                                className="text-xs px-2 py-1 rounded border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-1"
+                              >
+                                <Key size={10} /> Reset Password
                               </button>
                             </>
                           )}

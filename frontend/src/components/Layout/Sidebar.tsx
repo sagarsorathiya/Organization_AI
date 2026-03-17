@@ -23,6 +23,7 @@ import { useAuthStore } from "@/store/authStore";
 import { get, post, del } from "@/api/client";
 import type { ConversationTag } from "@/types";
 import clsx from "clsx";
+import { Tag } from "lucide-react";
 
 function formatRelativeTime(dateStr: string) {
   const now = Date.now();
@@ -66,6 +67,9 @@ export function Sidebar() {
   // Tags
   const [tags, setTags] = useState<ConversationTag[]>([]);
   const [activeTagId, setActiveTagId] = useState<string | null>(null);
+  const [taggedConvIds, setTaggedConvIds] = useState<Set<string> | null>(null);
+  const [showTagMenu, setShowTagMenu] = useState<string | null>(null);
+  const [convTags, setConvTags] = useState<Record<string, string[]>>({});
 
   const [showNewTag, setShowNewTag] = useState(false);
   const [newTagName, setNewTagName] = useState("");
@@ -78,9 +82,14 @@ export function Sidebar() {
 
   useEffect(() => {
     if (activeTagId) {
-      // Fetch conversations for this tag (tag link API returns tag links for a conversation)
-      // We need to filter client-side since we don't have a "conversations by tag" endpoint
-      // Instead, iterate conversations — just filter using local state
+      get<{ conversation_ids: string[] }>(`/tags/${activeTagId}/conversations`)
+        .then((data) => {
+          const ids = Array.isArray(data) ? data : data.conversation_ids ?? [];
+          setTaggedConvIds(new Set(ids));
+        })
+        .catch(() => setTaggedConvIds(new Set()));
+    } else {
+      setTaggedConvIds(null);
     }
   }, [activeTagId]);
 
@@ -101,6 +110,32 @@ export function Sidebar() {
       if (activeTagId === tagId) setActiveTagId(null);
     } catch { /* silent */ }
   };
+
+  const toggleConvTag = async (convId: string, tagId: string) => {
+    const current = convTags[convId] ?? [];
+    if (current.includes(tagId)) {
+      await del(`/tags/link?conversation_id=${convId}&tag_id=${tagId}`);
+      setConvTags((prev) => ({ ...prev, [convId]: current.filter((t) => t !== tagId) }));
+      if (activeTagId === tagId) {
+        setTaggedConvIds((prev) => { const s = new Set(prev); s.delete(convId); return s; });
+      }
+    } else {
+      await post("/tags/link?conversation_id=" + convId + "&tag_id=" + tagId, {});
+      setConvTags((prev) => ({ ...prev, [convId]: [...current, tagId] }));
+      if (activeTagId === tagId) {
+        setTaggedConvIds((prev) => new Set(prev).add(convId));
+      }
+    }
+  };
+
+  const loadConvTags = async (convId: string) => {
+    try {
+      const data = await get<{ tags: ConversationTag[] }>(`/tags/conversation/${convId}`);
+      const tagList = Array.isArray(data) ? data : data.tags ?? [];
+      setConvTags((prev) => ({ ...prev, [convId]: tagList.map((t) => t.id) }));
+    } catch { /* silent */ }
+  };
+
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // P11: Debounce sidebar search
@@ -121,6 +156,11 @@ export function Sidebar() {
       list = list.filter((c) => !!c.archived_at);
     }
 
+    // Filter by active tag
+    if (activeTagId && taggedConvIds) {
+      list = list.filter((c) => taggedConvIds.has(c.id));
+    }
+
     // Search filter
     if (sidebarSearch.trim()) {
       const q = sidebarSearch.toLowerCase();
@@ -134,7 +174,7 @@ export function Sidebar() {
     const pinned = list.filter((c) => c.is_pinned);
     const unpinned = list.filter((c) => !c.is_pinned);
     return { pinned, unpinned };
-  }, [conversations, sidebarSearch, showArchived]);
+  }, [conversations, sidebarSearch, showArchived, activeTagId, taggedConvIds]);
 
   const handleNewChat = async () => {
     clearChat();
@@ -167,6 +207,7 @@ export function Sidebar() {
   const toggleActions = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedActions(expandedActions === id ? null : id);
+    setShowTagMenu(null);
   };
 
   if (collapsed) {
@@ -408,6 +449,44 @@ export function Sidebar() {
                 >
                   {conv.archived_at ? <ArchiveRestore size={12} /> : <Archive size={12} />}
                 </button>
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (showTagMenu === conv.id) {
+                        setShowTagMenu(null);
+                      } else {
+                        setShowTagMenu(conv.id);
+                        if (!convTags[conv.id]) loadConvTags(conv.id);
+                      }
+                    }}
+                    className="p-1 rounded hover:bg-surface-200 dark:hover:bg-surface-700"
+                    aria-label="Manage tags"
+                  >
+                    <Tag size={12} />
+                  </button>
+                  {showTagMenu === conv.id && tags.length > 0 && (
+                    <div
+                      className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg shadow-lg py-1 min-w-[120px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {tags.map((tag) => {
+                        const isLinked = (convTags[conv.id] ?? []).includes(tag.id);
+                        return (
+                          <button
+                            key={tag.id}
+                            onClick={() => toggleConvTag(conv.id, tag.id)}
+                            className="flex items-center gap-1.5 w-full px-2 py-1 text-xs hover:bg-surface-100 dark:hover:bg-surface-700"
+                          >
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                            <span className="flex-1 text-left truncate">{tag.name}</span>
+                            {isLinked && <Check size={10} className="text-green-500 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

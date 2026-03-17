@@ -60,7 +60,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
     set({ isLoadingConversations: true });
     try {
       const data = await get<{ conversations: Conversation[]; total: number }>(
-        "/conversations"
+        "/conversations?archived=true"
       );
       set({ conversations: data.conversations, isLoadingConversations: false });
     } catch (e: unknown) {
@@ -123,11 +123,9 @@ export const useChatStore = create<ChatState>((set, getState) => ({
   archiveConversation: async (id: string) => {
     const data = await patch<Conversation>(`/conversations/${id}/archive`, {});
     set((state) => ({
-      conversations: data.archived_at
-        ? state.conversations.filter((c) => c.id !== id)
-        : state.conversations.map((c) =>
-            c.id === id ? { ...c, archived_at: null } : c
-          ),
+      conversations: state.conversations.map((c) =>
+        c.id === id ? { ...c, archived_at: data.archived_at } : c
+      ),
       activeConversationId:
         data.archived_at && state.activeConversationId === id
           ? null

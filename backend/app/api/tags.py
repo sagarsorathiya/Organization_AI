@@ -42,6 +42,24 @@ async def list_tags(
     return {"tags": [TagResponse(id=str(t.id), name=t.name, color=t.color) for t in tags]}
 
 
+@router.get("/{tag_id}/conversations")
+async def get_tag_conversations(
+    tag_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all conversation IDs that have a specific tag."""
+    # Verify tag ownership
+    tag = await db.execute(
+        select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.user_id == user_id)
+    )
+    if not tag.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Tag not found")
+    result = await db.execute(
+        select(ConversationTagLink.conversation_id).where(ConversationTagLink.tag_id == tag_id)
+    )
+    ids = [str(row[0]) for row in result.all()]
+    return {"conversation_ids": ids}
 @router.post("", response_model=TagResponse)
 async def create_tag(
     body: TagCreate,

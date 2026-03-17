@@ -68,6 +68,7 @@ async def login(
             email=user.email,
             department=user.department,
             is_admin=user.is_admin,
+            is_local_account=user.is_local_account,
         ),
     )
 
@@ -118,6 +119,7 @@ async def get_current_user(
         email=user.email,
         department=user.department,
         is_admin=user.is_admin,
+        is_local_account=user.is_local_account,
     )
 
 

@@ -319,7 +319,7 @@ export function SettingsPage() {
                   a.click();
                   URL.revokeObjectURL(url);
                 } catch {
-                  // silent
+                  toast.error("Export failed. Please try again.");
                 } finally {
                   setExporting(false);
                 }

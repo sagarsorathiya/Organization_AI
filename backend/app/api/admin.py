@@ -20,6 +20,12 @@ from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.user_settings import UserSettings
 from app.models.file_upload import FileUpload
+from app.models.announcement import Announcement
+from app.models.conversation_tag import ConversationTag, ConversationTagLink
+from app.models.message_bookmark import MessageBookmark
+from app.models.message_feedback import MessageFeedback
+from app.models.prompt_template import PromptTemplate
+from app.models.shared_conversation import SharedConversation
 from app.schemas.admin import (
     AuditLogEntry,
     AuditLogListResponse,
@@ -296,6 +302,10 @@ async def update_user(
     if body.is_active is not None and user.is_active != body.is_active:
         user.is_active = body.is_active
         changed = True
+    if body.password is not None and user.is_local_account:
+        from app.services.auth_service import _hash_password
+        user.password_hash = _hash_password(body.password)
+        changed = True
 
     if changed:
         await db.flush()
@@ -557,6 +567,13 @@ _TABLE_MODELS = {
     "user_settings": UserSettings,
     "audit_logs": AuditLog,
     "file_uploads": FileUpload,
+    "announcements": Announcement,
+    "conversation_tags": ConversationTag,
+    "conversation_tag_links": ConversationTagLink,
+    "message_bookmarks": MessageBookmark,
+    "message_feedback": MessageFeedback,
+    "prompt_templates": PromptTemplate,
+    "shared_conversations": SharedConversation,
 }
 
 

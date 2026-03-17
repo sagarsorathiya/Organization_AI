@@ -301,6 +301,7 @@ async def upload_file(
         truncated=truncated,
     )
     db.add(upload_record)
+    await db.flush()
 
     return {
         "filename": file.filename,
@@ -377,6 +378,7 @@ async def upload_multiple_files(
             truncated=truncated,
         )
         db.add(upload_record)
+        await db.flush()
 
         results.append({
             "filename": file.filename,
