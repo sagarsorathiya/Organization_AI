@@ -505,6 +505,8 @@ function Initialize-Database {
             }
 
             & psql -U postgres -h localhost -c "GRANT ALL PRIVILEGES ON DATABASE $dbName TO $dbUser;" 2>$null
+            # PostgreSQL 15+ requires explicit schema permission
+            & psql -U postgres -h localhost -d $dbName -c "GRANT ALL ON SCHEMA public TO $dbUser;" 2>$null
         } finally {
             Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
         }
@@ -525,21 +527,23 @@ function Initialize-Database {
 
     Push-Location (Join-Path $ProjectRoot "backend")
     $env:PYTHONPATH = (Join-Path $ProjectRoot "backend")
-    $ErrorActionPreference_Bak = $ErrorActionPreference
-    $ErrorActionPreference = 'SilentlyContinue'
-    $migrationOutput = & $alembic upgrade head 2>&1
+
+    # Capture stderr to temp file (PowerShell SilentlyContinue + 2>&1 swallows errors)
+    $stderrFile = [System.IO.Path]::GetTempFileName()
+    $stdoutOutput = & $alembic upgrade head 2>$stderrFile
     $migrationExit = $LASTEXITCODE
-    $ErrorActionPreference = $ErrorActionPreference_Bak
+    $stderrOutput = Get-Content $stderrFile -ErrorAction SilentlyContinue
+    Remove-Item $stderrFile -ErrorAction SilentlyContinue
     $env:PYTHONPATH = $null
 
     if ($migrationExit -eq 0) {
-        $migrationOutput | ForEach-Object {
+        @($stdoutOutput; $stderrOutput) | ForEach-Object {
             if ("$_" -match "Running upgrade") { Write-Host "   $_" -ForegroundColor Gray }
         }
         Write-Ok "Database migrations complete"
     } else {
         Write-Fail "Migration failed. Error details:"
-        $migrationOutput | ForEach-Object { Write-Host "   $_" -ForegroundColor Red }
+        @($stdoutOutput; $stderrOutput) | Where-Object { $_ } | ForEach-Object { Write-Host "   $_" -ForegroundColor Red }
         Write-Host ""
         Write-Host "   Common fixes:" -ForegroundColor Yellow
         Write-Host "   - Ensure PostgreSQL is running (check Services)" -ForegroundColor Gray

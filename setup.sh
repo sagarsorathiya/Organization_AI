@@ -409,6 +409,8 @@ setup_database() {
                 ok "Database '$DB_NAME' already exists"
             fi
             sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null
+            # PostgreSQL 15+ requires explicit schema permission
+            sudo -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null
         else
             warn "Could not connect to PostgreSQL via peer auth."
             warn "Please create the database manually:"
@@ -429,14 +431,25 @@ setup_database() {
     echo -e "   ${GRAY}Running database migrations...${NC}"
     ALEMBIC="$PROJECT_ROOT/backend/venv/bin/alembic"
 
-    (cd "$PROJECT_ROOT/backend" && PYTHONPATH="$PROJECT_ROOT/backend" "$ALEMBIC" upgrade head 2>&1 | grep -i "running upgrade" | while read -r line; do
-        echo -e "   ${GRAY}$line${NC}"
-    done)
+    MIGRATION_OUTPUT=$(cd "$PROJECT_ROOT/backend" && PYTHONPATH="$PROJECT_ROOT/backend" "$ALEMBIC" upgrade head 2>&1)
+    MIGRATION_EXIT=$?
 
-    if [[ "${PIPESTATUS[0]:-0}" -eq 0 ]]; then
+    echo "$MIGRATION_OUTPUT" | grep -i "running upgrade" | while read -r line; do
+        echo -e "   ${GRAY}$line${NC}"
+    done
+
+    if [[ "$MIGRATION_EXIT" -eq 0 ]]; then
         ok "Database migrations complete"
     else
-        fail "Migration failed — check database connection settings in backend/.env"
+        fail "Migration failed. Error details:"
+        echo "$MIGRATION_OUTPUT" | while read -r line; do
+            echo -e "   $line"
+        done
+        echo ""
+        echo -e "   ${YELLOW}Common fixes:${NC}"
+        echo -e "   ${GRAY}- Ensure PostgreSQL is running${NC}"
+        echo -e "   ${GRAY}- Ensure password in backend/.env matches the DB user password${NC}"
+        echo -e "   ${GRAY}- Try manually: cd backend && venv/bin/alembic upgrade head${NC}"
     fi
 }
 
