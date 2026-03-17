@@ -206,3 +206,66 @@ export interface DatabaseInfo {
   tables: Record<string, number>;
   total_rows: number;
 }
+
+/* ───── Feature Types ───── */
+
+export interface MessageFeedback {
+  id: string;
+  message_id: string;
+  is_positive: boolean;
+  comment: string | null;
+}
+
+export interface PromptTemplate {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  is_system: boolean;
+  usage_count: number;
+  created_at: string;
+}
+
+export interface TemplateCategory {
+  category: string;
+  count: number;
+}
+
+export interface ConversationTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  type: "info" | "warning" | "maintenance";
+  is_active: boolean;
+  created_at: string;
+  expires_at: string | null;
+}
+
+export interface SharedConversation {
+  share_token: string;
+  share_url: string;
+}
+
+export interface MessageBookmark {
+  id: string;
+  message_id: string;
+  note: string | null;
+  message_preview: string;
+  conversation_id: string;
+  created_at: string;
+}
+
+export interface UserStats {
+  total_conversations: number;
+  total_messages: number;
+  messages_this_week: number;
+  messages_this_month: number;
+  total_uploads: number;
+  top_models: { model: string; count: number }[];
+}

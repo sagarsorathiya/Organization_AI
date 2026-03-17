@@ -12,7 +12,9 @@ from slowapi.errors import RateLimitExceeded
 from app.config import settings
 from app.middleware.security import SecurityHeadersMiddleware, RequestLoggingMiddleware
 from app.middleware.rate_limit import limiter
+from app.middleware.request_id import RequestIDMiddleware
 from app.api import auth, chat, conversations, settings as settings_api, admin
+from app.api import feedback, templates, tags, bookmarks, announcements, sharing
 
 # ---- Logging Setup ----
 os.makedirs(os.path.dirname(settings.LOG_FILE) or "logs", exist_ok=True)
@@ -66,6 +68,9 @@ else:
 # Security headers
 app.add_middleware(SecurityHeadersMiddleware)
 
+# Request ID
+app.add_middleware(RequestIDMiddleware)
+
 # Request logging
 app.add_middleware(RequestLoggingMiddleware)
 
@@ -86,6 +91,12 @@ app.include_router(chat.router, prefix="/api")
 app.include_router(conversations.router, prefix="/api")
 app.include_router(settings_api.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(feedback.router, prefix="/api")
+app.include_router(templates.router, prefix="/api")
+app.include_router(tags.router, prefix="/api")
+app.include_router(bookmarks.router, prefix="/api")
+app.include_router(announcements.router, prefix="/api")
+app.include_router(sharing.router, prefix="/api")
 
 
 # ---- Health Check ----
@@ -112,7 +123,11 @@ async def on_startup():
     # Create tables if they don't exist (for dev; use Alembic in production)
     if settings.APP_ENV == "development":
         from app.database import engine, Base
-        from app.models import User, Conversation, Message, AuditLog, UserSettings
+        from app.models import (
+            User, Conversation, Message, AuditLog, UserSettings,
+            MessageFeedback, PromptTemplate, ConversationTag, ConversationTagLink,
+            Announcement, SharedConversation, MessageBookmark,
+        )
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -121,6 +136,15 @@ async def on_startup():
     # Seed local admin account if enabled
     if settings.LOCAL_ADMIN_ENABLED:
         await _seed_local_admin()
+
+    # Run data retention enforcement on startup
+    try:
+        from app.tasks.data_retention import enforce_data_retention
+        deleted = await enforce_data_retention()
+        if deleted:
+            logger.info("Data retention: deleted %d expired conversations", deleted)
+    except Exception:
+        logger.exception("Data retention task failed")
 
 
 async def _seed_local_admin():

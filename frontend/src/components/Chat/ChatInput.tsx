@@ -3,6 +3,7 @@ import { useChatStore } from "@/store/chatStore";
 import { Send, StopCircle, ChevronDown, Paperclip, X, FileText, Loader2 } from "lucide-react";
 import { uploadFile } from "@/api/client";
 import { toast } from "sonner";
+import { TemplateSelector } from "./TemplateSelector";
 
 interface UploadResponse {
   filename: string;
@@ -20,7 +21,7 @@ export function ChatInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showModels, setShowModels] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<{ name: string; text: string; truncated: boolean } | null>(null);
+  const [attachedFile, setAttachedFile] = useState<{ name: string; text: string; truncated: boolean }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const {
     sendMessageStream,
@@ -80,9 +81,12 @@ export function ChatInput() {
     if (!trimmed || isStreaming) return;
 
     let messageContent = trimmed;
-    if (attachedFile) {
-      messageContent = `[Attached file: ${attachedFile.name}]\n\n--- File Content ---\n${attachedFile.text}\n--- End of File ---\n\n${trimmed}`;
-      setAttachedFile(null);
+    if (attachedFile.length > 0) {
+      const fileParts = attachedFile.map(
+        (f) => `[Attached file: ${f.name}]\n\n--- File Content ---\n${f.text}\n--- End of File ---`
+      );
+      messageContent = `${fileParts.join("\n\n")}\n\n${trimmed}`;
+      setAttachedFile([]);
     }
 
     setInput("");
@@ -90,32 +94,31 @@ export function ChatInput() {
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Reset input so the same file can be re-selected
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     e.target.value = "";
-
-    if (file.size > attachmentsMaxSizeMb * 1024 * 1024) {
-      toast.error(`File too large. Maximum size is ${attachmentsMaxSizeMb} MB.`);
-      return;
-    }
-
-    const ext = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!ACCEPTED_EXTENSIONS.has(ext)) {
-      toast.error(`Unsupported file type: ${ext}. Accepted: ${ACCEPTED_TYPES}`);
-      return;
-    }
 
     setIsUploading(true);
     try {
-      const res = await uploadFile<UploadResponse>("/chat/upload", file);
-      if (!res.text || res.text.trim().length === 0) {
-        toast.error("Could not extract text from this file.");
-        return;
-      }
-      setAttachedFile({ name: res.filename, text: res.text, truncated: res.truncated });
-      if (res.truncated) {
-        toast.info("File was truncated due to length. First 50,000 characters included.");
+      for (const file of Array.from(files)) {
+        if (file.size > attachmentsMaxSizeMb * 1024 * 1024) {
+          toast.error(`${file.name}: File too large (max ${attachmentsMaxSizeMb} MB)`);
+          continue;
+        }
+        const ext = "." + file.name.split(".").pop()?.toLowerCase();
+        if (!ACCEPTED_EXTENSIONS.has(ext)) {
+          toast.error(`${file.name}: Unsupported file type`);
+          continue;
+        }
+        const res = await uploadFile<UploadResponse>("/chat/upload", file);
+        if (!res.text || res.text.trim().length === 0) {
+          toast.error(`${file.name}: Could not extract text`);
+          continue;
+        }
+        setAttachedFile((prev) => [...prev, { name: res.filename, text: res.text, truncated: res.truncated }]);
+        if (res.truncated) {
+          toast.info(`${file.name} was truncated due to length.`);
+        }
       }
       textareaRef.current?.focus();
     } catch (err: unknown) {
@@ -126,8 +129,13 @@ export function ChatInput() {
     }
   };
 
-  const removeAttachment = () => {
-    setAttachedFile(null);
+  const removeAttachment = (index: number) => {
+    setAttachedFile((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleTemplateSelect = (content: string) => {
+    setInput(content);
+    textareaRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -183,22 +191,24 @@ export function ChatInput() {
           </div>
         )}
 
-        {/* Attached file preview */}
-        {attachmentsEnabled && attachedFile && (
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <div className="flex items-center gap-2 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg px-3 py-1.5 text-sm">
-              <FileText size={14} className="text-primary-600 dark:text-primary-400 shrink-0" />
-              <span className="text-primary-700 dark:text-primary-300 truncate max-w-[250px]">
-                {attachedFile.name}
-              </span>
-              <button
-                onClick={removeAttachment}
-                className="text-primary-400 hover:text-red-500 transition-colors shrink-0"
-                aria-label="Remove attachment"
-              >
-                <X size={14} />
-              </button>
-            </div>
+        {/* Attached files preview */}
+        {attachmentsEnabled && attachedFile.length > 0 && (
+          <div className="flex items-center gap-2 mb-2 px-1 flex-wrap">
+            {attachedFile.map((f, i) => (
+              <div key={i} className="flex items-center gap-2 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg px-3 py-1.5 text-sm">
+                <FileText size={14} className="text-primary-600 dark:text-primary-400 shrink-0" />
+                <span className="text-primary-700 dark:text-primary-300 truncate max-w-[250px]">
+                  {f.name}
+                </span>
+                <button
+                  onClick={() => removeAttachment(i)}
+                  className="text-primary-400 hover:text-red-500 transition-colors shrink-0"
+                  aria-label="Remove attachment"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -210,11 +220,15 @@ export function ChatInput() {
             accept={ACCEPTED_TYPES}
             onChange={handleFileSelect}
             className="hidden"
-            aria-label="Attach file"
+            aria-label="Attach files"
+            multiple
           />
         )}
 
-        <div className="flex items-end gap-2 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 px-4 py-2 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent transition-all">
+        <div className="flex items-end gap-2 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 px-4 py-2 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent transition-all relative">
+          {/* Template selector */}
+          <TemplateSelector onSelect={handleTemplateSelect} />
+
           {/* Attach button */}
           {attachmentsEnabled && (
             <button

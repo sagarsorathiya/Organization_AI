@@ -9,6 +9,8 @@ import type {
   AdminSettings,
   DatabaseInfo,
   PullProgress,
+  Announcement,
+  PromptTemplate,
 } from "@/types";
 import {
   Activity,
@@ -34,11 +36,18 @@ import {
   Square,
   PackagePlus,
   Paperclip,
+  Megaphone,
+  FileText,
+  ThumbsUp,
+  ThumbsDown,
+  Plus,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
 
-type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database";
+type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback";
 
 const POPULAR_MODELS = [
   { name: "llama3.3:70b",         family: "Llama",     params: "70B",   size: "43 GB",   desc: "Meta's most capable open model" },
@@ -134,6 +143,22 @@ export function AdminPage() {
   const [bpEdited, setBpEdited] = useState(false);
   const bindPasswordDisplay = bpEdited ? bpValue : "";
 
+  // Announcements management
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [annLoading, setAnnLoading] = useState(false);
+  const [newAnn, setNewAnn] = useState({ title: "", content: "", type: "info" as string, expires_at: "" });
+  const [creatingAnn, setCreatingAnn] = useState(false);
+
+  // Templates management
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [tplLoading, setTplLoading] = useState(false);
+  const [newTpl, setNewTpl] = useState({ title: "", content: "", category: "general" });
+  const [creatingTpl, setCreatingTpl] = useState(false);
+
+  // Feedback stats
+  const [feedbackStats, setFeedbackStats] = useState<{ total: number; positive: number; negative: number; recent: { message_id: string; is_positive: boolean; comment: string | null; created_at: string }[] } | null>(null);
+  const [fbLoading, setFbLoading] = useState(false);
+
   const createUser = async () => {
     if (!newUser.username || !newUser.password || !newUser.display_name) {
       toast.error("Username, password, and display name are required");
@@ -191,6 +216,94 @@ export function AdminPage() {
       toast.error("Failed to load dashboard data");
     }
     setIsLoading(false);
+  };
+
+  const fetchAnnouncements = async () => {
+    setAnnLoading(true);
+    try {
+      const data = await get<Announcement[]>("/announcements/all");
+      setAnnouncements(data);
+    } catch {
+      toast.error("Failed to load announcements");
+    } finally {
+      setAnnLoading(false);
+    }
+  };
+
+  const createAnnouncement = async () => {
+    if (!newAnn.title || !newAnn.content) { toast.error("Title and content required"); return; }
+    setCreatingAnn(true);
+    try {
+      await post("/announcements", {
+        title: newAnn.title,
+        content: newAnn.content,
+        type: newAnn.type,
+        expires_at: newAnn.expires_at || null,
+      });
+      toast.success("Announcement created");
+      setNewAnn({ title: "", content: "", type: "info", expires_at: "" });
+      fetchAnnouncements();
+    } catch { toast.error("Failed to create announcement"); }
+    finally { setCreatingAnn(false); }
+  };
+
+  const toggleAnnouncement = async (id: string) => {
+    try {
+      await patch(`/announcements/${id}/toggle`, {});
+      fetchAnnouncements();
+    } catch { toast.error("Failed to toggle announcement"); }
+  };
+
+  const deleteAnnouncement = async (id: string) => {
+    try {
+      await del(`/announcements/${id}`);
+      toast.success("Announcement deleted");
+      fetchAnnouncements();
+    } catch { toast.error("Failed to delete announcement"); }
+  };
+
+  const fetchTemplates = async () => {
+    setTplLoading(true);
+    try {
+      const data = await get<PromptTemplate[]>("/templates");
+      setTemplates(data);
+    } catch {
+      toast.error("Failed to load templates");
+    } finally {
+      setTplLoading(false);
+    }
+  };
+
+  const createTemplate = async () => {
+    if (!newTpl.title || !newTpl.content) { toast.error("Title and content required"); return; }
+    setCreatingTpl(true);
+    try {
+      await post("/templates", newTpl);
+      toast.success("Template created");
+      setNewTpl({ title: "", content: "", category: "general" });
+      fetchTemplates();
+    } catch { toast.error("Failed to create template"); }
+    finally { setCreatingTpl(false); }
+  };
+
+  const deleteTemplate = async (id: string) => {
+    try {
+      await del(`/templates/${id}`);
+      toast.success("Template deleted");
+      fetchTemplates();
+    } catch { toast.error("Failed to delete template"); }
+  };
+
+  const fetchFeedbackStats = async () => {
+    setFbLoading(true);
+    try {
+      const data = await get<{ total: number; positive: number; negative: number; recent: { message_id: string; is_positive: boolean; comment: string | null; created_at: string }[] }>("/feedback/stats");
+      setFeedbackStats(data);
+    } catch {
+      toast.error("Failed to load feedback stats");
+    } finally {
+      setFbLoading(false);
+    }
   };
 
   const fetchLogs = async () => {
@@ -551,6 +664,9 @@ export function AdminPage() {
     if (tab === "settings") fetchSettings();
     if (tab === "users") fetchUsers();
     if (tab === "database") fetchDbInfo();
+    if (tab === "announcements") fetchAnnouncements();
+    if (tab === "templates") fetchTemplates();
+    if (tab === "feedback") fetchFeedbackStats();
   }, [tab]);
 
   const formatUptime = (seconds: number) => {
@@ -569,6 +685,9 @@ export function AdminPage() {
     { id: "database", label: "Database" },
     { id: "audit", label: "Audit Logs" },
     { id: "models", label: "Models" },
+    { id: "announcements", label: "Announcements" },
+    { id: "templates", label: "Templates" },
+    { id: "feedback", label: "Feedback" },
   ];
 
   return (
@@ -1663,6 +1782,258 @@ export function AdminPage() {
                 </div>
               </>
             ) : null}
+          </div>
+        )}
+
+        {/* Announcements Tab */}
+        {tab === "announcements" && (
+          <div className="space-y-6">
+            {/* Create Announcement */}
+            <div className="card p-5">
+              <h3 className="font-medium text-surface-700 dark:text-surface-200 mb-3 flex items-center gap-2">
+                <Megaphone size={16} />
+                Create Announcement
+              </h3>
+              <div className="space-y-3 max-w-lg">
+                <input
+                  className="input-field w-full text-sm"
+                  placeholder="Title"
+                  value={newAnn.title}
+                  onChange={(e) => setNewAnn({ ...newAnn, title: e.target.value })}
+                />
+                <textarea
+                  className="input-field w-full text-sm resize-y"
+                  placeholder="Content"
+                  rows={3}
+                  value={newAnn.content}
+                  onChange={(e) => setNewAnn({ ...newAnn, content: e.target.value })}
+                />
+                <div className="flex gap-3">
+                  <select
+                    className="input-field text-sm"
+                    value={newAnn.type}
+                    onChange={(e) => setNewAnn({ ...newAnn, type: e.target.value })}
+                  >
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                  <input
+                    type="datetime-local"
+                    className="input-field text-sm"
+                    value={newAnn.expires_at}
+                    onChange={(e) => setNewAnn({ ...newAnn, expires_at: e.target.value })}
+                    title="Expires at (optional)"
+                  />
+                </div>
+                <button
+                  onClick={createAnnouncement}
+                  disabled={creatingAnn}
+                  className="btn-primary text-sm flex items-center gap-2"
+                >
+                  {creatingAnn ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  Create
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="card overflow-hidden">
+              <div className="px-4 py-3 border-b bg-surface-50 dark:bg-surface-850 flex items-center justify-between">
+                <span className="text-sm font-medium">All Announcements ({announcements.length})</span>
+                {annLoading && <Loader2 size={14} className="animate-spin" />}
+              </div>
+              {announcements.length === 0 ? (
+                <p className="text-sm text-surface-400 p-4">No announcements yet.</p>
+              ) : (
+                <div className="divide-y">
+                  {announcements.map((a) => (
+                    <div key={a.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={clsx(
+                            "text-xs px-1.5 py-0.5 rounded font-medium",
+                            a.type === "warning" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700" :
+                            a.type === "maintenance" ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700" :
+                            "bg-blue-100 dark:bg-blue-900/30 text-blue-700"
+                          )}>{a.type}</span>
+                          <span className="text-sm font-medium">{a.title}</span>
+                          {!a.is_active && <span className="text-xs text-surface-400">(inactive)</span>}
+                        </div>
+                        <p className="text-xs text-surface-500 truncate">{a.content}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => toggleAnnouncement(a.id)}
+                          className="p-1.5 rounded hover:bg-surface-100 dark:hover:bg-surface-800"
+                          title={a.is_active ? "Deactivate" : "Activate"}
+                        >
+                          {a.is_active ? <ToggleRight size={16} className="text-green-500" /> : <ToggleLeft size={16} className="text-surface-400" />}
+                        </button>
+                        <button
+                          onClick={() => deleteAnnouncement(a.id)}
+                          className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Templates Tab */}
+        {tab === "templates" && (
+          <div className="space-y-6">
+            {/* Create Template */}
+            <div className="card p-5">
+              <h3 className="font-medium text-surface-700 dark:text-surface-200 mb-3 flex items-center gap-2">
+                <FileText size={16} />
+                Create Prompt Template
+              </h3>
+              <div className="space-y-3 max-w-lg">
+                <input
+                  className="input-field w-full text-sm"
+                  placeholder="Title"
+                  value={newTpl.title}
+                  onChange={(e) => setNewTpl({ ...newTpl, title: e.target.value })}
+                />
+                <textarea
+                  className="input-field w-full text-sm resize-y"
+                  placeholder="Template content (use {topic} for placeholders)"
+                  rows={4}
+                  value={newTpl.content}
+                  onChange={(e) => setNewTpl({ ...newTpl, content: e.target.value })}
+                />
+                <input
+                  className="input-field w-full text-sm"
+                  placeholder="Category (e.g. general, coding, writing)"
+                  value={newTpl.category}
+                  onChange={(e) => setNewTpl({ ...newTpl, category: e.target.value })}
+                />
+                <button
+                  onClick={createTemplate}
+                  disabled={creatingTpl}
+                  className="btn-primary text-sm flex items-center gap-2"
+                >
+                  {creatingTpl ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  Create Template
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="card overflow-hidden">
+              <div className="px-4 py-3 border-b bg-surface-50 dark:bg-surface-850 flex items-center justify-between">
+                <span className="text-sm font-medium">All Templates ({templates.length})</span>
+                {tplLoading && <Loader2 size={14} className="animate-spin" />}
+              </div>
+              {templates.length === 0 ? (
+                <p className="text-sm text-surface-400 p-4">No templates yet.</p>
+              ) : (
+                <div className="divide-y">
+                  {templates.map((t) => (
+                    <div key={t.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 font-medium">
+                            {t.category}
+                          </span>
+                          <span className="text-sm font-medium">{t.title}</span>
+                          {t.is_system && <span className="text-xs text-primary-500">(system)</span>}
+                        </div>
+                        <p className="text-xs text-surface-500 truncate">{t.content}</p>
+                        <span className="text-[10px] text-surface-400">Used {t.usage_count} times</span>
+                      </div>
+                      <button
+                        onClick={() => deleteTemplate(t.id)}
+                        className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 shrink-0"
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Feedback Tab */}
+        {tab === "feedback" && (
+          <div className="space-y-6">
+            {fbLoading ? (
+              <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-primary-500" /></div>
+            ) : feedbackStats ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="card p-4 text-center">
+                    <p className="text-2xl font-bold text-surface-800 dark:text-surface-100">{feedbackStats.total}</p>
+                    <p className="text-xs text-surface-400 mt-1">Total Feedback</p>
+                  </div>
+                  <div className="card p-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <ThumbsUp size={18} className="text-green-500" />
+                      <p className="text-2xl font-bold text-green-600">{feedbackStats.positive}</p>
+                    </div>
+                    <p className="text-xs text-surface-400 mt-1">Positive</p>
+                  </div>
+                  <div className="card p-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <ThumbsDown size={18} className="text-red-500" />
+                      <p className="text-2xl font-bold text-red-600">{feedbackStats.negative}</p>
+                    </div>
+                    <p className="text-xs text-surface-400 mt-1">Negative</p>
+                  </div>
+                </div>
+
+                {feedbackStats.total > 0 && (
+                  <div className="card p-4">
+                    <p className="text-sm font-medium mb-2">
+                      Satisfaction Rate: {Math.round((feedbackStats.positive / feedbackStats.total) * 100)}%
+                    </p>
+                    <div className="w-full bg-surface-200 dark:bg-surface-700 rounded-full h-3">
+                      <div
+                        className="bg-green-500 h-3 rounded-full transition-all"
+                        style={{ width: `${(feedbackStats.positive / feedbackStats.total) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {feedbackStats.recent && feedbackStats.recent.length > 0 && (
+                  <div className="card overflow-hidden">
+                    <div className="px-4 py-3 border-b bg-surface-50 dark:bg-surface-850">
+                      <span className="text-sm font-medium">Recent Feedback</span>
+                    </div>
+                    <div className="divide-y">
+                      {feedbackStats.recent.map((fb, i) => (
+                        <div key={i} className="px-4 py-2.5 flex items-center gap-3">
+                          {fb.is_positive ? (
+                            <ThumbsUp size={14} className="text-green-500 shrink-0" />
+                          ) : (
+                            <ThumbsDown size={14} className="text-red-500 shrink-0" />
+                          )}
+                          <span className="text-xs text-surface-500 truncate flex-1">
+                            {fb.comment || "No comment"}
+                          </span>
+                          <span className="text-[10px] text-surface-400 shrink-0">
+                            {new Date(fb.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-surface-400 text-center py-8">No feedback data available.</p>
+            )}
           </div>
         )}
       </div>

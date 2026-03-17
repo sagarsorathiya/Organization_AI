@@ -1,5 +1,5 @@
 import type { Message } from "@/types";
-import { Bot, Copy, Check, Pencil, Send } from "lucide-react";
+import { Bot, Copy, Check, Pencil, Send, ThumbsUp, ThumbsDown, Bookmark, RefreshCw } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -7,6 +7,8 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import clsx from "clsx";
 import { useAuthStore } from "@/store/authStore";
+import { useFeedbackStore } from "@/store/feedbackStore";
+import { useBookmarkStore } from "@/store/bookmarkStore";
 
 function formatTime(dateStr: string): string {
   const d = new Date(dateStr);
@@ -24,15 +26,21 @@ function getInitials(name: string): string {
 interface Props {
   message: Message;
   onEdit?: (messageId: string, newContent: string) => void;
+  onRegenerate?: (messageId: string) => void;
+  isLastAssistant?: boolean;
 }
 
-export function MessageBubble({ message, onEdit }: Props) {
+export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }: Props) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuthStore();
+  const { feedbackMap, submitFeedback } = useFeedbackStore();
+  const { bookmarkedIds, toggleBookmark } = useBookmarkStore();
+  const feedback = feedbackMap[message.id];
+  const isBookmarked = bookmarkedIds.has(message.id);
 
   useEffect(() => {
     if (isEditing && editRef.current) {
@@ -199,6 +207,36 @@ export function MessageBubble({ message, onEdit }: Props) {
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
               </button>
+              <button
+                onClick={() => submitFeedback(message.id, true)}
+                className={clsx("p-1 rounded", feedback?.is_positive === true ? "text-green-500" : "text-surface-400 hover:text-green-500")}
+                aria-label="Thumbs up"
+              >
+                <ThumbsUp size={14} />
+              </button>
+              <button
+                onClick={() => submitFeedback(message.id, false)}
+                className={clsx("p-1 rounded", feedback?.is_positive === false ? "text-red-500" : "text-surface-400 hover:text-red-500")}
+                aria-label="Thumbs down"
+              >
+                <ThumbsDown size={14} />
+              </button>
+              <button
+                onClick={() => toggleBookmark(message.id)}
+                className={clsx("p-1 rounded", isBookmarked ? "text-amber-500" : "text-surface-400 hover:text-amber-500")}
+                aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+              >
+                <Bookmark size={14} className={isBookmarked ? "fill-amber-500" : ""} />
+              </button>
+              {isLastAssistant && onRegenerate && (
+                <button
+                  onClick={() => onRegenerate(message.id)}
+                  className="p-1 rounded text-surface-400 hover:text-primary-500"
+                  aria-label="Regenerate response"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              )}
               {message.model && (
                 <span className="text-[10px] text-surface-400 self-center ml-1">
                   {message.model}

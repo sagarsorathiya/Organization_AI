@@ -1,10 +1,16 @@
 """Conversation management API routes."""
 
+import io
+import json
 import uuid
+import zipfile
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.api.deps import get_current_user_id, get_current_user_token, get_client_ip
@@ -18,6 +24,8 @@ from app.schemas.conversation import (
 from app.schemas.message import ConversationMessages, MessageResponse
 from app.services.chat_service import chat_service
 from app.services.audit_service import audit_service
+from app.models.conversation import Conversation
+from app.models.message import Message
 
 router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
@@ -195,3 +203,51 @@ async def export_conversation(
 
     media_type = "application/json" if fmt == "json" else "text/markdown"
     return PlainTextResponse(content=content, media_type=media_type)
+
+
+@router.get("/export-all")
+async def export_all_conversations(
+    fmt: str = Query(default="json", pattern="^(json|markdown)$"),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export all conversations as a ZIP file."""
+    result = await db.execute(
+        select(Conversation)
+        .options(selectinload(Conversation.messages))
+        .where(Conversation.user_id == user_id)
+        .order_by(Conversation.created_at)
+    )
+    conversations = result.scalars().all()
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for conv in conversations:
+            msgs = sorted(conv.messages, key=lambda m: m.created_at)
+            safe_title = "".join(c if c.isalnum() or c in " -_" else "_" for c in conv.title)[:50]
+            filename = f"{safe_title}_{str(conv.id)[:8]}"
+
+            if fmt == "json":
+                data = {
+                    "title": conv.title,
+                    "created_at": conv.created_at.isoformat(),
+                    "messages": [
+                        {"role": m.role, "content": m.content, "model": m.model, "created_at": m.created_at.isoformat()}
+                        for m in msgs
+                    ],
+                }
+                zf.writestr(f"{filename}.json", json.dumps(data, indent=2))
+            else:
+                lines = [f"# {conv.title}\n"]
+                for m in msgs:
+                    role = "**You**" if m.role == "user" else "**Assistant**"
+                    lines.append(f"\n{role}:\n{m.content}\n")
+                zf.writestr(f"{filename}.md", "\n".join(lines))
+
+    buf.seek(0)
+    ext = "zip"
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="all-conversations.{ext}"'},
+    )

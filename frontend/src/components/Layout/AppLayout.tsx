@@ -4,6 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
+import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { X } from "lucide-react";
 
 export function AppLayout() {
@@ -72,6 +73,7 @@ export function AppLayout() {
           onMenuClick={() => setDrawerOpen(true)}
           showMenuButton
         />
+        <AnnouncementBanner />
         <main className="flex-1 overflow-hidden">
           <Outlet />
         </main>

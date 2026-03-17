@@ -309,3 +309,117 @@ async def upload_file(
         "text": extracted_text,
         "truncated": truncated,
     }
+
+
+@router.post("/upload-multiple")
+async def upload_multiple_files(
+    files: list[UploadFile] = File(...),
+    conversation_id: str | None = None,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload multiple documents and extract text from each."""
+    if not app_settings.ATTACHMENTS_ENABLED:
+        raise HTTPException(status_code=403, detail="File attachments are disabled by administrator")
+
+    if len(files) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 files per upload")
+
+    results = []
+    loop = asyncio.get_running_loop()
+
+    for file in files:
+        if not file.filename:
+            results.append({"filename": "unknown", "error": "No filename provided"})
+            continue
+
+        ext = _get_extension(file.filename)
+        if ext not in ALLOWED_EXTENSIONS:
+            results.append({"filename": file.filename, "error": f"Unsupported file type '{ext}'"})
+            continue
+
+        data = await file.read()
+        max_bytes = app_settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
+        if len(data) > max_bytes:
+            results.append({"filename": file.filename, "error": f"File too large (max {app_settings.ATTACHMENTS_MAX_SIZE_MB} MB)"})
+            continue
+
+        extractor = EXTRACTOR_MAP.get(ext)
+        if not extractor:
+            results.append({"filename": file.filename, "error": f"No text extractor for '{ext}'"})
+            continue
+
+        try:
+            extracted_text = await loop.run_in_executor(None, extractor, data)
+        except Exception:
+            logger.exception("Text extraction failed for file: %s", file.filename)
+            results.append({"filename": file.filename, "error": "Failed to extract text"})
+            continue
+
+        max_chars = app_settings.ATTACHMENTS_MAX_EXTRACT_CHARS
+        truncated = len(extracted_text) > max_chars
+        if truncated:
+            extracted_text = extracted_text[:max_chars]
+
+        conv_uuid = None
+        if conversation_id:
+            try:
+                conv_uuid = uuid.UUID(conversation_id)
+            except ValueError:
+                pass
+        upload_record = FileUpload(
+            user_id=user_id,
+            conversation_id=conv_uuid,
+            filename=file.filename,
+            extension=ext,
+            size_bytes=len(data),
+            char_count=len(extracted_text),
+            truncated=truncated,
+        )
+        db.add(upload_record)
+
+        results.append({
+            "filename": file.filename,
+            "size": len(data),
+            "extension": ext,
+            "text": extracted_text,
+            "truncated": truncated,
+        })
+
+    return {"files": results}
+
+
+@router.post("/regenerate")
+async def regenerate_response(
+    body: ChatRequest,
+    request: Request,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    token=Depends(get_current_user_token),
+    db: AsyncSession = Depends(get_db),
+):
+    """Regenerate the last assistant response in a conversation (streaming)."""
+    if not body.conversation_id:
+        raise HTTPException(status_code=400, detail="conversation_id is required for regeneration")
+
+    conv_id = uuid.UUID(body.conversation_id)
+
+    await audit_service.log(
+        db,
+        action="response_regenerated",
+        user_id=user_id,
+        username=token.username,
+        resource_type="conversation",
+        resource_id=str(conv_id),
+        ip_address=get_client_ip(request),
+    )
+
+    return StreamingResponse(
+        chat_service.send_message_stream(
+            user_id=user_id,
+            conversation_id=conv_id,
+            content=body.message,
+            model=body.model,
+        ),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

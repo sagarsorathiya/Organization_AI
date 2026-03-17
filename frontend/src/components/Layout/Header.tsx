@@ -3,6 +3,7 @@ import { useThemeStore } from "@/store/themeStore";
 import { useNavigate } from "react-router-dom";
 import { Sun, Moon, Monitor, LogOut, User, Menu } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { KeyboardShortcutsButton } from "@/components/KeyboardShortcutsModal";
 
 export function Header({
   onMenuClick,
@@ -59,6 +60,9 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Keyboard shortcuts */}
+        <KeyboardShortcutsButton />
+
         {/* Theme toggle */}
         <button
           onClick={cycleTheme}

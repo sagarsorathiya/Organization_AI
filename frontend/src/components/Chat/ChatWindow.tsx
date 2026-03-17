@@ -1,9 +1,13 @@
 import { useEffect, useRef, useMemo } from "react";
 import { useChatStore } from "@/store/chatStore";
-import { useCallback } from "react";
+import { useFeedbackStore } from "@/store/feedbackStore";
+import { useBookmarkStore } from "@/store/bookmarkStore";
+import { useCallback, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { StreamingMessage } from "./StreamingMessage";
+import { ShareDialog } from "@/components/ShareDialog";
+import { KeyboardShortcutsButton } from "@/components/KeyboardShortcutsModal";
 import { toast } from "sonner";
 import {
   Bot,
@@ -19,6 +23,7 @@ import {
   PenTool,
   Lock,
   Zap,
+  Share2,
 } from "lucide-react";
 import type { Message } from "@/types";
 
@@ -69,7 +74,23 @@ export function ChatWindow() {
     error,
     setError,
     editAndResend,
+    sendMessageStream,
+    selectedModel,
   } = useChatStore();
+  const { loadConversationFeedback } = useFeedbackStore();
+  const { loadBookmarks } = useBookmarkStore();
+  const [showShare, setShowShare] = useState(false);
+
+  // Load feedback + bookmarks when conversation changes
+  useEffect(() => {
+    if (activeConversationId) {
+      loadConversationFeedback(activeConversationId);
+    }
+  }, [activeConversationId, loadConversationFeedback]);
+
+  useEffect(() => {
+    loadBookmarks();
+  }, [loadBookmarks]);
 
   const handleEditMessage = useCallback(
     (messageId: string, newContent: string) => {
@@ -77,6 +98,27 @@ export function ChatWindow() {
     },
     [editAndResend]
   );
+
+  const handleRegenerate = useCallback(
+    (messageId: string) => {
+      // Find the last user message before this assistant message
+      const idx = messages.findIndex((m) => m.id === messageId);
+      if (idx <= 0) return;
+      const userMsg = messages[idx - 1];
+      if (userMsg?.role !== "user") return;
+      // Re-send the user's message
+      sendMessageStream(userMsg.content, selectedModel || undefined);
+    },
+    [messages, sendMessageStream, selectedModel]
+  );
+
+  // Find last assistant message id
+  const lastAssistantId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") return messages[i].id;
+    }
+    return null;
+  }, [messages]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const dateGroups = useMemo(() => groupByDate(messages), [messages]);
@@ -200,9 +242,17 @@ export function ChatWindow() {
         </div>
       )}
 
-      {/* Export button */}
+      {/* Export & Share buttons */}
       {activeConversationId && messages.length > 0 && (
         <div className="flex justify-end px-4 pt-2 gap-1">
+          <KeyboardShortcutsButton />
+          <button
+            onClick={() => setShowShare(true)}
+            className="flex items-center gap-1 text-xs text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 px-2 py-1 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800"
+            aria-label="Share conversation"
+          >
+            <Share2 size={12} /> Share
+          </button>
           <button
             onClick={() => handleExport("markdown")}
             className="flex items-center gap-1 text-xs text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 px-2 py-1 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800"
@@ -218,6 +268,11 @@ export function ChatWindow() {
             <Download size={12} /> .json
           </button>
         </div>
+      )}
+
+      {/* Share dialog */}
+      {showShare && activeConversationId && (
+        <ShareDialog conversationId={activeConversationId} onClose={() => setShowShare(false)} />
       )}
 
       {/* Messages */}
@@ -241,7 +296,13 @@ export function ChatWindow() {
                     <div className="flex-1 h-px bg-surface-200 dark:bg-surface-700" />
                   </div>
                   {group.msgs.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} onEdit={handleEditMessage} />
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      onEdit={handleEditMessage}
+                      onRegenerate={handleRegenerate}
+                      isLastAssistant={msg.id === lastAssistantId}
+                    />
                   ))}
                 </div>
               ))}

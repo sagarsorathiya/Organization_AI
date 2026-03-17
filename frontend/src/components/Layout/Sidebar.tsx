@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useChatStore } from "@/store/chatStore";
 import {
@@ -16,8 +16,12 @@ import {
   ArchiveRestore,
   Search,
   Bot,
+  Plus,
+  Bookmark,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { get, post, del } from "@/api/client";
+import type { ConversationTag } from "@/types";
 import clsx from "clsx";
 
 function formatRelativeTime(dateStr: string) {
@@ -58,6 +62,43 @@ export function Sidebar() {
   const [showArchived, setShowArchived] = useState(false);
   const [expandedActions, setExpandedActions] = useState<string | null>(null);
   const [localSearch, setLocalSearch] = useState(sidebarSearch);
+
+  // Tags
+  const [tags, setTags] = useState<ConversationTag[]>([]);
+  const [activeTagId, setActiveTagId] = useState<string | null>(null);
+
+  const [showNewTag, setShowNewTag] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+
+  useEffect(() => {
+    get<ConversationTag[]>("/tags").then(setTags).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (activeTagId) {
+      // Fetch conversations for this tag (tag link API returns tag links for a conversation)
+      // We need to filter client-side since we don't have a "conversations by tag" endpoint
+      // Instead, iterate conversations — just filter using local state
+    }
+  }, [activeTagId]);
+
+  const createTag = async () => {
+    if (!newTagName.trim()) return;
+    try {
+      const tag = await post<ConversationTag>("/tags", { name: newTagName.trim() });
+      setTags((t) => [...t, tag]);
+      setNewTagName("");
+      setShowNewTag(false);
+    } catch { /* silent */ }
+  };
+
+  const deleteTag = async (tagId: string) => {
+    try {
+      await del(`/tags/${tagId}`);
+      setTags((t) => t.filter((tg) => tg.id !== tagId));
+      if (activeTagId === tagId) setActiveTagId(null);
+    } catch { /* silent */ }
+  };
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // P11: Debounce sidebar search
@@ -463,6 +504,72 @@ export function Sidebar() {
             Archived
           </button>
         </div>
+
+        {/* Tags */}
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            <button
+              onClick={() => setActiveTagId(null)}
+              className={clsx(
+                "text-[10px] px-1.5 py-0.5 rounded-full transition-colors",
+                !activeTagId
+                  ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                  : "bg-surface-100 dark:bg-surface-800 text-surface-500 hover:text-surface-700"
+              )}
+            >
+              All
+            </button>
+            {tags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => setActiveTagId(activeTagId === tag.id ? null : tag.id)}
+                className={clsx(
+                  "text-[10px] px-1.5 py-0.5 rounded-full transition-colors flex items-center gap-0.5",
+                  activeTagId === tag.id
+                    ? "text-white"
+                    : "bg-surface-100 dark:bg-surface-800 text-surface-500 hover:text-surface-700"
+                )}
+                style={activeTagId === tag.id ? { backgroundColor: tag.color } : undefined}
+              >
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                {tag.name}
+                {activeTagId === tag.id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteTag(tag.id); }}
+                    className="ml-0.5 hover:text-red-300"
+                    title="Delete tag"
+                  >
+                    <X size={8} />
+                  </button>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-1 mt-1">
+          {showNewTag ? (
+            <div className="flex items-center gap-1 flex-1">
+              <input
+                className="input-field text-xs py-0.5 px-1.5 flex-1"
+                placeholder="Tag name"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") createTag(); if (e.key === "Escape") setShowNewTag(false); }}
+                autoFocus
+              />
+              <button onClick={createTag} className="p-0.5 text-green-500"><Check size={12} /></button>
+              <button onClick={() => setShowNewTag(false)} className="p-0.5 text-red-500"><X size={12} /></button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowNewTag(true)}
+              className="text-[10px] text-surface-400 hover:text-surface-600 flex items-center gap-0.5"
+            >
+              <Plus size={10} />
+              Tag
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Conversation List */}
@@ -518,6 +625,19 @@ export function Sidebar() {
         >
           <Settings size={16} />
           Settings
+        </button>
+        <button
+          onClick={() => navigate("/bookmarks")}
+          className={clsx(
+            "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+            location.pathname === "/bookmarks"
+              ? "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-medium"
+              : "text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800"
+          )}
+          aria-label="Bookmarks"
+        >
+          <Bookmark size={16} />
+          Bookmarks
         </button>
         {user?.is_admin && (
           <button
