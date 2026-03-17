@@ -351,10 +351,11 @@ setup_python() {
         ok "Virtual environment exists"
     fi
 
-    echo -e "   ${GRAY}Installing Python dependencies (this may take 1-2 minutes)...${NC}"
-    "$VENV_DIR/bin/pip" install --upgrade pip -q 2>/dev/null
-    if ! "$VENV_DIR/bin/pip" install -r "$PROJECT_ROOT/backend/requirements.txt" -q 2>/dev/null; then
-        "$VENV_DIR/bin/pip" install -r "$PROJECT_ROOT/backend/requirements.txt"
+    echo -e "   ${GRAY}Installing Python dependencies (this may take 2-5 minutes)...${NC}"
+    "$VENV_DIR/bin/pip" install --upgrade pip -q --timeout 120 2>/dev/null
+    if ! "$VENV_DIR/bin/pip" install -r "$PROJECT_ROOT/backend/requirements.txt" -q --timeout 120 2>/dev/null; then
+        echo -e "   ${YELLOW}Retrying with verbose output...${NC}"
+        "$VENV_DIR/bin/pip" install -r "$PROJECT_ROOT/backend/requirements.txt" --timeout 120
     fi
     ok "Python dependencies installed"
 }

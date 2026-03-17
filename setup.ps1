@@ -407,11 +407,12 @@ function Install-PythonDeps($pythonCmd) {
     $pip = Join-Path $venvPath "Scripts\pip.exe"
     $python = Join-Path $venvPath "Scripts\python.exe"
 
-    Write-Host "   Installing Python dependencies (this may take 1-2 minutes)..." -ForegroundColor Gray
-    & $pip install --upgrade pip --quiet 2>$null
-    & $pip install -r (Join-Path $ProjectRoot "backend\requirements.txt") --quiet 2>$null
+    Write-Host "   Installing Python dependencies (this may take 2-5 minutes)..." -ForegroundColor Gray
+    & $pip install --upgrade pip --quiet --timeout 120 2>$null
+    & $pip install -r (Join-Path $ProjectRoot "backend\requirements.txt") --quiet --timeout 120 2>$null
     if ($LASTEXITCODE -ne 0) {
-        & $pip install -r (Join-Path $ProjectRoot "backend\requirements.txt")
+        Write-Host "   Retrying with verbose output..." -ForegroundColor Yellow
+        & $pip install -r (Join-Path $ProjectRoot "backend\requirements.txt") --timeout 120
         if ($LASTEXITCODE -ne 0) {
             Write-Fail "Failed to install Python dependencies"
             exit 1
