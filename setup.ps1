@@ -408,9 +408,13 @@ function Install-PythonDeps($pythonCmd) {
     $python = Join-Path $venvPath "Scripts\python.exe"
 
     Write-Host "   Installing Python dependencies (this may take 2-5 minutes)..." -ForegroundColor Gray
-    & $pip install --upgrade pip --quiet --timeout 120 2>$null
-    & $pip install -r (Join-Path $ProjectRoot "backend\requirements.txt") --quiet --timeout 120 2>$null
-    if ($LASTEXITCODE -ne 0) {
+    $ErrorActionPreference_Bak = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    & $pip install --upgrade pip --quiet --timeout 120 2>&1 | Out-Null
+    & $pip install -r (Join-Path $ProjectRoot "backend\requirements.txt") --quiet --timeout 120 2>&1 | Out-Null
+    $pipExit = $LASTEXITCODE
+    $ErrorActionPreference = $ErrorActionPreference_Bak
+    if ($pipExit -ne 0) {
         Write-Host "   Retrying with verbose output..." -ForegroundColor Yellow
         & $pip install -r (Join-Path $ProjectRoot "backend\requirements.txt") --timeout 120
         if ($LASTEXITCODE -ne 0) {
@@ -429,16 +433,24 @@ function Install-NodeDeps {
 
     Push-Location (Join-Path $ProjectRoot "frontend")
     Write-Host "   Installing frontend dependencies..." -ForegroundColor Gray
-    & npm install --silent 2>$null
-    if ($LASTEXITCODE -ne 0) {
+    $ErrorActionPreference_Bak = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    & npm install --silent 2>&1 | Out-Null
+    $npmExit = $LASTEXITCODE
+    $ErrorActionPreference = $ErrorActionPreference_Bak
+    if ($npmExit -ne 0) {
         & npm install
     }
     Pop-Location
 
     Push-Location $ProjectRoot
     Write-Host "   Installing root dependencies..." -ForegroundColor Gray
-    & npm install --silent 2>$null
-    if ($LASTEXITCODE -ne 0) {
+    $ErrorActionPreference_Bak = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    & npm install --silent 2>&1 | Out-Null
+    $npmExit = $LASTEXITCODE
+    $ErrorActionPreference = $ErrorActionPreference_Bak
+    if ($npmExit -ne 0) {
         & npm install
     }
     Pop-Location
