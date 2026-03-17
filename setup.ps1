@@ -528,15 +528,18 @@ function Initialize-Database {
     Push-Location (Join-Path $ProjectRoot "backend")
     $env:PYTHONPATH = (Join-Path $ProjectRoot "backend")
 
-    # Suppress PowerShell NativeCommandError on stderr, capture all output
+    # Use Start-Process to completely bypass PowerShell stderr NativeCommandError
+    $stdoutFile = [System.IO.Path]::GetTempFileName()
     $stderrFile = [System.IO.Path]::GetTempFileName()
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = 'SilentlyContinue'
-    $stdoutOutput = & $alembic upgrade head 2>$stderrFile
-    $migrationExit = $LASTEXITCODE
-    $ErrorActionPreference = $prevEAP
+    $proc = Start-Process -FilePath $alembic -ArgumentList "upgrade","head" `
+        -WorkingDirectory (Join-Path $ProjectRoot "backend") `
+        -NoNewWindow -Wait -PassThru `
+        -RedirectStandardOutput $stdoutFile `
+        -RedirectStandardError $stderrFile
+    $migrationExit = $proc.ExitCode
+    $stdoutOutput = Get-Content $stdoutFile -ErrorAction SilentlyContinue
     $stderrOutput = Get-Content $stderrFile -ErrorAction SilentlyContinue
-    Remove-Item $stderrFile -ErrorAction SilentlyContinue
+    Remove-Item $stdoutFile, $stderrFile -ErrorAction SilentlyContinue
     $env:PYTHONPATH = $null
 
     if ($migrationExit -eq 0) {
