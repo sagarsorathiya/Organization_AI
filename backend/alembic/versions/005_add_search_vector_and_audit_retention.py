@@ -17,16 +17,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # search_vector column, GIN index, and trigger already created in migration 003
-    # This migration only adds the audit_logs timestamp index
-
-    # P9: Index on audit_logs.timestamp for retention queries
-    op.create_index(
-        "ix_audit_logs_timestamp",
-        "audit_logs",
-        ["timestamp"],
-    )
+    # All operations originally in this migration already exist:
+    # - search_vector column, GIN index, trigger: created in migration 003
+    # - ix_audit_logs_timestamp index: created by index=True in migration 001
+    pass
 
 
 def downgrade() -> None:
-    op.drop_index("ix_audit_logs_timestamp", table_name="audit_logs")
+    pass
