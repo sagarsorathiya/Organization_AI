@@ -528,10 +528,13 @@ function Initialize-Database {
     Push-Location (Join-Path $ProjectRoot "backend")
     $env:PYTHONPATH = (Join-Path $ProjectRoot "backend")
 
-    # Capture stderr to temp file (PowerShell SilentlyContinue + 2>&1 swallows errors)
+    # Suppress PowerShell NativeCommandError on stderr, capture all output
     $stderrFile = [System.IO.Path]::GetTempFileName()
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
     $stdoutOutput = & $alembic upgrade head 2>$stderrFile
     $migrationExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
     $stderrOutput = Get-Content $stderrFile -ErrorAction SilentlyContinue
     Remove-Item $stderrFile -ErrorAction SilentlyContinue
     $env:PYTHONPATH = $null
