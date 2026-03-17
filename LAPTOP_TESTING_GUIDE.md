@@ -249,12 +249,16 @@ Go to: **http://localhost:3000**
 
 1. **Feedback:** Send a chat message, then click the 👍 or 👎 button on the AI response
 2. **Templates:** Click the template button in the chat input to browse prompt templates
-3. **Tags:** In the sidebar, create a tag and assign it to a conversation
+3. **Tags:** In the sidebar, create a tag using the "+ Tag" button, assign it to a conversation via the tag icon in conversation actions, then click the tag chip to filter conversations by that tag
 4. **Bookmarks:** Click the bookmark icon on a message, then check the Bookmarks page
 5. **Sharing:** Open a conversation, click Share, and generate a read-only link
 6. **Announcements:** Create an announcement in Admin Panel → Announcements tab
 7. **Export:** Go to Settings → Bulk Export to download all conversations as ZIP
 8. **Usage Dashboard:** Go to Settings to see your personal usage statistics
+9. **Archive:** Click the archive icon on a conversation, then switch to the "Archived" tab in the sidebar to see it — click the unarchive icon to restore
+10. **File Uploads:** Click the attachment button in the chat input, upload a file (PDF, DOCX, TXT, etc.), and verify it appears in the message
+11. **Password Change:** Go to Settings → Change Password section (visible for local accounts only) to change your password
+12. **Admin Password Reset:** In Admin Panel → Users, click "Reset Password" on any local user account
 
 ### Verify Backend API Directly
 

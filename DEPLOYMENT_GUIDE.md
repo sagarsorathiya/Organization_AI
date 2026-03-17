@@ -603,6 +603,18 @@ Open a browser and go to `http://server-ip:3000`. You should see the login page.
 
 If login succeeds, all components are working. **Stop all test processes** (Ctrl+C) before proceeding.
 
+### Post-Login Verification
+
+After logging in, verify these features:
+
+- **Archive:** Archive a conversation from the sidebar, then switch to the "Archived" tab to confirm it appears there
+- **Tags:** Create a tag (sidebar "+ Tag"), assign it to a conversation (tag icon in conversation actions), and click the tag chip to filter
+- **Password Change:** Go to Settings → Change Password (visible for local accounts only)
+- **Admin Password Reset:** Go to Admin Panel → Users → "Reset Password" button on any local user
+- **File Uploads:** Click the attachment button in chat, upload a file, and verify it's processed
+- **Database Export:** Go to Admin Panel → Database → Export (exports all 13 tables as JSON)
+- **Bulk Export:** Go to Settings → Bulk Export to download all conversations as a ZIP file
+
 ---
 
 ## 14. Set Up the Backend as a System Service

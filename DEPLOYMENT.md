@@ -571,6 +571,12 @@ After deployment, go to **Admin Panel → Settings → Active Directory** and cl
 
 The local admin account (`LOCAL_ADMIN_ENABLED=true`) works **regardless** of AD status. If AD goes down, you can still log in with the local admin credentials to manage the system.
 
+### 8.6 Password Management
+
+- **Local users** can change their own password from **Settings → Change Password**.
+- **Admins** can reset any local user's password from **Admin Panel → Users → Reset Password**.
+- **AD/LDAP users** manage passwords via Active Directory — the "Change Password" option is hidden for AD accounts.
+
 ---
 
 ## 9. Ollama LLM Configuration
@@ -738,7 +744,9 @@ docker compose exec -T db pg_dump -U org_ai_user org_ai | Out-File "$backupDir\d
 
 ### 12.2 Built-in Export
 
-The Admin Panel includes a **Database → Export** feature that exports all data as JSON. Use this for quick manual backups.
+The Admin Panel includes a **Database → Export** feature that exports all 13 tables as JSON. Use this for quick manual backups.
+
+Users can also export all their conversations as a **ZIP archive** from **Settings → Bulk Export**. Each conversation is saved as an individual JSON or Markdown file inside the ZIP.
 
 ### 12.3 Restore from Backup
 

@@ -81,7 +81,7 @@ Features:
 
 ✅ Multi-file Attachments
 
-✅ Conversation Tags / Folders
+✅ Conversation Tags / Folders (with sidebar filtering & tag assignment)
 
 ✅ Keyboard Shortcuts Panel
 
@@ -118,6 +118,8 @@ Responsibilities:
 ✅ Prompt template management
 
 ✅ Tag & bookmark management
+
+✅ Tag-based conversation filtering
 
 ✅ Announcement management
 
@@ -278,6 +280,8 @@ Admins can:
 
 ✅ View feedback statistics & satisfaction metrics
 
+✅ Reset passwords for local user accounts
+
 ✅ NOT read user conversations unless explicitly designed
 
 🧩 Functional Features
@@ -293,13 +297,17 @@ Admins can:
 
 ✅ Multi-file attachments (14+ formats)
 
+✅ File upload persistence (database records)
+
 ✅ Regenerate last AI response
 
 ✅ Response feedback (👍/👎)
 
 ✅ Message bookmarks
 
-✅ Conversation tags / folders
+✅ Conversation tags / folders (with filtering)
+
+✅ Archive / unarchive with dedicated archived view
 
 ✅ Read-only conversation sharing
 
@@ -324,6 +332,8 @@ Retrieval-augmented generation (RAG) (planned)
 ✅ Usage dashboard (stats & metrics)
 
 ✅ Bulk export all conversations (ZIP)
+
+✅ Change password (local accounts)
 
 ✅ Prompt template library
 

@@ -29,14 +29,15 @@
 - **Data Retention Enforcement** — Automatic cleanup of old conversations based on admin-configured retention policies.
 - **Admin Announcements / MOTD** — Admins create banner announcements displayed to all users; toggle active/inactive.
 - **Regenerate Response** — Re-generate the last AI response with a single click.
-- **Conversation Tags / Folders** — Create custom tags and assign them to conversations for organization and filtering.
+- **Conversation Tags / Folders** — Create custom tags, assign them to conversations, and filter the sidebar by tag.
 - **Keyboard Shortcuts Panel** — Quick-reference modal for all keyboard shortcuts accessible from the header.
 - **User Usage Dashboard** — Personal stats: total conversations, messages, monthly activity, top model, uploads.
 - **Request ID / Correlation** — Every API request gets a unique `X-Request-ID` header for tracing and debugging.
 - **Read-Only Conversation Sharing** — Generate shareable links for conversations; accessible without authentication.
 - **Onboarding / Welcome Tour** — Interactive first-time user onboarding walkthrough highlighting key features.
 - **Message Bookmarks** — Bookmark important messages and access them from a dedicated bookmarks page.
-- **Conversation Management** — Pin, archive, export, rename, and delete conversations.
+- **Conversation Management** — Pin, archive (with dedicated archived view), export, rename, and delete conversations.
+- **Admin Password Reset** — Admins can reset passwords for local user accounts from the user management panel.
 
 ---
 
@@ -258,7 +259,7 @@ Any username/password is accepted. User "admin" gets admin rights.
 | GET    | /api/chat/models            | List available models    | Required |
 | GET    | /api/chat/attachments-enabled | Check attachment status | Required |
 | POST   | /api/chat/upload            | Upload single file       | Required |
-| POST   | /api/chat/upload-multi      | Upload multiple files    | Required |
+| POST   | /api/chat/upload-multiple   | Upload multiple files    | Required |
 | POST   | /api/chat/regenerate        | Regenerate last response | Required |
 
 ### Conversations
@@ -314,6 +315,7 @@ Any username/password is accepted. User "admin" gets admin rights.
 | POST   | /api/tags/link              | Link tag to conversation | Required |
 | DELETE | /api/tags/link              | Unlink tag               | Required |
 | GET    | /api/tags/conversation/:id  | Tags for conversation    | Required |
+| GET    | /api/tags/:id/conversations | Conversations for tag    | Required |
 
 ### Bookmarks
 
