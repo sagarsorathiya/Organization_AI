@@ -168,9 +168,13 @@ Expected output:
 ```
 INFO  [alembic.runtime.migration] Running upgrade  -> 001, initial schema
 INFO  [alembic.runtime.migration] Running upgrade 001 -> 002, add local admin columns
+INFO  [alembic.runtime.migration] Running upgrade 002 -> 003, add indexes pinned archived
+INFO  [alembic.runtime.migration] Running upgrade 003 -> 004, add file uploads table
+INFO  [alembic.runtime.migration] Running upgrade 004 -> 005, add search vector audit retention
+INFO  [alembic.runtime.migration] Running upgrade 005 -> 006, add features tables
 ```
 
-This creates all the database tables.
+This creates all the database tables (users, conversations, messages, settings, audit_logs, feedback, templates, tags, bookmarks, announcements, sharing, and more).
 
 ---
 
@@ -231,12 +235,26 @@ Go to: **http://localhost:3000**
 ### Test Admin Panel
 
 1. Click your profile / admin area
-2. Check all 5 tabs:
+2. Check all 8 tabs:
    - **Overview** — shows system health (Database: connected, LLM: connected)
    - **Settings** — all configuration values (editable)
    - **Users** — user management
    - **Audit Logs** — activity logs
    - **Models** — available AI models
+   - **Announcements** — create/toggle/delete banners for all users
+   - **Templates** — create prompt templates with categories
+   - **Feedback** — view satisfaction metrics and recent user feedback
+
+### Test Enterprise Features
+
+1. **Feedback:** Send a chat message, then click the 👍 or 👎 button on the AI response
+2. **Templates:** Click the template button in the chat input to browse prompt templates
+3. **Tags:** In the sidebar, create a tag and assign it to a conversation
+4. **Bookmarks:** Click the bookmark icon on a message, then check the Bookmarks page
+5. **Sharing:** Open a conversation, click Share, and generate a read-only link
+6. **Announcements:** Create an announcement in Admin Panel → Announcements tab
+7. **Export:** Go to Settings → Bulk Export to download all conversations as ZIP
+8. **Usage Dashboard:** Go to Settings to see your personal usage statistics
 
 ### Verify Backend API Directly
 

@@ -7,20 +7,36 @@
 
 ## Features
 
+### Core Platform
 - **Private & Secure** — All AI inference runs locally via [Ollama](https://ollama.ai). Zero cloud dependency.
 - **Active Directory / LDAP** — Authenticate users against your existing AD/LDAP directory.
 - **Multi-Model Support** — Download, update, and delete AI models directly from the admin panel.
-- **Admin Panel** — Manage users, models, settings, database, and view audit logs from a web UI.
+- **Admin Panel** — Manage users, models, settings, database, announcements, templates, and view audit logs / feedback from a web UI.
 - **Streaming Responses** — Real-time token streaming with optimized rendering.
-- **File Attachments** — Upload and reference 14+ file formats in chat (PDF, DOCX, XLSX, PPTX, CSV, etc.).
 - **Full-Text Search** — PostgreSQL-powered search across all conversations and messages.
-- **Conversation Management** — Pin, archive, export, rename, and delete conversations.
 - **Custom System Prompts** — Per-user customizable AI behavior and preferences.
 - **Dark / Light / System Theme** — User-selectable theme with system auto-detection.
 - **Database Management** — Admin tools for export, import, schema inspection, and data maintenance.
 - **One-Click Setup** — Automated setup scripts for Windows (`setup.ps1`) and Linux (`setup.sh`).
 - **Scales to 200+ Users** — Configurable connection pools, worker counts, and GPU acceleration.
 - **Hardware-Agnostic** — Works on CPU-only servers, GPU servers, or mixed environments.
+
+### Enterprise Features (v2)
+- **Response Feedback (👍/👎)** — Users can rate AI responses; admins view aggregated feedback stats and satisfaction metrics.
+- **Prompt Templates / Library** — Admin-curated prompt templates with categories; users can browse and apply templates in chat.
+- **Multi-File Attachments** — Upload multiple files (14+ formats: PDF, DOCX, XLSX, PPTX, CSV, etc.) in a single message.
+- **Bulk Export All Chats** — Download all conversations as a ZIP archive from the settings page.
+- **Data Retention Enforcement** — Automatic cleanup of old conversations based on admin-configured retention policies.
+- **Admin Announcements / MOTD** — Admins create banner announcements displayed to all users; toggle active/inactive.
+- **Regenerate Response** — Re-generate the last AI response with a single click.
+- **Conversation Tags / Folders** — Create custom tags and assign them to conversations for organization and filtering.
+- **Keyboard Shortcuts Panel** — Quick-reference modal for all keyboard shortcuts accessible from the header.
+- **User Usage Dashboard** — Personal stats: total conversations, messages, monthly activity, top model, uploads.
+- **Request ID / Correlation** — Every API request gets a unique `X-Request-ID` header for tracing and debugging.
+- **Read-Only Conversation Sharing** — Generate shareable links for conversations; accessible without authentication.
+- **Onboarding / Welcome Tour** — Interactive first-time user onboarding walkthrough highlighting key features.
+- **Message Bookmarks** — Bookmark important messages and access them from a dedicated bookmarks page.
+- **Conversation Management** — Pin, archive, export, rename, and delete conversations.
 
 ---
 
@@ -241,7 +257,9 @@ Any username/password is accepted. User "admin" gets admin rights.
 | POST   | /api/chat/search            | Search messages          | Required |
 | GET    | /api/chat/models            | List available models    | Required |
 | GET    | /api/chat/attachments-enabled | Check attachment status | Required |
-| POST   | /api/chat/upload            | Upload file attachment   | Required |
+| POST   | /api/chat/upload            | Upload single file       | Required |
+| POST   | /api/chat/upload-multi      | Upload multiple files    | Required |
+| POST   | /api/chat/regenerate        | Regenerate last response | Required |
 
 ### Conversations
 
@@ -255,6 +273,7 @@ Any username/password is accepted. User "admin" gets admin rights.
 | PATCH  | /api/conversations/:id/pin  | Pin/unpin conversation   | Required |
 | PATCH  | /api/conversations/:id/archive | Archive conversation  | Required |
 | GET    | /api/conversations/:id/export | Export conversation     | Required |
+| GET    | /api/conversations/export-all | Bulk export all (ZIP)  | Required |
 
 ### Settings
 
@@ -262,6 +281,68 @@ Any username/password is accepted. User "admin" gets admin rights.
 |--------|-----------------------------|--------------------------|----------|
 | GET    | /api/settings               | Get user settings        | Required |
 | PATCH  | /api/settings               | Update user settings     | Required |
+| GET    | /api/settings/stats         | User usage statistics    | Required |
+
+### Feedback
+
+| Method | Endpoint                    | Description              | Auth     |
+|--------|-----------------------------|--------------------------|----------|
+| POST   | /api/feedback               | Submit feedback (👍/👎)  | Required |
+| DELETE | /api/feedback/:id           | Remove feedback          | Required |
+| GET    | /api/feedback/message/:id   | Get feedback for message | Required |
+| GET    | /api/feedback/conversation/:id | Get conversation feedback | Required |
+| GET    | /api/feedback/stats         | Feedback statistics      | Admin    |
+
+### Prompt Templates
+
+| Method | Endpoint                    | Description              | Auth     |
+|--------|-----------------------------|--------------------------|----------|
+| GET    | /api/templates              | List all templates       | Required |
+| GET    | /api/templates/categories   | List template categories | Required |
+| POST   | /api/templates/use/:id      | Record template usage    | Required |
+| POST   | /api/templates              | Create template          | Admin    |
+| PATCH  | /api/templates/:id          | Update template          | Admin    |
+| DELETE | /api/templates/:id          | Delete template          | Admin    |
+
+### Tags
+
+| Method | Endpoint                    | Description              | Auth     |
+|--------|-----------------------------|--------------------------|----------|
+| GET    | /api/tags                   | List user's tags         | Required |
+| POST   | /api/tags                   | Create tag               | Required |
+| DELETE | /api/tags/:id               | Delete tag               | Required |
+| POST   | /api/tags/link              | Link tag to conversation | Required |
+| DELETE | /api/tags/link              | Unlink tag               | Required |
+| GET    | /api/tags/conversation/:id  | Tags for conversation    | Required |
+
+### Bookmarks
+
+| Method | Endpoint                    | Description              | Auth     |
+|--------|-----------------------------|--------------------------|----------|
+| GET    | /api/bookmarks              | List bookmarks           | Required |
+| POST   | /api/bookmarks              | Create bookmark          | Required |
+| DELETE | /api/bookmarks/:id          | Delete bookmark          | Required |
+| DELETE | /api/bookmarks/message/:id  | Remove by message ID     | Required |
+| GET    | /api/bookmarks/check/:id    | Check if bookmarked      | Required |
+
+### Announcements
+
+| Method | Endpoint                       | Description              | Auth     |
+|--------|--------------------------------|--------------------------|----------|
+| GET    | /api/announcements             | Active announcements     | Required |
+| GET    | /api/announcements/all         | All announcements        | Admin    |
+| POST   | /api/announcements             | Create announcement      | Admin    |
+| PATCH  | /api/announcements/:id/toggle  | Toggle active/inactive   | Admin    |
+| DELETE | /api/announcements/:id         | Delete announcement      | Admin    |
+
+### Sharing
+
+| Method | Endpoint                    | Description              | Auth     |
+|--------|-----------------------------|--------------------------|----------|
+| POST   | /api/sharing/create         | Create shared link       | Required |
+| GET    | /api/sharing/:token         | View shared conversation | Public   |
+| DELETE | /api/sharing/:id            | Revoke shared link       | Required |
+| GET    | /api/sharing/check/:id      | Check sharing status     | Required |
 
 ### Admin
 

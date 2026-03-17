@@ -364,7 +364,7 @@ See [Section 7: HTTPS / TLS Configuration](#7-https--tls-configuration).
 
 ## 6. Database Migrations
 
-Migrations are managed by Alembic. There are 5 migrations:
+Migrations are managed by Alembic. There are 6 migrations:
 
 | Migration | Purpose |
 |-----------|---------|
@@ -373,6 +373,7 @@ Migrations are managed by Alembic. There are 5 migrations:
 | `003_add_indexes_pinned_archived` | Performance indexes, pinned/archived columns, system_prompt |
 | `004_add_file_uploads_table` | File attachment support |
 | `005_add_search_vector_audit_retention` | Full-text search (TSVECTOR), audit log indexes |
+| `006_add_features_tables` | Feedback, templates, tags, bookmarks, announcements, sharing tables |
 
 ### Run Migrations
 
@@ -691,6 +692,9 @@ The built-in Admin Panel provides real-time monitoring:
 - Audit logs (all login/logout/admin events)
 - Database statistics (table sizes, row counts)
 - Model management (installed models, pull/delete)
+- Announcements management (create/toggle/delete MOTD banners)
+- Prompt template library (create/edit/delete templates with categories)
+- Feedback statistics (satisfaction rate, thumbs up/down counts, recent feedback)
 
 ---
 

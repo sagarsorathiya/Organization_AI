@@ -5,21 +5,21 @@ Design and build a fully internal AI assistant platform that runs entirely withi
 
 The system must:
 
-Operate 100% offline / on-premise
+✅ Operate 100% offline / on-premise
 
-Authenticate users via Windows Active Directory (Domain Login / SSO)
+✅ Authenticate users via Windows Active Directory (Domain Login / SSO)
 
-Provide strict per-user data isolation
+✅ Provide strict per-user data isolation
 
-Prevent visibility of one user’s conversations/data to others
+✅ Prevent visibility of one user's conversations/data to others
 
-Maintain enterprise-grade security, auditing, and compliance
+✅ Maintain enterprise-grade security, auditing, and compliance
 
-Be production-ready, scalable, and maintainable
+✅ Be production-ready, scalable, and maintainable
 
 🔐 Core Security & Privacy Principles
 
-No External Connectivity
+No External Connectivity ✅
 
 No API calls to OpenAI, Google, Anthropic, etc.
 
@@ -27,7 +27,7 @@ No telemetry, analytics, or external tracking
 
 All AI inference performed locally
 
-Per-User Data Isolation
+Per-User Data Isolation ✅
 
 Users can only access their own chats/documents/history
 
@@ -35,7 +35,7 @@ No cross-user visibility
 
 Enforced at API + database level
 
-Enterprise Authentication
+Enterprise Authentication ✅
 
 Windows Domain Login (Kerberos / NTLM / LDAP / SAML)
 
@@ -43,7 +43,7 @@ True SSO experience inside domain
 
 No separate credentials
 
-Auditability
+Auditability ✅
 
 Full activity logging
 
@@ -55,9 +55,9 @@ Compliance-friendly design
 
 Build a modular enterprise web application with the following components:
 
-1️⃣ Frontend
+1️⃣ Frontend ✅
 
-Framework: React / Next.js (preferred) or Vue
+Framework: React / Next.js (preferred) or Vue → **Implemented: React 18 + TypeScript + Vite**
 
 Clean enterprise UI (similar to ChatGPT / Copilot)
 
@@ -65,246 +65,337 @@ Responsive but desktop-optimized
 
 Features:
 
-Chat interface
+✅ Chat interface
 
-Conversation history
+✅ Conversation history
 
-Search within chats
+✅ Search within chats
 
-Dark/light mode
+✅ Dark/light mode
 
-User profile panel
+✅ User profile panel
 
-2️⃣ Backend API
+✅ Response Feedback (👍/👎)
 
-Framework: Node.js (Express / Fastify) OR Python (FastAPI)
+✅ Prompt Templates / Library
+
+✅ Multi-file Attachments
+
+✅ Conversation Tags / Folders
+
+✅ Keyboard Shortcuts Panel
+
+✅ User Usage Dashboard
+
+✅ Onboarding / Welcome Tour
+
+✅ Message Bookmarks
+
+✅ Read-only Conversation Sharing
+
+✅ Admin Announcements Banner
+
+2️⃣ Backend API ✅
+
+Framework: Node.js (Express / Fastify) OR Python (FastAPI) → **Implemented: Python 3.12 + FastAPI**
 
 Responsibilities:
 
-Authentication via Active Directory
+✅ Authentication via Active Directory
 
-Session management
+✅ Session management
 
-User isolation enforcement
+✅ User isolation enforcement
 
-Chat processing pipeline
+✅ Chat processing pipeline
 
-Model inference orchestration
+✅ Model inference orchestration
 
-Logging & audit system
+✅ Logging & audit system
 
-3️⃣ Authentication Layer (Critical)
+✅ Feedback collection & statistics
+
+✅ Prompt template management
+
+✅ Tag & bookmark management
+
+✅ Announcement management
+
+✅ Data retention enforcement
+
+✅ Bulk export (ZIP)
+
+✅ Request ID / correlation tracing
+
+✅ Read-only conversation sharing
+
+3️⃣ Authentication Layer (Critical) ✅
 
 Integrate Windows Active Directory / Domain Login:
 
 Supported mechanisms (choose appropriate):
 
-LDAP / LDAPS
+✅ LDAP / LDAPS
 
-Kerberos / Integrated Windows Authentication
+Kerberos / Integrated Windows Authentication (planned)
 
-SAML / ADFS (if present)
+SAML / ADFS (if present) (planned)
 
 Requirements:
 
-No local password storage
+✅ No local password storage (AD users)
 
-Automatic login when user is domain-joined
+Automatic login when user is domain-joined (planned — requires Kerberos)
 
-Extract & store:
+✅ Extract & store:
 
-username
+✅ username
 
-display name
+✅ display name
 
-email
+✅ email
 
-department (optional)
+✅ department (optional)
 
-group memberships (optional)
+✅ group memberships (optional)
 
-4️⃣ AI Engine (Local Only)
+4️⃣ AI Engine (Local Only) ✅
 
-The AI must run locally inside infrastructure.
+The AI must run locally inside infrastructure. → **Implemented: Ollama**
 
 Possible implementations:
 
-Local LLM runtime (Ollama / llama.cpp / vLLM / LocalAI)
+✅ Local LLM runtime (Ollama / llama.cpp / vLLM / LocalAI) → **Using Ollama**
 
-Models: LLaMA / Mistral / Mixtral / Phi / etc.
+✅ Models: LLaMA / Mistral / Mixtral / Phi / etc.
 
 Requirements:
 
-No cloud inference
+✅ No cloud inference
 
-Backend communicates with local model service only
+✅ Backend communicates with local model service only
 
-Support streaming responses
+✅ Support streaming responses
 
-5️⃣ Database Design
+✅ Regenerate response support
 
-Use PostgreSQL (preferred) for MVP.
+5️⃣ Database Design ✅
+
+Use PostgreSQL (preferred) for MVP. → **Implemented: PostgreSQL 16**
 
 Strict schema separation:
 
 Tables:
 
-users
+✅ users
 
-conversations
+✅ conversations
 
-messages
+✅ messages
 
-settings
+✅ settings (user_settings)
 
-audit_logs
+✅ audit_logs
+
+✅ file_uploads
+
+✅ message_feedback
+
+✅ prompt_templates
+
+✅ conversation_tags / conversation_tag_links
+
+✅ announcements
+
+✅ shared_conversations
+
+✅ message_bookmarks
 
 Rules:
 
-Every conversation linked to a single user_id
+✅ Every conversation linked to a single user_id
 
-Backend must enforce WHERE user_id = session.user_id
+✅ Backend must enforce WHERE user_id = session.user_id
 
-No admin bypass except explicit admin panel
+✅ No admin bypass except explicit admin panel
 
-6️⃣ Data Privacy Controls
+6️⃣ Data Privacy Controls ✅
 
 Implement:
 
-✔ User-scoped queries only
-✔ No shared memory between users
-✔ Optional encryption at rest
-✔ Secure session tokens
-✔ No chat leakage via caching
+✅ User-scoped queries only
+✅ No shared memory between users
+✅ Optional encryption at rest
+✅ Secure session tokens
+✅ No chat leakage via caching
+✅ Data retention enforcement (auto-cleanup)
 
-7️⃣ Audit & Logging System
+7️⃣ Audit & Logging System ✅
 
 Log events such as:
 
-login / logout
+✅ login / logout
 
-conversation created
+✅ conversation created
 
-prompt submitted
+✅ prompt submitted
 
-model response generated
+✅ model response generated
 
-errors / exceptions
+✅ errors / exceptions
 
-admin actions
+✅ admin actions
 
 Logs must include:
 
-timestamp
+✅ timestamp
 
-user
+✅ user
 
-IP / device (optional)
+✅ IP / device (optional)
 
-action type
+✅ action type
 
-8️⃣ Admin Panel (Restricted Access)
+✅ Request ID / correlation ID
+
+8️⃣ Admin Panel (Restricted Access) ✅
 
 Role-based access control.
 
 Admins can:
 
-View system health
+✅ View system health
 
-Monitor usage metrics
+✅ Monitor usage metrics
 
-Manage model settings
+✅ Manage model settings
 
-View audit logs
+✅ View audit logs
 
-NOT read user conversations unless explicitly designed
+✅ Create & manage announcements
+
+✅ Create & manage prompt templates
+
+✅ View feedback statistics & satisfaction metrics
+
+✅ NOT read user conversations unless explicitly designed
 
 🧩 Functional Features
-💬 Chat System
+💬 Chat System ✅
 
-Persistent chat history
+✅ Persistent chat history
 
-Rename/delete conversations
+✅ Rename/delete conversations
 
-Token streaming support
+✅ Token streaming support
 
-Markdown rendering
+✅ Markdown rendering
+
+✅ Multi-file attachments (14+ formats)
+
+✅ Regenerate last AI response
+
+✅ Response feedback (👍/👎)
+
+✅ Message bookmarks
+
+✅ Conversation tags / folders
+
+✅ Read-only conversation sharing
 
 🔍 Search & Retrieval (Optional Advanced Phase)
 
-Per-user document upload
+✅ Per-user document upload
 
-Local embeddings & vector DB
+Local embeddings & vector DB (planned — RAG phase)
 
-Retrieval-augmented generation (RAG)
+Retrieval-augmented generation (RAG) (planned)
 
-Documents visible only to owner
+✅ Documents visible only to owner
 
-⚙️ User Settings
+⚙️ User Settings ✅
 
-Theme preferences
+✅ Theme preferences
 
-Model selection (if multiple)
+✅ Model selection (if multiple)
 
-Data retention controls
+✅ Data retention controls
 
-🛡️ Security Hardening Requirements
+✅ Usage dashboard (stats & metrics)
 
-CSRF protection
+✅ Bulk export all conversations (ZIP)
 
-XSS prevention
+✅ Prompt template library
 
-Secure cookies
+✅ Keyboard shortcuts panel
 
-Rate limiting
+✅ Onboarding / welcome tour
 
-Input validation
+🛡️ Security Hardening Requirements ✅
 
-No secrets in frontend
+✅ CSRF protection
 
-Environment-based configuration
+✅ XSS prevention
 
-🚀 Deployment Model
+✅ Secure cookies
+
+✅ Rate limiting
+
+✅ Input validation
+
+✅ No secrets in frontend
+
+✅ Environment-based configuration
+
+✅ Request ID / correlation tracing
+
+🚀 Deployment Model ✅
 
 Target environment:
 
-Internal network / intranet
+✅ Internal network / intranet
 
-Windows domain-joined clients
+✅ Windows domain-joined clients
 
-Reverse proxy support (Nginx / IIS)
+✅ Reverse proxy support (Nginx / IIS)
 
-Docker optional but not required
+✅ Docker optional but not required
 
 Must support:
 
-Single server MVP
+✅ Single server MVP
 
-Multi-node scalable architecture later
+Multi-node scalable architecture later (planned)
 
-🎨 UI / UX Expectations
+🎨 UI / UX Expectations ✅
 
 Design style:
 
-Clean enterprise interface
+✅ Clean enterprise interface
 
-Minimalistic & professional
+✅ Minimalistic & professional
 
-No flashy consumer visuals
+✅ No flashy consumer visuals
 
-Fast & distraction-free
+✅ Fast & distraction-free
 
 Key screens:
 
-Login / Auto SSO
+✅ Login / Auto SSO
 
-Chat workspace
+✅ Chat workspace
 
-History sidebar
+✅ History sidebar (with tags & bookmarks)
 
-Settings
+✅ Settings (with usage dashboard & bulk export)
 
-Admin panel
+✅ Admin panel (with announcements, templates, feedback tabs)
+
+✅ Bookmarks page
+
+✅ Shared conversation view (public, read-only)
+
+✅ Onboarding tour (first-time users)
 
 ❌ Explicit Non-Goals
 
@@ -320,21 +411,23 @@ No data sent outside organization
 
 Produce:
 
-Full project structure
+✅ Full project structure
 
-Backend API
+✅ Backend API (FastAPI + 50+ endpoints)
 
-AD authentication module
+✅ AD authentication module (LDAP/LDAPS)
 
-Database schema
+✅ Database schema (12 tables, 6 Alembic migrations)
 
-Chat UI
+✅ Chat UI (React 18 + TypeScript + Vite)
 
-Local AI integration
+✅ Local AI integration (Ollama)
 
-Logging & auditing
+✅ Logging & auditing (with Request ID correlation)
 
-Deployment guide
+✅ Deployment guide (Docker + Bare Metal + Windows)
+
+✅ Enterprise features (feedback, templates, tags, bookmarks, sharing, announcements, data retention, onboarding)
 
 🧠 Engineering Quality Expectations
 

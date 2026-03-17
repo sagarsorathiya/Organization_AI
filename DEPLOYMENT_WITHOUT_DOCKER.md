@@ -1062,6 +1062,7 @@ alembic upgrade head
 | 3 | `003_add_indexes_pinned_archived` | Performance indexes, pinned/archived columns, system_prompt |
 | 4 | `004_add_file_uploads_table` | file_uploads table for attachment support |
 | 5 | `005_add_search_vector_audit_retention` | Full-text search vector (TSVECTOR), GIN index, audit indexes |
+| 6 | `006_add_features_tables` | message_feedback, prompt_templates, conversation_tags, conversation_tag_links, announcements, shared_conversations, message_bookmarks |
 
 ### Common Commands
 

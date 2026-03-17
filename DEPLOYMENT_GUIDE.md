@@ -526,6 +526,10 @@ Expected output:
 ```
 INFO  [alembic.runtime.migration] Running upgrade  -> 001, initial schema
 INFO  [alembic.runtime.migration] Running upgrade 001 -> 002, add local admin columns
+INFO  [alembic.runtime.migration] Running upgrade 002 -> 003, add indexes pinned archived
+INFO  [alembic.runtime.migration] Running upgrade 003 -> 004, add file uploads table
+INFO  [alembic.runtime.migration] Running upgrade 004 -> 005, add search vector audit retention
+INFO  [alembic.runtime.migration] Running upgrade 005 -> 006, add features tables
 ```
 
 ### Verify Tables Were Created
@@ -534,7 +538,7 @@ INFO  [alembic.runtime.migration] Running upgrade 001 -> 002, add local admin co
 sudo -u postgres psql -d org_ai -c "\dt"
 ```
 
-You should see tables like: `users`, `conversations`, `messages`, `system_settings`, `audit_logs`, `alembic_version`
+You should see tables like: `users`, `conversations`, `messages`, `system_settings`, `audit_logs`, `file_uploads`, `message_feedback`, `prompt_templates`, `conversation_tags`, `conversation_tag_links`, `announcements`, `shared_conversations`, `message_bookmarks`, `alembic_version`
 
 ---
 
@@ -927,7 +931,15 @@ Go to the main chat interface and send a test message:
 
 If you get a response, the AI is working correctly.
 
-### Step 7: Test AD Login (if AD is enabled)
+### Step 7: Configure Enterprise Features
+
+From the **Admin Panel**, set up the new enterprise features:
+- **Announcements tab:** Create a welcome announcement for users
+- **Templates tab:** Add prompt templates organized by category (e.g., "Email", "Code", "Analysis")
+- **Feedback tab:** Monitor user satisfaction metrics once users start rating responses
+- **Settings:** Configure data retention policies if needed
+
+### Step 8: Test AD Login (if AD is enabled)
 
 Log out and log in with an AD user account to verify LDAP authentication works.
 
