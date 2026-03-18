@@ -7,7 +7,7 @@ import csv
 import logging
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -243,7 +243,7 @@ async def check_attachments_enabled(
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    conversation_id: str | None = None,
+    conversation_id: str | None = Form(None),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -291,17 +291,21 @@ async def upload_file(
             conv_uuid = uuid.UUID(conversation_id)
         except ValueError:
             pass
-    upload_record = FileUpload(
-        user_id=user_id,
-        conversation_id=conv_uuid,
-        filename=file.filename,
-        extension=ext,
-        size_bytes=len(data),
-        char_count=len(extracted_text),
-        truncated=truncated,
-    )
-    db.add(upload_record)
-    await db.flush()
+    try:
+        upload_record = FileUpload(
+            user_id=user_id,
+            conversation_id=conv_uuid,
+            filename=file.filename,
+            extension=ext,
+            size_bytes=len(data),
+            char_count=len(extracted_text),
+            truncated=truncated,
+        )
+        db.add(upload_record)
+        await db.flush()
+    except Exception:
+        logger.warning("Failed to log upload to DB for %s (table may not exist)", file.filename)
+        await db.rollback()
 
     return {
         "filename": file.filename,
@@ -315,7 +319,7 @@ async def upload_file(
 @router.post("/upload-multiple")
 async def upload_multiple_files(
     files: list[UploadFile] = File(...),
-    conversation_id: str | None = None,
+    conversation_id: str | None = Form(None),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -368,17 +372,21 @@ async def upload_multiple_files(
                 conv_uuid = uuid.UUID(conversation_id)
             except ValueError:
                 pass
-        upload_record = FileUpload(
-            user_id=user_id,
-            conversation_id=conv_uuid,
-            filename=file.filename,
-            extension=ext,
-            size_bytes=len(data),
-            char_count=len(extracted_text),
-            truncated=truncated,
-        )
-        db.add(upload_record)
-        await db.flush()
+        try:
+            upload_record = FileUpload(
+                user_id=user_id,
+                conversation_id=conv_uuid,
+                filename=file.filename,
+                extension=ext,
+                size_bytes=len(data),
+                char_count=len(extracted_text),
+                truncated=truncated,
+            )
+            db.add(upload_record)
+            await db.flush()
+        except Exception:
+            logger.warning("Failed to log upload to DB for %s (table may not exist)", file.filename)
+            await db.rollback()
 
         results.append({
             "filename": file.filename,
