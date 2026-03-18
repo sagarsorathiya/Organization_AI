@@ -55,7 +55,7 @@ export function TemplateSelector({ onSelect }: Props) {
         <div className="flex gap-1 px-3 py-2 border-b border-surface-100 dark:border-surface-700 overflow-x-auto">
           <button
             onClick={() => handleCategoryFilter(null)}
-            className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${!selectedCategory ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300" : "text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-700"}`}
+            className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${!selectedCategory ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300" : "text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700"}`}
           >
             All
           </button>
@@ -63,7 +63,7 @@ export function TemplateSelector({ onSelect }: Props) {
             <button
               key={c.category}
               onClick={() => handleCategoryFilter(c.category)}
-              className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${selectedCategory === c.category ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300" : "text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-700"}`}
+              className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${selectedCategory === c.category ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300" : "text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700"}`}
             >
               {c.category} ({c.count})
             </button>
