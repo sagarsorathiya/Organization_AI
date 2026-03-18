@@ -1604,12 +1604,14 @@ export function AdminPage() {
                               >
                                 {u.is_active ? "Deactivate" : "Activate"}
                               </button>
+                              {u.is_local_account && (
                               <button
                                 onClick={() => resetUserPassword(u.id, u.username)}
                                 className="text-xs px-2 py-1 rounded border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-1"
                               >
                                 <Key size={10} /> Reset Password
                               </button>
+                              )}
                             </>
                           )}
                         </div>

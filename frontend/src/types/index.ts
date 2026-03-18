@@ -156,6 +156,7 @@ export interface AdminUser {
   department: string | null;
   is_admin: boolean;
   is_active: boolean;
+  is_local_account: boolean;
   last_login: string | null;
   created_at: string;
 }

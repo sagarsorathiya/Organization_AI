@@ -110,18 +110,28 @@ export function ChatInput() {
           toast.error(`${file.name}: Unsupported file type`);
           continue;
         }
-        const res = await uploadFile<UploadResponse>("/chat/upload", file);
-        if (!res.text || res.text.trim().length === 0) {
-          toast.error(`${file.name}: Could not extract text`);
-          continue;
-        }
-        setAttachedFile((prev) => [...prev, { name: res.filename, text: res.text, truncated: res.truncated }]);
-        if (res.truncated) {
-          toast.info(`${file.name} was truncated due to length.`);
+        const toastId = toast.loading(`Uploading ${file.name}...`);
+        try {
+          const res = await uploadFile<UploadResponse>("/chat/upload", file);
+          toast.dismiss(toastId);
+          if (!res.text || res.text.trim().length === 0) {
+            toast.error(`${file.name}: Could not extract text`);
+            continue;
+          }
+          setAttachedFile((prev) => [...prev, { name: res.filename, text: res.text, truncated: res.truncated }]);
+          if (res.truncated) {
+            toast.info(`${file.name} was truncated due to length.`);
+          }
+        } catch (uploadErr) {
+          toast.dismiss(toastId);
+          const msg = uploadErr instanceof Error ? uploadErr.message : "Upload failed";
+          console.error(`[Attachment] Upload failed for ${file.name}:`, uploadErr);
+          toast.error(`${file.name}: ${msg}`);
         }
       }
       textareaRef.current?.focus();
     } catch (err: unknown) {
+      console.error("[Attachment] Unexpected error:", err);
       const msg = err instanceof Error ? err.message : "Upload failed";
       toast.error(msg);
     } finally {

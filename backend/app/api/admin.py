@@ -318,6 +318,7 @@ async def update_user(
         department=user.department,
         is_admin=user.is_admin,
         is_active=user.is_active,
+        is_local_account=user.is_local_account,
         last_login=user.last_login,
         created_at=user.created_at,
     )
@@ -396,6 +397,7 @@ async def list_users(
                 department=u.department,
                 is_admin=u.is_admin,
                 is_active=u.is_active,
+                is_local_account=u.is_local_account,
                 last_login=u.last_login,
                 created_at=u.created_at,
             )
@@ -551,6 +553,7 @@ async def create_user(
         department=user.department,
         is_admin=user.is_admin,
         is_active=user.is_active,
+        is_local_account=user.is_local_account,
         last_login=user.last_login,
         created_at=user.created_at,
     )

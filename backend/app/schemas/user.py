@@ -12,6 +12,7 @@ class UserResponse(BaseModel):
     department: str | None = None
     is_admin: bool = False
     is_active: bool = True
+    is_local_account: bool = False
     last_login: datetime | None = None
     created_at: datetime
 

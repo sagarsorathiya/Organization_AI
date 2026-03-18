@@ -248,6 +248,7 @@ async def upload_file(
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a document and extract its text content."""
+    logger.info("Upload request received: filename=%s, user=%s", getattr(file, 'filename', 'N/A'), user_id)
     if not app_settings.ATTACHMENTS_ENABLED:
         raise HTTPException(status_code=403, detail="File attachments are disabled by administrator")
 
