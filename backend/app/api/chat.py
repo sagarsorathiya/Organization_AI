@@ -157,11 +157,15 @@ def _extract_text_txt(data: bytes) -> str:
 
 def _extract_text_csv(data: bytes) -> str:
     text = data.decode("utf-8", errors="replace")
-    reader = csv.reader(io.StringIO(text))
-    rows = []
-    for row in reader:
-        rows.append(" | ".join(row))
-    return "\n".join(rows)
+    try:
+        reader = csv.reader(io.StringIO(text))
+        rows = []
+        for row in reader:
+            rows.append(" | ".join(row))
+        return "\n".join(rows)
+    except Exception:
+        # Malformed CSV — return as plain text
+        return text
 
 
 def _extract_text_pdf(data: bytes) -> str:
@@ -191,38 +195,72 @@ def _extract_text_pdf(data: bytes) -> str:
 
 def _extract_text_docx(data: bytes) -> str:
     import docx
-    doc = docx.Document(io.BytesIO(data))
-    return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+    try:
+        doc = docx.Document(io.BytesIO(data))
+        text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        if text.strip():
+            return text
+    except Exception:
+        pass
+    # Fallback for corrupted .docx or old .doc — extract readable strings
+    import re as _re
+    text_chunks = _re.findall(rb'[\x20-\x7E]{4,}', data)
+    fallback = " ".join(chunk.decode("ascii", errors="ignore") for chunk in text_chunks)
+    if fallback.strip():
+        return fallback
+    raise ValueError("Could not extract any text from document")
 
 
 def _extract_text_xlsx(data: bytes) -> str:
     import openpyxl
-    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-    lines = []
-    for sheet_name in wb.sheetnames:
-        ws = wb[sheet_name]
-        lines.append(f"--- Sheet: {sheet_name} ---")
-        for row in ws.iter_rows(values_only=True):
-            cells = [str(c) if c is not None else "" for c in row]
-            lines.append(" | ".join(cells))
-    wb.close()
-    return "\n".join(lines)
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+        lines = []
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            lines.append(f"--- Sheet: {sheet_name} ---")
+            for row in ws.iter_rows(values_only=True):
+                cells = [str(c) if c is not None else "" for c in row]
+                lines.append(" | ".join(cells))
+        wb.close()
+        if lines:
+            return "\n".join(lines)
+    except Exception:
+        pass
+    # Fallback: extract readable strings from raw bytes
+    import re as _re
+    text_chunks = _re.findall(rb'[\x20-\x7E]{4,}', data)
+    fallback = " ".join(chunk.decode("ascii", errors="ignore") for chunk in text_chunks)
+    if fallback.strip():
+        return fallback
+    raise ValueError("Could not extract any text from spreadsheet")
 
 
 def _extract_text_pptx(data: bytes) -> str:
     from pptx import Presentation
-    prs = Presentation(io.BytesIO(data))
-    slides_text = []
-    for i, slide in enumerate(prs.slides, 1):
-        parts = [f"--- Slide {i} ---"]
-        for shape in slide.shapes:
-            if shape.has_text_frame:
-                for paragraph in shape.text_frame.paragraphs:
-                    text = paragraph.text.strip()
-                    if text:
-                        parts.append(text)
-        slides_text.append("\n".join(parts))
-    return "\n\n".join(slides_text)
+    try:
+        prs = Presentation(io.BytesIO(data))
+        slides_text = []
+        for i, slide in enumerate(prs.slides, 1):
+            parts = [f"--- Slide {i} ---"]
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    for paragraph in shape.text_frame.paragraphs:
+                        text = paragraph.text.strip()
+                        if text:
+                            parts.append(text)
+            slides_text.append("\n".join(parts))
+        if slides_text:
+            return "\n\n".join(slides_text)
+    except Exception:
+        pass
+    # Fallback: extract readable strings from raw bytes
+    import re as _re
+    text_chunks = _re.findall(rb'[\x20-\x7E]{4,}', data)
+    fallback = " ".join(chunk.decode("ascii", errors="ignore") for chunk in text_chunks)
+    if fallback.strip():
+        return fallback
+    raise ValueError("Could not extract any text from presentation")
 
 
 EXTRACTOR_MAP = {
