@@ -166,13 +166,27 @@ def _extract_text_csv(data: bytes) -> str:
 
 def _extract_text_pdf(data: bytes) -> str:
     import PyPDF2
-    reader = PyPDF2.PdfReader(io.BytesIO(data))
-    pages = []
-    for page in reader.pages:
-        t = page.extract_text()
-        if t:
-            pages.append(t)
-    return "\n\n".join(pages)
+    try:
+        reader = PyPDF2.PdfReader(io.BytesIO(data))
+        pages = []
+        for page in reader.pages:
+            try:
+                t = page.extract_text()
+                if t:
+                    pages.append(t)
+            except Exception:
+                continue  # skip unreadable pages
+        if pages:
+            return "\n\n".join(pages)
+    except Exception:
+        pass
+    # Fallback: brute-force extract readable strings from raw PDF bytes
+    import re as _re
+    text_chunks = _re.findall(rb'[\x20-\x7E]{4,}', data)
+    fallback = " ".join(chunk.decode("ascii", errors="ignore") for chunk in text_chunks)
+    if fallback.strip():
+        return fallback
+    raise ValueError("Could not extract any text from PDF")
 
 
 def _extract_text_docx(data: bytes) -> str:
