@@ -65,7 +65,7 @@ export function TemplateSelector({ onSelect }: Props) {
               onClick={() => handleCategoryFilter(c.category)}
               className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${selectedCategory === c.category ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300" : "text-surface-500 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700"}`}
             >
-              {c.category} ({c.count})
+              {c.category}
             </button>
           ))}
         </div>
