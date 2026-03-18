@@ -96,11 +96,12 @@ export function ChatInput() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);  // snapshot before clearing
     e.target.value = "";
 
     setIsUploading(true);
     try {
-      for (const file of Array.from(files)) {
+      for (const file of fileArray) {
         if (file.size > attachmentsMaxSizeMb * 1024 * 1024) {
           toast.error(`${file.name}: File too large (max ${attachmentsMaxSizeMb} MB)`);
           continue;
