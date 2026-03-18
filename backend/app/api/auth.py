@@ -13,6 +13,7 @@ from app.schemas.auth import LoginRequest, LoginResponse, UserInfo, ChangePasswo
 from app.services.auth_service import auth_service
 from app.services.audit_service import audit_service
 from app.api.deps import get_current_user_id, get_current_user_token, get_client_ip
+from app.middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -42,6 +43,7 @@ def _clear_failures(ip: str) -> None:
 
 
 @router.post("/login", response_model=LoginResponse)
+@limiter.limit("10/minute")
 async def login(
     body: LoginRequest,
     request: Request,
@@ -124,7 +126,10 @@ async def logout(
     token=Depends(get_current_user_token),
     db: AsyncSession = Depends(get_db),
 ):
-    """Clear session cookie."""
+    """Clear session cookie and blacklist the JWT."""
+    # Invalidate the token so it cannot be reused
+    await auth_service.blacklist_token(token, db)
+
     response.delete_cookie(
         settings.SESSION_COOKIE_NAME,
         httponly=settings.SESSION_COOKIE_HTTPONLY,
@@ -168,8 +173,10 @@ async def get_current_user(
 
 
 @router.post("/change-password")
+@limiter.limit("5/minute")
 async def change_password(
     body: ChangePasswordRequest,
+    request: Request,
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):

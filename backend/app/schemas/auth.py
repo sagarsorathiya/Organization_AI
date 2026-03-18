@@ -30,6 +30,7 @@ class TokenPayload(BaseModel):
     username: str
     is_admin: bool = False
     exp: int
+    jti: str = ""  # JWT ID for blacklisting
 
 
 class ChangePasswordRequest(BaseModel):

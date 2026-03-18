@@ -292,6 +292,15 @@ async def check_attachments_enabled(
     }
 
 
+def _sanitize_filename(name: str) -> str:
+    """Sanitize a filename for safe display — allow only safe characters."""
+    # Keep only alphanumeric, dots, dashes, underscores, spaces
+    sanitized = re.sub(r"[^\w.\- ]", "_", name)
+    # Collapse consecutive dots (prevent path traversal like ..)
+    sanitized = re.sub(r"\.{2,}", ".", sanitized)
+    return sanitized.strip() or "unnamed"
+
+
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
@@ -361,7 +370,7 @@ async def upload_file(
         await db.rollback()
 
     return {
-        "filename": file.filename,
+        "filename": _sanitize_filename(file.filename),
         "size": len(data),
         "extension": ext,
         "text": extracted_text,
@@ -391,27 +400,28 @@ async def upload_multiple_files(
             results.append({"filename": "unknown", "error": "No filename provided"})
             continue
 
+        safe_name = _sanitize_filename(file.filename)
         ext = _get_extension(file.filename)
         if ext not in ALLOWED_EXTENSIONS:
-            results.append({"filename": file.filename, "error": f"Unsupported file type '{ext}'"})
+            results.append({"filename": safe_name, "error": f"Unsupported file type '{ext}'"})
             continue
 
         data = await file.read()
         max_bytes = app_settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
         if len(data) > max_bytes:
-            results.append({"filename": file.filename, "error": f"File too large (max {app_settings.ATTACHMENTS_MAX_SIZE_MB} MB)"})
+            results.append({"filename": safe_name, "error": f"File too large (max {app_settings.ATTACHMENTS_MAX_SIZE_MB} MB)"})
             continue
 
         extractor = EXTRACTOR_MAP.get(ext)
         if not extractor:
-            results.append({"filename": file.filename, "error": f"No text extractor for '{ext}'"})
+            results.append({"filename": safe_name, "error": f"No text extractor for '{ext}'"})
             continue
 
         try:
             extracted_text = await loop.run_in_executor(None, extractor, data)
         except Exception:
             logger.exception("Text extraction failed for file: %s", file.filename)
-            results.append({"filename": file.filename, "error": "Failed to extract text"})
+            results.append({"filename": safe_name, "error": "Failed to extract text"})
             continue
 
         max_chars = app_settings.ATTACHMENTS_MAX_EXTRACT_CHARS
@@ -442,7 +452,7 @@ async def upload_multiple_files(
             await db.rollback()
 
         results.append({
-            "filename": file.filename,
+            "filename": safe_name,
             "size": len(data),
             "extension": ext,
             "text": extracted_text,

@@ -55,5 +55,16 @@ async def enforce_data_retention():
 
         await db.commit()
 
+    # Clean up expired token blacklist entries (tokens already past their exp)
+    async with async_session_factory() as db:
+        from app.models.token_blacklist import TokenBlacklist
+        now = datetime.now(timezone.utc)
+        result = await db.execute(
+            delete(TokenBlacklist).where(TokenBlacklist.expires_at < now)
+        )
+        if result.rowcount:
+            logger.info("Purged %d expired token blacklist entries", result.rowcount)
+        await db.commit()
+
     logger.info("Data retention complete. Deleted %d conversations total.", total_deleted)
     return total_deleted

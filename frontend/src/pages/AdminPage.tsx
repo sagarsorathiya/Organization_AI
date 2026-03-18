@@ -472,8 +472,10 @@ export function AdminPage() {
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const disposition = res.headers.get("content-disposition") || "";
-      const match = disposition.match(/filename=(.+)/);
-      const filename = match ? match[1] : "org_ai_backup.json";
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const rawName = match ? match[1] : "org_ai_backup.json";
+      // Sanitize: strip path separators and allow only safe characters
+      const filename = rawName.replace(/[/\\:*?"<>|]/g, "_").replace(/\.{2,}/g, ".");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

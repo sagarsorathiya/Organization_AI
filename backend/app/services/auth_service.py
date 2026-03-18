@@ -172,6 +172,7 @@ class AuthService:
             "username": user.username,
             "is_admin": user.is_admin,
             "exp": int(expire.timestamp()),
+            "jti": uuid.uuid4().hex,
         }
         return jwt.encode(payload, settings.SECRET_KEY.get_secret_value(), algorithm=ALGORITHM)
 
@@ -182,6 +183,26 @@ class AuthService:
             return TokenPayload(**payload)
         except JWTError:
             return None
+
+    async def is_token_blacklisted(self, jti: str, db: "AsyncSession") -> bool:
+        """Check if a token JTI has been blacklisted (logged out)."""
+        if not jti:
+            return False
+        from app.models.token_blacklist import TokenBlacklist
+        result = await db.execute(select(TokenBlacklist).where(TokenBlacklist.jti == jti))
+        return result.scalar_one_or_none() is not None
+
+    async def blacklist_token(self, payload: TokenPayload, db: "AsyncSession") -> None:
+        """Add a token to the blacklist."""
+        if not payload.jti:
+            return
+        from app.models.token_blacklist import TokenBlacklist
+        entry = TokenBlacklist(
+            jti=payload.jti,
+            expires_at=datetime.fromtimestamp(payload.exp, tz=timezone.utc),
+        )
+        db.add(entry)
+        await db.flush()
 
     async def change_password(
         self, user_id: uuid.UUID, old_password: str, new_password: str, db: AsyncSession

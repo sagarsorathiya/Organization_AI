@@ -10,9 +10,10 @@ from app.models.conversation_tag import ConversationTag, ConversationTagLink
 from app.models.announcement import Announcement
 from app.models.shared_conversation import SharedConversation
 from app.models.message_bookmark import MessageBookmark
+from app.models.token_blacklist import TokenBlacklist
 
 __all__ = [
     "User", "Conversation", "Message", "AuditLog", "UserSettings", "FileUpload",
     "MessageFeedback", "PromptTemplate", "ConversationTag", "ConversationTagLink",
-    "Announcement", "SharedConversation", "MessageBookmark",
+    "Announcement", "SharedConversation", "MessageBookmark", "TokenBlacklist",
 ]

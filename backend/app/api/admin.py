@@ -221,6 +221,20 @@ async def update_system_settings(
             raise HTTPException(status_code=400, detail=f"session_cookie_samesite must be one of {allowed_ss}")
         updates["session_cookie_samesite"] = updates["session_cookie_samesite"].lower()
 
+    # Validate llm_base_url format (prevent SSRF)
+    if "llm_base_url" in updates:
+        from urllib.parse import urlparse
+        llm_url = updates["llm_base_url"]
+        if llm_url:
+            try:
+                parsed = urlparse(llm_url)
+                if parsed.scheme not in ("http", "https"):
+                    raise ValueError("scheme must be http or https")
+                if not parsed.hostname:
+                    raise ValueError("hostname is required")
+            except Exception as exc:
+                raise HTTPException(status_code=400, detail=f"Invalid llm_base_url: {exc}")
+
     # Apply to in-memory settings object AND build .env updates
     env_updates: dict[str, str] = {}
     for field_name, value in updates.items():

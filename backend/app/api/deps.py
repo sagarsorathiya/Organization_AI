@@ -19,6 +19,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 async def get_current_user_token(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> TokenPayload:
     """Extract and verify JWT from Authorization header or cookie."""
     token = None
@@ -43,6 +44,13 @@ async def get_current_user_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+        )
+
+    # Check if token has been blacklisted (logged out)
+    if payload.jti and await auth_service.is_token_blacklisted(payload.jti, db):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
         )
 
     return payload
