@@ -59,6 +59,7 @@ async def get_system_settings(
     """Return non-sensitive system configuration for the admin dashboard."""
     # S5: Mask AD server details — only show whether AD is enabled + domain
     ad_server_masked = "***" if app_settings.AD_SERVER else ""
+    ad_bind_user_masked = "***" if app_settings.AD_BIND_USER else ""
     return SystemSettingsResponse(
         app_name=app_settings.APP_NAME,
         app_env=app_settings.APP_ENV,
@@ -67,10 +68,10 @@ async def get_system_settings(
         ad_port=0,
         ad_use_ssl=app_settings.AD_USE_SSL,
         ad_domain=app_settings.AD_DOMAIN,
-        ad_base_dn=app_settings.AD_BASE_DN,
-        ad_user_search_base=app_settings.AD_USER_SEARCH_BASE,
-        ad_group_search_base=app_settings.AD_GROUP_SEARCH_BASE,
-        ad_bind_user=app_settings.AD_BIND_USER,
+        ad_base_dn="***",
+        ad_user_search_base="***",
+        ad_group_search_base="***",
+        ad_bind_user=ad_bind_user_masked,
         ad_admin_group=app_settings.AD_ADMIN_GROUP,
         llm_provider=app_settings.LLM_PROVIDER,
         llm_base_url=app_settings.LLM_BASE_URL,
@@ -773,14 +774,14 @@ async def clear_table(
 
     if table_name == "conversations":
         count = (await db.execute(select(func.count()).select_from(Conversation))).scalar() or 0
-        await db.execute(text("DELETE FROM messages"))
-        await db.execute(text("DELETE FROM conversations"))
+        await db.execute(Message.__table__.delete())
+        await db.execute(Conversation.__table__.delete())
         await db.commit()
         return {"message": f"Cleared {count} conversations and all their messages"}
 
     model = _TABLE_MODELS[table_name]
     count = (await db.execute(select(func.count()).select_from(model))).scalar() or 0
-    await db.execute(text(f"DELETE FROM {table_name}"))
+    await db.execute(model.__table__.delete())
     await db.commit()
     return {"message": f"Cleared {count} rows from {table_name}"}
 
@@ -796,7 +797,7 @@ async def clear_all_data(
         model = _TABLE_MODELS[table_name]
         count = (await db.execute(select(func.count()).select_from(model))).scalar() or 0
         counts[table_name] = count
-        await db.execute(text(f"DELETE FROM {table_name}"))
+        await db.execute(model.__table__.delete())
 
     await db.commit()
     logger.warning("ALL database data cleared by admin: %s", counts)

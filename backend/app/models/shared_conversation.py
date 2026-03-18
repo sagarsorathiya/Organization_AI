@@ -2,13 +2,16 @@
 
 import uuid
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import String, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+
+# Share links expire after 30 days by default
+_DEFAULT_SHARE_DAYS = 30
 
 
 class SharedConversation(Base):
@@ -28,4 +31,9 @@ class SharedConversation(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc) + timedelta(days=_DEFAULT_SHARE_DAYS),
+        nullable=True,
     )

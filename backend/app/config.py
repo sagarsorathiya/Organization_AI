@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 
 from pydantic_settings import BaseSettings
 from pydantic import Field, SecretStr, model_validator
+from sqlalchemy import URL
 
 
 def _require_env(var: str) -> str:
@@ -109,13 +110,19 @@ class Settings(BaseSettings):
                 raise ValueError(msg)
             _log.warning(msg)
 
-        # Admin password
+        # Admin password — always require a reasonable password
         admin_pw = self.LOCAL_ADMIN_PASSWORD.get_secret_value()
-        if not admin_pw or any(m in admin_pw for m in _weak_markers):
-            msg = "LOCAL_ADMIN_PASSWORD is weak or empty — change it in .env"
-            if is_prod:
-                raise ValueError(msg)
-            _log.warning(msg)
+        if self.LOCAL_ADMIN_ENABLED:
+            if not admin_pw or len(admin_pw) < 8:
+                msg = "LOCAL_ADMIN_PASSWORD must be at least 8 characters — set a strong value in .env"
+                if is_prod:
+                    raise ValueError(msg)
+                _log.warning(msg)
+            elif any(m in admin_pw for m in _weak_markers):
+                msg = "LOCAL_ADMIN_PASSWORD uses a placeholder — change it in .env"
+                if is_prod:
+                    raise ValueError(msg)
+                _log.warning(msg)
 
         # Secret key
         sk = self.SECRET_KEY.get_secret_value()
@@ -136,21 +143,27 @@ class Settings(BaseSettings):
         return self
 
     @property
-    def database_url(self) -> str:
-        pw = quote_plus(self.DATABASE_PASSWORD.get_secret_value())
-        user = quote_plus(self.DATABASE_USER)
-        return (
-            f"postgresql+asyncpg://{user}:{pw}"
-            f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+    def database_url(self) -> URL:
+        """Async database URL — password hidden from repr/logs."""
+        return URL.create(
+            drivername="postgresql+asyncpg",
+            username=self.DATABASE_USER,
+            password=self.DATABASE_PASSWORD.get_secret_value(),
+            host=self.DATABASE_HOST,
+            port=self.DATABASE_PORT,
+            database=self.DATABASE_NAME,
         )
 
     @property
-    def database_url_sync(self) -> str:
-        pw = quote_plus(self.DATABASE_PASSWORD.get_secret_value())
-        user = quote_plus(self.DATABASE_USER)
-        return (
-            f"postgresql://{user}:{pw}"
-            f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+    def database_url_sync(self) -> URL:
+        """Sync database URL — password hidden from repr/logs."""
+        return URL.create(
+            drivername="postgresql",
+            username=self.DATABASE_USER,
+            password=self.DATABASE_PASSWORD.get_secret_value(),
+            host=self.DATABASE_HOST,
+            port=self.DATABASE_PORT,
+            database=self.DATABASE_NAME,
         )
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}

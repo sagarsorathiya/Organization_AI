@@ -1,6 +1,8 @@
 """Authentication API routes."""
 
+import time
 import uuid
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +16,30 @@ from app.api.deps import get_current_user_id, get_current_user_token, get_client
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+# ---- Brute-force protection ----
+# Track failed attempts per IP: {ip: [(timestamp, username), ...]}
+_failed_attempts: dict[str, list[float]] = defaultdict(list)
+_LOCKOUT_WINDOW = 900       # 15 minutes
+_MAX_FAILED_ATTEMPTS = 5    # lock after 5 failures
+
+
+def _is_locked_out(ip: str) -> bool:
+    """Check if an IP is locked out due to too many failed attempts."""
+    cutoff = time.monotonic() - _LOCKOUT_WINDOW
+    # Prune old entries
+    _failed_attempts[ip] = [t for t in _failed_attempts[ip] if t > cutoff]
+    return len(_failed_attempts[ip]) >= _MAX_FAILED_ATTEMPTS
+
+
+def _record_failure(ip: str) -> None:
+    """Record a failed login attempt for an IP."""
+    _failed_attempts[ip].append(time.monotonic())
+
+
+def _clear_failures(ip: str) -> None:
+    """Clear failed attempts on successful login."""
+    _failed_attempts.pop(ip, None)
+
 
 @router.post("/login", response_model=LoginResponse)
 async def login(
@@ -23,14 +49,31 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     """Authenticate against Active Directory and return JWT."""
+    client_ip = get_client_ip(request)
+
+    # Brute-force protection: reject if too many recent failures from this IP
+    if _is_locked_out(client_ip):
+        await audit_service.log(
+            db,
+            action="login_blocked",
+            username=body.username,
+            ip_address=client_ip,
+            user_agent=request.headers.get("user-agent"),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Try again in 15 minutes.",
+        )
+
     result = await auth_service.authenticate_user(body.username, body.password, db)
 
     if result is None:
+        _record_failure(client_ip)
         await audit_service.log(
             db,
             action="login_failed",
             username=body.username,
-            ip_address=get_client_ip(request),
+            ip_address=client_ip,
             user_agent=request.headers.get("user-agent"),
         )
         raise HTTPException(
@@ -39,6 +82,7 @@ async def login(
         )
 
     user, token = result
+    _clear_failures(client_ip)
 
     # Set secure cookie
     response.set_cookie(

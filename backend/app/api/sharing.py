@@ -2,6 +2,7 @@
 
 import uuid
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -101,6 +102,10 @@ async def view_shared_conversation(
     share = result.scalar_one_or_none()
     if not share:
         raise HTTPException(status_code=404, detail="Shared conversation not found")
+
+    # Check expiration
+    if share.expires_at and datetime.now(timezone.utc) > share.expires_at:
+        raise HTTPException(status_code=410, detail="This share link has expired")
 
     conv_result = await db.execute(
         select(Conversation)
