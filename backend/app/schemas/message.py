@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=32000)
+    message: str = Field(..., min_length=1, max_length=500000)
     conversation_id: str | None = None
     model: str | None = None
 
