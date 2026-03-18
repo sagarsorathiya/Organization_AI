@@ -137,6 +137,9 @@ async def on_startup():
     if settings.LOCAL_ADMIN_ENABLED:
         await _seed_local_admin()
 
+    # Seed default prompt templates
+    await _seed_default_templates()
+
     # Run data retention enforcement on startup
     try:
         from app.tasks.data_retention import enforce_data_retention
@@ -204,6 +207,127 @@ async def _seed_local_admin():
             if changed:
                 await db.commit()
                 logger.info("Local admin account '%s' updated", settings.LOCAL_ADMIN_USERNAME)
+
+
+# ---- Default Prompt Templates ----
+_DEFAULT_TEMPLATES = [
+    # --- Writing ---
+    {
+        "title": "Professional Email",
+        "content": "Write a professional email about {topic}. Include a clear subject line, greeting, body with key points, and a polite closing. Keep the tone formal but approachable.",
+        "category": "Writing",
+    },
+    {
+        "title": "Meeting Summary",
+        "content": "Summarize the following meeting notes into a clear, structured format with:\n- Key decisions made\n- Action items (with owners if mentioned)\n- Next steps and deadlines\n\nMeeting notes:\n{notes}",
+        "category": "Writing",
+    },
+    {
+        "title": "Report Writer",
+        "content": "Write a concise report on {topic}. Structure it with:\n1. Executive Summary\n2. Key Findings\n3. Analysis\n4. Recommendations\n\nKeep it professional and data-driven.",
+        "category": "Writing",
+    },
+    # --- Coding ---
+    {
+        "title": "Code Review",
+        "content": "Review the following code for:\n- Bugs and potential issues\n- Security vulnerabilities\n- Performance improvements\n- Code style and best practices\n\nProvide specific suggestions with examples.\n\n```\n{code}\n```",
+        "category": "Coding",
+    },
+    {
+        "title": "Explain Code",
+        "content": "Explain the following code in simple terms. Break down:\n- What it does (overall purpose)\n- How it works (step by step)\n- Key concepts used\n\n```\n{code}\n```",
+        "category": "Coding",
+    },
+    {
+        "title": "Write Unit Tests",
+        "content": "Write comprehensive unit tests for the following code. Include:\n- Happy path tests\n- Edge cases\n- Error handling tests\n\nUse appropriate assertions and descriptive test names.\n\n```\n{code}\n```",
+        "category": "Coding",
+    },
+    {
+        "title": "Debug Helper",
+        "content": "I'm encountering this error:\n\n{error}\n\nIn this code:\n\n```\n{code}\n```\n\nPlease:\n1. Explain what's causing the error\n2. Provide the fix\n3. Explain how to prevent it in the future",
+        "category": "Coding",
+    },
+    # --- Analysis ---
+    {
+        "title": "Pros and Cons",
+        "content": "Analyze {topic} by listing:\n\n**Pros:**\n- (advantages, benefits, strengths)\n\n**Cons:**\n- (disadvantages, risks, weaknesses)\n\n**Recommendation:**\nProvide a balanced conclusion.",
+        "category": "Analysis",
+    },
+    {
+        "title": "Compare Options",
+        "content": "Compare the following options: {options}\n\nFor each option, evaluate:\n- Key features and capabilities\n- Cost and resource implications\n- Ease of implementation\n- Long-term maintainability\n\nProvide a recommendation with reasoning.",
+        "category": "Analysis",
+    },
+    {
+        "title": "Root Cause Analysis",
+        "content": "Perform a root cause analysis for the following problem:\n\n{problem}\n\nUse the 5 Whys technique:\n1. Why did this happen?\n2. Why? (dig deeper)\n3. Why?\n4. Why?\n5. Why? (root cause)\n\nThen suggest preventive measures.",
+        "category": "Analysis",
+    },
+    # --- Productivity ---
+    {
+        "title": "Simplify Text",
+        "content": "Rewrite the following text in simpler, clearer language. Maintain the key information but make it easy to understand for a general audience:\n\n{text}",
+        "category": "Productivity",
+    },
+    {
+        "title": "Translate",
+        "content": "Translate the following text to {language}. Maintain the original tone and meaning. If there are idioms or cultural references, adapt them appropriately:\n\n{text}",
+        "category": "Productivity",
+    },
+    {
+        "title": "Brainstorm Ideas",
+        "content": "Brainstorm 10 creative ideas for {topic}. For each idea, provide:\n- A short title\n- A one-sentence description\n- Why it could work\n\nThink outside the box and include both practical and innovative suggestions.",
+        "category": "Productivity",
+    },
+    {
+        "title": "Create Action Plan",
+        "content": "Create a detailed action plan for: {goal}\n\nInclude:\n1. Clear objectives\n2. Step-by-step tasks with priorities\n3. Timeline estimates\n4. Required resources\n5. Potential risks and mitigations",
+        "category": "Productivity",
+    },
+    # --- IT / Technical ---
+    {
+        "title": "Troubleshoot Issue",
+        "content": "Help me troubleshoot this technical issue:\n\n**System/Application:** {system}\n**Problem:** {problem}\n**Steps already tried:** {steps}\n\nProvide a systematic troubleshooting approach with potential solutions ranked by likelihood.",
+        "category": "IT Support",
+    },
+    {
+        "title": "SQL Query Builder",
+        "content": "Write a SQL query to: {requirement}\n\nDatabase details:\n- Tables: {tables}\n- Key relationships: {relationships}\n\nProvide the query with:\n- Proper JOINs if needed\n- WHERE clauses for filtering\n- Comments explaining each section\n- Performance considerations",
+        "category": "IT Support",
+    },
+    {
+        "title": "Documentation Writer",
+        "content": "Write technical documentation for {topic}. Include:\n\n1. Overview / Purpose\n2. Prerequisites\n3. Step-by-step instructions\n4. Configuration options\n5. Troubleshooting / FAQ\n\nUse clear headings, code blocks where appropriate, and keep it concise.",
+        "category": "IT Support",
+    },
+]
+
+
+async def _seed_default_templates():
+    """Seed default prompt templates if none exist yet."""
+    from sqlalchemy import select, func
+    from app.database import async_session_factory
+    from app.models.prompt_template import PromptTemplate
+
+    async with async_session_factory() as db:
+        count = (await db.execute(
+            select(func.count()).select_from(PromptTemplate).where(PromptTemplate.is_system == True)
+        )).scalar() or 0
+
+        if count > 0:
+            return  # Templates already seeded
+
+        for tpl in _DEFAULT_TEMPLATES:
+            db.add(PromptTemplate(
+                title=tpl["title"],
+                content=tpl["content"],
+                category=tpl["category"],
+                is_system=True,
+            ))
+
+        await db.commit()
+        logger.info("Seeded %d default prompt templates", len(_DEFAULT_TEMPLATES))
 
 
 @app.on_event("shutdown")
