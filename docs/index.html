@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organization AI — Secure In-House Enterprise AI Portal</title>
-    <meta name="description" content="A 100% on-premises, enterprise-grade AI chat assistant. Active Directory SSO, zero cloud dependency, your data never leaves your network.">
+    <meta name="description" content="A 100% on-premises, enterprise-grade AI portal with AI Agents, RAG Knowledge Base, Skills Engine, and 40+ features. Active Directory SSO, zero cloud dependency, your data never leaves your network.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -626,9 +626,10 @@
             <span class="gradient">Enterprise AI Portal</span>
         </h1>
         <p class="reveal reveal-delay-2">
-            Deploy a powerful AI chat assistant inside your corporate network.
-            Employees authenticate with Active Directory &mdash; all data stays
-            within your organization. 28+ enterprise features, zero cloud dependency.
+            Deploy a powerful AI portal with autonomous agents, RAG knowledge base,
+            and skill automation inside your corporate network. Employees authenticate
+            with Active Directory &mdash; all data stays within your organization.
+            40+ enterprise features, zero cloud dependency.
         </p>
         <div class="hero-actions reveal reveal-delay-3">
             <a href="#quickstart" class="btn btn-primary">
@@ -750,8 +751,8 @@
         <div class="section-label reveal">Features</div>
         <h2 class="section-title reveal">Enterprise-Grade, Out of the Box</h2>
         <p class="section-subtitle reveal">
-            28+ features for a production-ready AI assistant
-            &mdash; from feedback analytics to conversation sharing, all self-hosted.
+            40+ features for a production-ready AI platform
+            &mdash; from AI agents and RAG knowledge bases to scheduled automation, all self-hosted.
         </p>
         <div class="features-grid">
             <div class="feature-card reveal">
@@ -764,7 +765,7 @@
                 <div class="feature-icon blue">&#129302;</div>
                 <h3>Multi-Model AI Engine</h3>
                 <p>Download, update, and delete AI models directly from the admin panel.
-                Supports Llama 3, Gemma, Mistral, DeepSeek, and 20+ models.
+                Supports Llama 3, Gemma, Mistral, DeepSeek, and 27 cataloged models.
                 Regenerate any AI response with a single click.</p>
             </div>
             <div class="feature-card reveal">
@@ -782,8 +783,9 @@
             <div class="feature-card reveal">
                 <div class="feature-icon purple">&#128736;</div>
                 <h3>Admin Control Panel</h3>
-                <p>Full web-based admin panel with 8 tabs: users, models, settings, audit logs,
-                health metrics, announcements, prompt templates, and feedback analytics.</p>
+                <p>Full web-based admin panel with 13 tabs across 3 groups: users, models, settings,
+                audit logs, health, announcements, templates, feedback, agents, knowledge base,
+                skills, scheduled tasks, and notifications.</p>
             </div>
             <div class="feature-card reveal">
                 <div class="feature-icon pink">&#128200;</div>
@@ -831,6 +833,50 @@
                 Keyboard shortcuts panel for power users. Data retention enforcement
                 with automatic cleanup policies.</p>
             </div>
+
+            <!-- V2 Features -->
+            <div class="feature-card reveal">
+                <div class="feature-icon purple">&#129302;</div>
+                <h3>AI Agents</h3>
+                <p>Create autonomous AI agents with custom system prompts, dedicated models,
+                and configurable parameters. Agents can be shared org-wide or kept private.
+                Full CRUD management from admin panel.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon cyan">&#128218;</div>
+                <h3>RAG Knowledge Base</h3>
+                <p>Upload documents (PDF, DOCX, TXT, Markdown) to knowledge bases with
+                automatic chunking and vector embeddings. AI responses grounded in your
+                organization's documents with semantic search.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon green">&#128295;</div>
+                <h3>Skills Engine</h3>
+                <p>Define reusable AI skills with structured input schemas and prompt templates.
+                Execute skills on demand with parameter validation. Track execution history
+                and results for audit compliance.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon orange">&#128336;</div>
+                <h3>Task Scheduler</h3>
+                <p>Schedule recurring AI tasks with cron expressions &mdash; automated reports,
+                document summarization, data extraction. APScheduler-powered with execution
+                history and admin oversight.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon blue">&#128231;</div>
+                <h3>Notifications</h3>
+                <p>In-app notification system for task completions, agent responses, and
+                system events. Real-time delivery with read/unread tracking and
+                bulk management actions.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon pink">&#128241;</div>
+                <h3>PWA &amp; Memory</h3>
+                <p>Install as a Progressive Web App on any device. AI memory system persists
+                context across conversations &mdash; agents remember user preferences and
+                organizational knowledge over time.</p>
+            </div>
         </div>
     </div>
 </section>
@@ -861,19 +907,25 @@
                 <div class="arch-layer">
                     <div class="arch-layer-icon api">&#9881;</div>
                     <div class="arch-layer-label">API Backend</div>
-                    <div class="arch-layer-desc">FastAPI + Uvicorn with async handlers and connection pooling</div>
+                    <div class="arch-layer-desc">FastAPI + Uvicorn &mdash; 119 endpoints, 12 services, async handlers and connection pooling</div>
                     <span class="arch-layer-tag tag-internal">Internal Only</span>
                 </div>
                 <div class="arch-layer">
                     <div class="arch-layer-icon ai">&#129302;</div>
-                    <div class="arch-layer-label">AI Engine</div>
-                    <div class="arch-layer-desc">Ollama running locally &mdash; CPU or GPU accelerated inference</div>
+                    <div class="arch-layer-label">AI Engine + Embeddings</div>
+                    <div class="arch-layer-desc">Ollama running locally &mdash; LLM inference + vector embeddings (nomic-embed-text) for RAG</div>
                     <span class="arch-layer-tag tag-secured">Air-Gapped</span>
+                </div>
+                <div class="arch-layer">
+                    <div class="arch-layer-icon api" style="background: rgba(244,114,182,0.1); border: 1px solid rgba(244,114,182,0.15);">&#128295;</div>
+                    <div class="arch-layer-label">Agents, Skills &amp; Scheduler</div>
+                    <div class="arch-layer-desc">Autonomous AI agents, reusable skill engine, APScheduler for recurring automated tasks</div>
+                    <span class="arch-layer-tag tag-internal">Internal Only</span>
                 </div>
                 <div class="arch-layer">
                     <div class="arch-layer-icon db">&#128190;</div>
                     <div class="arch-layer-label">Database</div>
-                    <div class="arch-layer-desc">PostgreSQL with encrypted connections and connection pooling</div>
+                    <div class="arch-layer-desc">PostgreSQL &mdash; 24 tables, 9 Alembic migrations, encrypted connections and pooling</div>
                     <span class="arch-layer-tag tag-secured">Encrypted</span>
                 </div>
                 <div class="arch-firewall">
