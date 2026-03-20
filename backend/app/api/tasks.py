@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.api.deps import get_current_user_id
+from app.api.deps import get_current_user_id, require_admin
 from app.services.notification_service import notification_service
 from app.models.scheduled_task import ScheduledTask, TaskExecution
 
@@ -74,7 +74,11 @@ async def mark_all_read(
 
 # ─── Admin Task Routes ───
 
-task_router = APIRouter(prefix="/admin/tasks", tags=["Admin - Tasks"])
+task_router = APIRouter(
+    prefix="/admin/tasks",
+    tags=["Admin - Tasks"],
+    dependencies=[Depends(require_admin)],
+)
 
 
 class TaskCreate(BaseModel):
@@ -235,8 +239,9 @@ async def run_task_now(task_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     task = await db.get(ScheduledTask, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    import asyncio
     from app.services.scheduler_service import scheduler_service
-    await scheduler_service.run_task_now(task_id)
+    asyncio.create_task(scheduler_service.run_task_now(task_id))
     return {"status": "triggered"}
 
 

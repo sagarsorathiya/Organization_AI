@@ -13,7 +13,7 @@ interface NotificationState {
   markAllRead: () => Promise<void>;
 }
 
-export const useNotificationStore = create<NotificationState>((set, getState) => ({
+export const useNotificationStore = create<NotificationState>((set) => ({
   notifications: [],
   unreadCount: 0,
   isLoading: false,
@@ -33,9 +33,8 @@ export const useNotificationStore = create<NotificationState>((set, getState) =>
 
   loadUnreadCount: async () => {
     try {
-      await get<{ count: number }>("/notifications?limit=0");
-      const notifs = getState().notifications;
-      set({ unreadCount: notifs.filter((n) => !n.is_read).length });
+      const data = await get<{ notifications: Notification[]; unread_count: number }>("/notifications?limit=1");
+      set({ unreadCount: data.unread_count });
     } catch {
       // silently fail
     }

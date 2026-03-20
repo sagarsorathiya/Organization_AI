@@ -12,13 +12,18 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.api.deps import get_current_user_id
+from app.api.deps import get_current_user_id, require_admin
 from app.services.rag_service import rag_service, kb_service
 from app.models.knowledge_base import KnowledgeBase, KnowledgeDocument
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/admin/knowledge-bases", tags=["Admin - Knowledge Base"])
+router = APIRouter(
+    prefix="/admin/knowledge-bases",
+    tags=["Admin - Knowledge Base"],
+    dependencies=[Depends(require_admin)],
+)
 
 ALLOWED_DOC_EXTENSIONS = {".pdf", ".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt", ".txt", ".md", ".csv", ".html", ".json", ".xml"}
 
@@ -145,29 +150,39 @@ async def upload_document(
     if not kb:
         raise HTTPException(status_code=404, detail="Knowledge base not found")
 
+    max_bytes = settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
+
     results = []
     for file in files:
+        # Sanitize filename
+        import re
+        safe_name = re.sub(r'[^\w\s\-.]', '_', os.path.basename(file.filename or "unknown"))
+
         # Validate extension
-        ext = os.path.splitext(file.filename or "")[1].lower()
+        ext = os.path.splitext(safe_name)[1].lower()
         if ext not in ALLOWED_DOC_EXTENSIONS:
-            results.append({"file": file.filename, "error": f"File type {ext} not supported"})
+            results.append({"file": safe_name, "error": f"File type {ext} not supported"})
             continue
 
-        # Read content
+        # Read content with size limit
         content_bytes = await file.read()
+        if len(content_bytes) > max_bytes:
+            results.append({"file": safe_name, "error": f"File exceeds {settings.ATTACHMENTS_MAX_SIZE_MB}MB limit"})
+            continue
+
         file_hash = hashlib.sha256(content_bytes).hexdigest()
 
         # Extract text
         text = await _extract_text(content_bytes, ext)
         if not text:
-            results.append({"file": file.filename, "error": "Could not extract text from file"})
+            results.append({"file": safe_name, "error": "Could not extract text from file"})
             continue
 
         # Create document record
         doc = KnowledgeDocument(
             knowledge_base_id=kb_id,
-            title=os.path.splitext(file.filename or "document")[0],
-            file_name=file.filename or "unknown",
+            title=os.path.splitext(safe_name)[0],
+            file_name=safe_name,
             file_type=ext.lstrip("."),
             file_size=len(content_bytes),
             file_hash=file_hash,
@@ -344,7 +359,28 @@ def _extract_text_sync(content: bytes, ext: str) -> str:
             return "\n".join(text_parts)
 
         if ext in (".html",):
-            return content.decode("utf-8", errors="replace")
+            from html.parser import HTMLParser
+
+            class _TagStripper(HTMLParser):
+                def __init__(self):
+                    super().__init__()
+                    self._parts: list[str] = []
+                    self._skip = False
+
+                def handle_starttag(self, tag, attrs):
+                    self._skip = tag in ("script", "style")
+
+                def handle_endtag(self, tag):
+                    if tag in ("script", "style"):
+                        self._skip = False
+
+                def handle_data(self, data):
+                    if not self._skip:
+                        self._parts.append(data)
+
+            stripper = _TagStripper()
+            stripper.feed(content.decode("utf-8", errors="replace"))
+            return " ".join(stripper._parts)
 
         if ext in (".json", ".xml"):
             return content.decode("utf-8", errors="replace")
