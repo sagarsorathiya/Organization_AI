@@ -1063,6 +1063,9 @@ alembic upgrade head
 | 4 | `004_add_file_uploads_table` | file_uploads table for attachment support |
 | 5 | `005_add_search_vector_audit_retention` | Full-text search vector (TSVECTOR), GIN index, audit indexes |
 | 6 | `006_add_features_tables` | message_feedback, prompt_templates, conversation_tags, conversation_tag_links, announcements, shared_conversations, message_bookmarks |
+| 7 | `007_add_token_blacklist` | token_blacklist table for JWT revocation |
+| 8 | `008_add_missing_columns` | Additional columns for existing tables |
+| 9 | `009_add_v2_tables` | knowledge_bases, knowledge_documents, document_chunks, agents, ai_memories, agent_skills, skill_executions, scheduled_tasks, task_executions, notifications |
 
 ### Common Commands
 

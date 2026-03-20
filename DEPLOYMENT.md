@@ -58,10 +58,10 @@
 
 | Service | Technology | Default Port | Purpose |
 |---------|-----------|-------------|---------|
-| Frontend | React 18 + Vite (built to static) | 80/443 | User interface |
-| Backend | Python 3.12, FastAPI, Uvicorn | 8000 | REST API, auth, chat orchestration |
-| Database | PostgreSQL 16 | 5432 | Users, conversations, messages, audit logs |
-| LLM | Ollama | 11434 | Local AI model inference |
+| Frontend | React 18.3 + TypeScript 5.5 + Vite 5.4 (built to static) | 80/443 | User interface (PWA) |
+| Backend | Python 3.12, FastAPI 0.115, Uvicorn | 8000 | REST API (~119 endpoints), auth, chat, agents, RAG, scheduler |
+| Database | PostgreSQL 16 (async SQLAlchemy 2.0) | 5432 | 24 tables across 9 Alembic migrations |
+| LLM | Ollama | 11434 | Local AI model inference + embeddings |
 | Proxy | Nginx | 80/443 | TLS termination, static serving, API proxy |
 
 ---
@@ -364,7 +364,7 @@ See [Section 7: HTTPS / TLS Configuration](#7-https--tls-configuration).
 
 ## 6. Database Migrations
 
-Migrations are managed by Alembic. There are 6 migrations:
+Migrations are managed by Alembic. There are 9 migrations:
 
 | Migration | Purpose |
 |-----------|---------|
@@ -374,6 +374,9 @@ Migrations are managed by Alembic. There are 6 migrations:
 | `004_add_file_uploads_table` | File attachment support |
 | `005_add_search_vector_audit_retention` | Full-text search (TSVECTOR), audit log indexes |
 | `006_add_features_tables` | Feedback, templates, tags, bookmarks, announcements, sharing tables |
+| `007_add_token_blacklist` | Token blacklist table for JWT revocation |
+| `008_add_missing_columns` | Additional columns for existing tables |
+| `009_add_v2_tables` | AI agents, memories, skills, knowledge bases, documents, chunks, scheduled tasks, task executions, notifications |
 
 ### Run Migrations
 
@@ -701,6 +704,11 @@ The built-in Admin Panel provides real-time monitoring:
 - Announcements management (create/toggle/delete MOTD banners)
 - Prompt template library (create/edit/delete templates with categories)
 - Feedback statistics (satisfaction rate, thumbs up/down counts, recent feedback)
+- AI Agent management (CRUD, duplicate, toggle active/disabled)
+- Knowledge Base / RAG (document upload, chunking, vector search, sync)
+- Skills management (CRUD, execution stats, input schemas)
+- Scheduled Tasks (CRUD, cron scheduling, run-now, execution history)
+- Notification management
 
 ---
 
@@ -744,7 +752,7 @@ docker compose exec -T db pg_dump -U org_ai_user org_ai | Out-File "$backupDir\d
 
 ### 12.2 Built-in Export
 
-The Admin Panel includes a **Database → Export** feature that exports all 13 tables as JSON. Use this for quick manual backups.
+The Admin Panel includes a **Database → Export** feature that exports all 24 tables as JSON. Use this for quick manual backups.
 
 Users can also export all their conversations as a **ZIP archive** from **Settings → Bulk Export**. Each conversation is saved as an individual JSON or Markdown file inside the ZIP.
 
@@ -816,6 +824,9 @@ All user actions are logged to the `audit_logs` database table and viewable in *
 - Conversation creation / deletion
 - Admin setting changes
 - Model management operations
+- Skill executions
+- Scheduled task executions
+- Knowledge base operations
 
 ---
 

@@ -1,8 +1,8 @@
 # Organization AI Assistant — Complete Deployment Guide
 
-> **Version:** 1.0  
+> **Version:** 2.0  
 > **Target:** 200+ concurrent users, CPU or GPU  
-> **Stack:** Python 3.12 + FastAPI | React 18 + Vite | PostgreSQL | Ollama  
+> **Stack:** Python 3.12 + FastAPI | React 18.3 + TypeScript 5.5 + Vite 5.4 | PostgreSQL 16 | Ollama  
 
 ---
 
@@ -530,6 +530,9 @@ INFO  [alembic.runtime.migration] Running upgrade 002 -> 003, add indexes pinned
 INFO  [alembic.runtime.migration] Running upgrade 003 -> 004, add file uploads table
 INFO  [alembic.runtime.migration] Running upgrade 004 -> 005, add search vector audit retention
 INFO  [alembic.runtime.migration] Running upgrade 005 -> 006, add features tables
+INFO  [alembic.runtime.migration] Running upgrade 006 -> 007, add token blacklist
+INFO  [alembic.runtime.migration] Running upgrade 007 -> 008, add missing columns
+INFO  [alembic.runtime.migration] Running upgrade 008 -> 009, add v2 tables
 ```
 
 ### Verify Tables Were Created
@@ -538,7 +541,7 @@ INFO  [alembic.runtime.migration] Running upgrade 005 -> 006, add features table
 sudo -u postgres psql -d org_ai -c "\dt"
 ```
 
-You should see tables like: `users`, `conversations`, `messages`, `system_settings`, `audit_logs`, `file_uploads`, `message_feedback`, `prompt_templates`, `conversation_tags`, `conversation_tag_links`, `announcements`, `shared_conversations`, `message_bookmarks`, `alembic_version`
+You should see tables like: `users`, `conversations`, `messages`, `system_settings`, `audit_logs`, `file_uploads`, `message_feedback`, `prompt_templates`, `conversation_tags`, `conversation_tag_links`, `announcements`, `shared_conversations`, `message_bookmarks`, `token_blacklist`, `knowledge_bases`, `knowledge_documents`, `document_chunks`, `agents`, `ai_memories`, `agent_skills`, `skill_executions`, `scheduled_tasks`, `task_executions`, `notifications`, `alembic_version`
 
 ---
 
