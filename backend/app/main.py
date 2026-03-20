@@ -162,11 +162,12 @@ async def on_startup():
     # Seed default prompt templates
     await _seed_default_templates()
 
-    # Seed default agents and skills
+    # Seed default agents, skills, and knowledge bases
     if settings.ENABLE_AGENTS:
         await _seed_default_agents()
     if settings.ENABLE_SKILLS:
         await _seed_default_skills()
+    await _seed_default_knowledge_bases()
 
     # Start background task scheduler
     if settings.ENABLE_SCHEDULER:
@@ -659,6 +660,103 @@ async def _seed_default_skills():
 
         await db.commit()
         logger.info("Seeded %d default skills", len(_DEFAULT_SKILLS))
+
+
+# ---- Default Knowledge Bases ----
+_DEFAULT_KNOWLEDGE_BASES = [
+    {
+        "name": "Company Policies & Handbook",
+        "description": "Central repository for HR policies, employee handbook, workplace guidelines, code of conduct, and benefits documentation. Upload your organization's policy documents here.",
+        "department": "Human Resources",
+        "is_public": True,
+        "chunk_size": 500,
+        "chunk_overlap": 50,
+    },
+    {
+        "name": "IT Documentation",
+        "description": "Technical documentation, setup guides, troubleshooting runbooks, network diagrams, and standard operating procedures for IT infrastructure and software.",
+        "department": "IT",
+        "is_public": True,
+        "chunk_size": 500,
+        "chunk_overlap": 50,
+    },
+    {
+        "name": "Onboarding & Training",
+        "description": "New employee onboarding materials, training guides, tool setup instructions, organizational charts, and role-specific orientation documents.",
+        "department": None,
+        "is_public": True,
+        "chunk_size": 400,
+        "chunk_overlap": 50,
+    },
+    {
+        "name": "Product & Engineering",
+        "description": "Product specifications, architecture docs, API references, development standards, and engineering best practices. Upload ADRs, RFCs, and technical design documents.",
+        "department": "Engineering",
+        "is_public": False,
+        "chunk_size": 600,
+        "chunk_overlap": 75,
+    },
+    {
+        "name": "Legal & Compliance",
+        "description": "Regulatory compliance documents, data privacy policies, contract templates, audit procedures, and legal guidelines (GDPR, HIPAA, SOC 2, etc.).",
+        "department": "Legal",
+        "is_public": False,
+        "chunk_size": 500,
+        "chunk_overlap": 50,
+    },
+    {
+        "name": "Sales & Marketing",
+        "description": "Sales playbooks, marketing materials, brand guidelines, competitive analysis, case studies, and customer-facing presentation templates.",
+        "department": "Sales",
+        "is_public": False,
+        "chunk_size": 400,
+        "chunk_overlap": 50,
+    },
+    {
+        "name": "Finance & Procurement",
+        "description": "Financial policies, procurement procedures, expense guidelines, budget templates, vendor management docs, and approval workflows.",
+        "department": "Finance",
+        "is_public": False,
+        "chunk_size": 500,
+        "chunk_overlap": 50,
+    },
+    {
+        "name": "Project Management",
+        "description": "Project management templates, methodology guides (Agile, Scrum, Waterfall), status report formats, risk registers, and PM best practices.",
+        "department": None,
+        "is_public": True,
+        "chunk_size": 400,
+        "chunk_overlap": 50,
+    },
+]
+
+
+async def _seed_default_knowledge_bases():
+    """Seed default knowledge bases if none exist."""
+    from sqlalchemy import select, func
+    from app.database import async_session_factory
+    from app.models.knowledge_base import KnowledgeBase
+
+    async with async_session_factory() as db:
+        count = (await db.execute(
+            select(func.count()).select_from(KnowledgeBase)
+        )).scalar() or 0
+
+        if count > 0:
+            return
+
+        for kb_data in _DEFAULT_KNOWLEDGE_BASES:
+            db.add(KnowledgeBase(
+                name=kb_data["name"],
+                description=kb_data["description"],
+                department=kb_data["department"],
+                is_public=kb_data["is_public"],
+                chunk_size=kb_data["chunk_size"],
+                chunk_overlap=kb_data["chunk_overlap"],
+            ))
+
+        await db.commit()
+        logger.info("Seeded %d default knowledge bases", len(_DEFAULT_KNOWLEDGE_BASES))
 
 
 @app.on_event("shutdown")
