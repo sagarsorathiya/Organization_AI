@@ -156,6 +156,14 @@ async def create_task(
     else:
         data.pop("agent_id", None)
     data["created_by"] = user_id
+
+    # Validate cron expression before saving
+    try:
+        from apscheduler.triggers.cron import CronTrigger
+        CronTrigger.from_crontab(data.get("cron_expression", ""))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid cron expression: {e}")
+
     task = ScheduledTask(**data)
     db.add(task)
     await db.flush()
@@ -180,6 +188,15 @@ async def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     data = body.model_dump(exclude_none=True)
+
+    # Validate cron expression if being updated
+    if "cron_expression" in data:
+        try:
+            from apscheduler.triggers.cron import CronTrigger
+            CronTrigger.from_crontab(data["cron_expression"])
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid cron expression: {e}")
+
     for key, value in data.items():
         if hasattr(task, key):
             setattr(task, key, value)
@@ -201,6 +218,15 @@ async def delete_task(task_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Task not found")
     await db.delete(task)
     await db.flush()
+
+    # Remove from APScheduler so the cron job stops firing
+    try:
+        from app.services.scheduler_service import scheduler_service
+        if scheduler_service._scheduler:
+            scheduler_service._scheduler.remove_job(str(task_id))
+    except Exception:
+        pass
+
     return {"status": "deleted"}
 
 

@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from typing import List
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -135,51 +136,57 @@ async def delete_knowledge_base(kb_id: uuid.UUID, db: AsyncSession = Depends(get
 @router.post("/{kb_id}/documents")
 async def upload_document(
     kb_id: uuid.UUID,
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload and process a document into the knowledge base."""
+    """Upload and process one or more documents into the knowledge base."""
     kb = await kb_service.get_knowledge_base(kb_id, db)
     if not kb:
         raise HTTPException(status_code=404, detail="Knowledge base not found")
 
-    # Validate extension
-    ext = os.path.splitext(file.filename or "")[1].lower()
-    if ext not in ALLOWED_DOC_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"File type {ext} not supported")
+    results = []
+    for file in files:
+        # Validate extension
+        ext = os.path.splitext(file.filename or "")[1].lower()
+        if ext not in ALLOWED_DOC_EXTENSIONS:
+            results.append({"file": file.filename, "error": f"File type {ext} not supported"})
+            continue
 
-    # Read content
-    content_bytes = await file.read()
-    file_hash = hashlib.sha256(content_bytes).hexdigest()
+        # Read content
+        content_bytes = await file.read()
+        file_hash = hashlib.sha256(content_bytes).hexdigest()
 
-    # Extract text
-    text = await _extract_text(content_bytes, ext)
-    if not text:
-        raise HTTPException(status_code=400, detail="Could not extract text from file")
+        # Extract text
+        text = await _extract_text(content_bytes, ext)
+        if not text:
+            results.append({"file": file.filename, "error": "Could not extract text from file"})
+            continue
 
-    # Create document record
-    doc = KnowledgeDocument(
-        knowledge_base_id=kb_id,
-        title=os.path.splitext(file.filename or "document")[0],
-        file_name=file.filename or "unknown",
-        file_type=ext.lstrip("."),
-        file_size=len(content_bytes),
-        file_hash=file_hash,
-        uploaded_by=user_id,
-    )
-    db.add(doc)
-    await db.flush()
+        # Create document record
+        doc = KnowledgeDocument(
+            knowledge_base_id=kb_id,
+            title=os.path.splitext(file.filename or "document")[0],
+            file_name=file.filename or "unknown",
+            file_type=ext.lstrip("."),
+            file_size=len(content_bytes),
+            file_hash=file_hash,
+            uploaded_by=user_id,
+        )
+        db.add(doc)
+        await db.flush()
 
-    # Ingest: chunk + embed
-    try:
-        await rag_service.ingest_document(doc, text, db)
-    except Exception as e:
-        doc.status = "failed"
-        doc.error_message = str(e)[:500]
-        logger.error("Document ingestion failed: %s", str(e))
+        # Ingest: chunk + embed
+        try:
+            await rag_service.ingest_document(doc, text, db)
+        except Exception as e:
+            doc.status = "failed"
+            doc.error_message = str(e)[:500]
+            logger.error("Document ingestion failed: %s", str(e))
 
-    return _serialize_doc(doc)
+        results.append(_serialize_doc(doc))
+
+    return {"documents": results}
 
 
 @router.delete("/{kb_id}/documents/{doc_id}")
@@ -263,12 +270,12 @@ async def sync_knowledge_base(
 @router.get("/{kb_id}/search")
 async def search_knowledge_base(
     kb_id: uuid.UUID,
-    q: str = Query(..., min_length=1),
+    query: str = Query(..., min_length=1),
     top_k: int = Query(5, ge=1, le=20),
     db: AsyncSession = Depends(get_db),
 ):
-    results = await rag_service.search(kb_id, q, db, top_k=top_k)
-    return {"results": results, "query": q}
+    results = await rag_service.search(kb_id, query, db, top_k=top_k)
+    return {"results": results, "query": query}
 
 
 @router.get("/{kb_id}/documents")
