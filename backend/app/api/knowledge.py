@@ -4,6 +4,7 @@ import uuid
 import hashlib
 import logging
 import os
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel, Field
@@ -12,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.api.deps import get_current_user_id
 from app.services.rag_service import rag_service, kb_service
-from app.models.knowledge_base import KnowledgeBase, KnowledgeDocument, DocumentChunk
+from app.models.knowledge_base import KnowledgeBase, KnowledgeDocument
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ async def get_knowledge_base(kb_id: uuid.UUID, db: AsyncSession = Depends(get_db
     return _serialize_kb(kb)
 
 
-@router.put("/{kb_id}")
+@router.patch("/{kb_id}")
 async def update_knowledge_base(
     kb_id: uuid.UUID,
     body: KBUpdate,
@@ -187,7 +188,7 @@ async def delete_document(
     doc_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    from sqlalchemy import select
+    from sqlalchemy import select, func
     result = await db.execute(
         select(KnowledgeDocument).where(
             KnowledgeDocument.id == doc_id,
@@ -199,6 +200,24 @@ async def delete_document(
         raise HTTPException(status_code=404, detail="Document not found")
     await db.delete(doc)
     await db.flush()
+
+    # Update KB counters
+    kb = await db.get(KnowledgeBase, kb_id)
+    if kb:
+        from app.models.knowledge_base import DocumentChunk
+        total_docs = (await db.execute(
+            select(func.count()).select_from(KnowledgeDocument)
+            .where(KnowledgeDocument.knowledge_base_id == kb_id)
+        )).scalar() or 0
+        total_chunks = (await db.execute(
+            select(func.count()).select_from(DocumentChunk)
+            .join(KnowledgeDocument)
+            .where(KnowledgeDocument.knowledge_base_id == kb_id)
+        )).scalar() or 0
+        kb.document_count = total_docs
+        kb.total_chunks = total_chunks
+        await db.flush()
+
     return {"status": "deleted"}
 
 
@@ -217,7 +236,28 @@ async def sync_knowledge_base(
         select(KnowledgeDocument).where(KnowledgeDocument.knowledge_base_id == kb_id)
     )
     docs = result.scalars().all()
-    return {"status": "sync_initiated", "document_count": len(docs)}
+    errors = []
+    for doc in docs:
+        try:
+            # Re-extract text would require stored content; re-embed existing chunks
+            from app.models.knowledge_base import DocumentChunk
+            chunk_result = await db.execute(
+                select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
+                .order_by(DocumentChunk.chunk_index)
+            )
+            chunks = chunk_result.scalars().all()
+            for chunk in chunks:
+                embedding = await rag_service.embed_text(chunk.content)
+                chunk.embedding = embedding if embedding else None
+            doc.status = "ready"
+        except Exception as e:
+            doc.status = "failed"
+            doc.error_message = str(e)[:500]
+            errors.append(str(doc.id))
+
+    kb.last_synced_at = datetime.now(timezone.utc)
+    await db.flush()
+    return {"status": "sync_complete", "document_count": len(docs), "errors": errors}
 
 
 @router.get("/{kb_id}/search")
@@ -249,7 +289,13 @@ async def list_documents(
 # ─── Text Extraction ───
 
 async def _extract_text(content: bytes, ext: str) -> str:
-    """Extract text from various document formats."""
+    """Extract text from various document formats (runs in thread to avoid blocking)."""
+    import asyncio
+    return await asyncio.to_thread(_extract_text_sync, content, ext)
+
+
+def _extract_text_sync(content: bytes, ext: str) -> str:
+    """Synchronous text extraction from various document formats."""
     import io
 
     try:

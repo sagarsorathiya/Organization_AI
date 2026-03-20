@@ -67,7 +67,7 @@ class TaskSchedulerService:
 
             self._scheduler.start()
             self._running = True
-            logger.info("Task scheduler started with %d tasks", len(tasks) if tasks else 0)
+            logger.info("Task scheduler started with %d tasks", len(tasks))
         except ImportError:
             logger.warning("APScheduler not installed — scheduler disabled")
         except Exception as e:
@@ -104,6 +104,12 @@ class TaskSchedulerService:
 
             except Exception as e:
                 logger.error("Task %s failed: %s", task.name, str(e))
+                await db.rollback()
+                # Re-fetch objects after rollback (they are expired)
+                task = await db.get(ScheduledTask, task_id)
+                execution = await db.get(TaskExecution, execution.id)
+                if not task or not execution:
+                    return
                 execution.status = "failed"
                 execution.error_message = str(e)[:2000]
                 task.last_status = "failed"
@@ -169,7 +175,7 @@ async def handle_memory_cleanup(task: ScheduledTask, db: AsyncSession) -> dict:
     expired = result.scalars().all()
     for mem in expired:
         await db.delete(mem)
-    await db.commit()
+    await db.flush()
     return {"summary": f"Cleaned up {len(expired)} expired memories", "affected_count": len(expired)}
 
 
@@ -199,7 +205,7 @@ async def handle_usage_report(task: ScheduledTask, db: AsyncSession) -> dict:
             type="info",
             source=task.name,
         ))
-    await db.commit()
+    await db.flush()
 
     return {"summary": summary, "affected_count": len(admins)}
 

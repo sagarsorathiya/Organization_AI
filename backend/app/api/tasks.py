@@ -52,7 +52,7 @@ async def list_notifications(
     }
 
 
-@notification_router.put("/{notification_id}/read")
+@notification_router.patch("/{notification_id}/read")
 async def mark_notification_read(
     notification_id: uuid.UUID,
     user_id: uuid.UUID = Depends(get_current_user_id),
@@ -63,7 +63,7 @@ async def mark_notification_read(
     return {"status": "read"}
 
 
-@notification_router.put("/read-all")
+@notification_router.patch("/read-all")
 async def mark_all_read(
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
@@ -170,7 +170,7 @@ async def create_task(
     return _serialize_task(task)
 
 
-@task_router.put("/{task_id}")
+@task_router.patch("/{task_id}")
 async def update_task(
     task_id: uuid.UUID,
     body: TaskUpdate,
