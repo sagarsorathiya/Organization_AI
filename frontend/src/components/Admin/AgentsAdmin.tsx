@@ -90,93 +90,113 @@ export function AgentsAdmin() {
 
   if (editingAgent) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">{isNew ? "New Agent" : "Edit Agent"}</h3>
-          <button onClick={() => { setEditingAgent(null); setIsNew(false); }} className="btn-ghost p-2">
-            <X size={18} />
+          <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200">{isNew ? "Create New Agent" : "Edit Agent"}</h3>
+          <button onClick={() => { setEditingAgent(null); setIsNew(false); }} className="btn-ghost p-1.5 rounded-lg">
+            <X size={16} />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-medium mb-1 block">Name</label>
-            <input
-              value={editingAgent.name || ""}
-              onChange={(e) => setEditingAgent({ ...editingAgent, name: e.target.value })}
-              className="input-field text-sm"
-            />
+        <div className="space-y-4">
+          <p className="text-xs font-medium text-surface-400 uppercase tracking-wider">Basic Info</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">Name</label>
+              <input
+                value={editingAgent.name || ""}
+                onChange={(e) => setEditingAgent({ ...editingAgent, name: e.target.value })}
+                className="input-field text-sm"
+                placeholder="Agent name"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">Slug</label>
+              <input
+                value={editingAgent.slug || ""}
+                onChange={(e) => setEditingAgent({ ...editingAgent, slug: e.target.value })}
+                className="input-field text-sm"
+                disabled={!isNew && editingAgent.is_system}
+                placeholder="agent-slug"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">Icon (emoji)</label>
+              <input
+                value={editingAgent.icon || ""}
+                onChange={(e) => setEditingAgent({ ...editingAgent, icon: e.target.value })}
+                className="input-field text-sm"
+                placeholder="🤖"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">Category</label>
+              <input
+                value={editingAgent.category || ""}
+                onChange={(e) => setEditingAgent({ ...editingAgent, category: e.target.value })}
+                className="input-field text-sm"
+                placeholder="e.g. Writing, Analysis"
+              />
+            </div>
           </div>
-          <div>
-            <label className="text-xs font-medium mb-1 block">Slug</label>
-            <input
-              value={editingAgent.slug || ""}
-              onChange={(e) => setEditingAgent({ ...editingAgent, slug: e.target.value })}
-              className="input-field text-sm"
-              disabled={!isNew && editingAgent.is_system}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium mb-1 block">Icon (emoji)</label>
-            <input
-              value={editingAgent.icon || ""}
-              onChange={(e) => setEditingAgent({ ...editingAgent, icon: e.target.value })}
-              className="input-field text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium mb-1 block">Category</label>
-            <input
-              value={editingAgent.category || ""}
-              onChange={(e) => setEditingAgent({ ...editingAgent, category: e.target.value })}
-              className="input-field text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium mb-1 block">Temperature</label>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="2"
-              value={editingAgent.temperature ?? 0.7}
-              onChange={(e) => setEditingAgent({ ...editingAgent, temperature: parseFloat(e.target.value) })}
-              className="input-field text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium mb-1 block">Preferred Model</label>
-            <input
-              value={editingAgent.preferred_model || ""}
-              onChange={(e) => setEditingAgent({ ...editingAgent, preferred_model: e.target.value })}
-              className="input-field text-sm"
-              placeholder="(uses default)"
-            />
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-xs font-medium text-surface-400 uppercase tracking-wider">Model Settings</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">Temperature</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="2"
+                value={editingAgent.temperature ?? 0.7}
+                onChange={(e) => setEditingAgent({ ...editingAgent, temperature: parseFloat(e.target.value) })}
+                className="input-field text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">Preferred Model</label>
+              <input
+                value={editingAgent.preferred_model || ""}
+                onChange={(e) => setEditingAgent({ ...editingAgent, preferred_model: e.target.value })}
+                className="input-field text-sm"
+                placeholder="(uses default)"
+              />
+            </div>
           </div>
         </div>
 
         <div>
-          <label className="text-xs font-medium mb-1 block">Description</label>
+          <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">Description</label>
           <textarea
             value={editingAgent.description || ""}
             onChange={(e) => setEditingAgent({ ...editingAgent, description: e.target.value })}
             className="input-field text-sm min-h-[60px]"
+            placeholder="Brief description of what this agent does"
           />
         </div>
 
         <div>
-          <label className="text-xs font-medium mb-1 block">System Prompt</label>
+          <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">System Prompt</label>
           <textarea
             value={editingAgent.system_prompt || ""}
             onChange={(e) => setEditingAgent({ ...editingAgent, system_prompt: e.target.value })}
-            className="input-field text-sm min-h-[120px]"
+            className="input-field text-sm min-h-[120px] font-mono"
+            placeholder="System prompt that defines the agent's behavior..."
           />
         </div>
 
-        <button onClick={handleSave} className="btn-primary flex items-center gap-2">
-          <Save size={16} />
-          {isNew ? "Create Agent" : "Save Changes"}
-        </button>
+        <div className="flex items-center gap-3 pt-2 border-t border-surface-100 dark:border-surface-800">
+          <button onClick={handleSave} className="btn-primary flex items-center gap-2">
+            <Save size={16} />
+            {isNew ? "Create Agent" : "Save Changes"}
+          </button>
+          <button onClick={() => { setEditingAgent(null); setIsNew(false); }} className="btn-ghost text-sm">
+            Cancel
+          </button>
+        </div>
       </div>
     );
   }
@@ -184,10 +204,7 @@ export function AgentsAdmin() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Bot size={18} />
-          AI Agents
-        </h3>
+        <p className="text-sm text-surface-500">{agents.length} agent{agents.length !== 1 ? "s" : ""}</p>
         <button
           onClick={() => {
             setEditingAgent({
@@ -201,7 +218,7 @@ export function AgentsAdmin() {
             });
             setIsNew(true);
           }}
-          className="btn-primary text-sm flex items-center gap-1"
+          className="btn-primary text-sm flex items-center gap-1.5"
         >
           <Plus size={14} />
           New Agent
@@ -209,53 +226,61 @@ export function AgentsAdmin() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-8">
+        <div className="flex items-center justify-center py-12">
           <Loader2 size={20} className="animate-spin text-surface-400" />
         </div>
+      ) : agents.length === 0 ? (
+        <div className="text-center py-12">
+          <Bot size={36} className="mx-auto text-surface-300 dark:text-surface-600 mb-3" />
+          <p className="text-sm font-medium text-surface-500">No agents configured</p>
+          <p className="text-xs text-surface-400 mt-1">Create your first AI agent to get started</p>
+        </div>
       ) : (
-        <div className="space-y-1">
+        <div className="divide-y divide-surface-100 dark:divide-surface-800">
           {agents.map((agent) => (
             <div
               key={agent.id}
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800 group"
+              className="flex items-center gap-3 py-3 px-1 group"
             >
-              <span className="text-xl flex-shrink-0">{agent.icon || "🤖"}</span>
+              <div className="w-9 h-9 rounded-lg bg-surface-50 dark:bg-surface-800 flex items-center justify-center flex-shrink-0">
+                <span className="text-lg">{agent.icon || "🤖"}</span>
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">{agent.name}</p>
+                  <p className="text-sm font-medium text-surface-800 dark:text-surface-100">{agent.name}</p>
                   {agent.is_system && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-100 dark:bg-surface-800 text-surface-500">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium">
                       system
                     </span>
                   )}
                   {!agent.is_active && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium">
                       disabled
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-surface-500">
-                  {agent.category} · {agent.usage_count} uses
+                <p className="text-xs text-surface-400 mt-0.5">
+                  {agent.category}{agent.category ? " · " : ""}{agent.usage_count} uses
                 </p>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => handleToggle(agent)}
-                  className="btn-ghost p-1"
+                  className="btn-ghost p-1.5 rounded-md"
                   title={agent.is_active ? "Disable" : "Enable"}
                 >
                   {agent.is_active ? <ToggleRight size={16} className="text-green-500" /> : <ToggleLeft size={16} />}
                 </button>
                 <button
                   onClick={() => { setEditingAgent(agent); setIsNew(false); }}
-                  className="btn-ghost p-1"
+                  className="btn-ghost p-1.5 rounded-md"
                   title="Edit"
                 >
                   <Edit3 size={14} />
                 </button>
                 <button
                   onClick={() => handleDuplicate(agent.id)}
-                  className="btn-ghost p-1"
+                  className="btn-ghost p-1.5 rounded-md"
                   title="Duplicate"
                 >
                   <Copy size={14} />
@@ -263,7 +288,7 @@ export function AgentsAdmin() {
                 {!agent.is_system && (
                   <button
                     onClick={() => handleDelete(agent.id)}
-                    className="btn-ghost p-1 text-red-500"
+                    className="btn-ghost p-1.5 rounded-md text-red-500"
                     title="Delete"
                   >
                     <Trash2 size={14} />

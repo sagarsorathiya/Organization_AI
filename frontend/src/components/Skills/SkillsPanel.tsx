@@ -31,13 +31,13 @@ export function SkillsPanel() {
 
   if (lastResult) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-semibold flex items-center gap-2">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
             {lastResult.status === "completed" ? (
-              <CheckCircle size={18} className="text-green-500" />
+              <CheckCircle size={16} className="text-green-500" />
             ) : (
-              <XCircle size={18} className="text-red-500" />
+              <XCircle size={16} className="text-red-500" />
             )}
             Skill Result
           </h3>
@@ -45,7 +45,7 @@ export function SkillsPanel() {
             Back
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
+        <div>
           {lastResult.status === "completed" && lastResult.result ? (
             <div className="prose dark:prose-invert max-w-none text-sm">
               <ReactMarkdown>{lastResult.result}</ReactMarkdown>
@@ -67,9 +67,9 @@ export function SkillsPanel() {
 
   if (skill) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-semibold flex items-center gap-2">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
             <span>{skill.icon || "⚡"}</span>
             {skill.name}
           </h3>
@@ -77,14 +77,14 @@ export function SkillsPanel() {
             Back
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="space-y-4">
           {skill.description && (
             <p className="text-sm text-surface-500">{skill.description}</p>
           )}
           {skill.input_schema &&
             Object.entries(skill.input_schema).map(([key, schema]) => (
               <div key={key}>
-                <label className="block text-sm font-medium mb-1">{schema.label || key}</label>
+                <label className="block text-xs font-medium mb-1 text-surface-600 dark:text-surface-300">{schema.label || key}</label>
                 <textarea
                   value={inputs[key] || ""}
                   onChange={(e) => setInputs((p) => ({ ...p, [key]: e.target.value }))}
@@ -116,12 +116,8 @@ export function SkillsPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <h3 className="font-semibold flex items-center gap-2 mb-3">
-          <Zap size={18} />
-          Skills
-        </h3>
+    <div className="space-y-4">
+      <div>
         <input
           type="text"
           placeholder="Search skills..."
@@ -130,37 +126,47 @@ export function SkillsPanel() {
           className="input-field text-sm"
         />
       </div>
-      <div className="flex-1 overflow-y-auto p-2">
+      <div>
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-12">
             <Loader2 size={20} className="animate-spin text-surface-400" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <Zap size={36} className="mx-auto text-surface-300 dark:text-surface-600 mb-3" />
+            <p className="text-sm font-medium text-surface-500">No skills available</p>
+            <p className="text-xs text-surface-400 mt-1">Skills will appear here when configured</p>
           </div>
         ) : (
           categories.map((cat) => {
             const catSkills = filtered.filter((s) => s.category === cat);
             if (catSkills.length === 0) return null;
             return (
-              <div key={cat} className="mb-3">
-                <p className="text-xs font-medium text-surface-400 uppercase px-2 py-1">
+              <div key={cat} className="mb-4">
+                <p className="text-xs font-medium text-surface-400 uppercase tracking-wider px-1 py-1 mb-1">
                   {cat}
                 </p>
-                {catSkills.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setSelectedSkill(s.slug);
-                      setInputs({});
-                    }}
-                    className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors text-left"
-                  >
-                    <span className="text-lg flex-shrink-0">{s.icon || "⚡"}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{s.name}</p>
-                      <p className="text-xs text-surface-500 truncate">{s.description}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-surface-400 flex-shrink-0" />
-                  </button>
-                ))}
+                <div className="divide-y divide-surface-100 dark:divide-surface-800">
+                  {catSkills.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setSelectedSkill(s.slug);
+                        setInputs({});
+                      }}
+                      className="w-full flex items-center gap-3 py-3 px-1 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors text-left"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-base">{s.icon || "⚡"}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-surface-800 dark:text-surface-100 truncate">{s.name}</p>
+                        <p className="text-xs text-surface-400 truncate mt-0.5">{s.description}</p>
+                      </div>
+                      <ChevronRight size={14} className="text-surface-300 flex-shrink-0" />
+                    </button>
+                  ))}
+                </div>
               </div>
             );
           })

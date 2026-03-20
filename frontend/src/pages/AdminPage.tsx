@@ -44,6 +44,12 @@ import {
   ToggleLeft,
   ToggleRight,
   Key,
+  Settings,
+  ScrollText,
+  Zap,
+  ListTodo,
+  BookOpen,
+  type LucideIcon,
 } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
@@ -697,31 +703,53 @@ export function AdminPage() {
     return `${mins}m`;
   };
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "overview", label: "Overview" },
-    { id: "settings", label: "Settings" },
-    { id: "users", label: "Users" },
-    { id: "database", label: "Database" },
-    { id: "audit", label: "Audit Logs" },
-    { id: "models", label: "Models" },
-    { id: "announcements", label: "Announcements" },
-    { id: "templates", label: "Templates" },
-    { id: "feedback", label: "Feedback" },
-    { id: "agents", label: "AI Agents" },
-    { id: "knowledge", label: "Knowledge Base" },
-    { id: "skills", label: "Skills" },
-    { id: "tasks", label: "Tasks" },
+  const tabGroups: { label: string; tabs: { id: Tab; label: string; icon: LucideIcon }[] }[] = [
+    {
+      label: "System",
+      tabs: [
+        { id: "overview", label: "Overview", icon: Activity },
+        { id: "settings", label: "Settings", icon: Settings },
+        { id: "users", label: "Users", icon: Users },
+        { id: "database", label: "Database", icon: HardDrive },
+        { id: "audit", label: "Audit Logs", icon: ScrollText },
+      ],
+    },
+    {
+      label: "Content",
+      tabs: [
+        { id: "models", label: "Models", icon: Bot },
+        { id: "announcements", label: "Announcements", icon: Megaphone },
+        { id: "templates", label: "Templates", icon: FileText },
+        { id: "feedback", label: "Feedback", icon: ThumbsUp },
+      ],
+    },
+    {
+      label: "AI & Automation",
+      tabs: [
+        { id: "agents", label: "AI Agents", icon: Bot },
+        { id: "knowledge", label: "Knowledge", icon: BookOpen },
+        { id: "skills", label: "Skills", icon: Zap },
+        { id: "tasks", label: "Tasks", icon: ListTodo },
+      ],
+    },
   ];
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Shield size={24} className="text-primary-600" />
-            <h2 className="text-xl font-semibold text-surface-800 dark:text-surface-100">
-              Admin Panel
-            </h2>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+              <Shield size={20} className="text-primary-600 dark:text-primary-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-surface-800 dark:text-surface-100">
+                Admin Panel
+              </h2>
+              <p className="text-xs text-surface-400">
+                System configuration &amp; management
+              </p>
+            </div>
           </div>
           <button onClick={fetchData} className="btn-ghost flex items-center gap-1.5 text-sm">
             <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
@@ -729,22 +757,35 @@ export function AdminPage() {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={clsx(
-                "px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px",
-                tab === t.id
-                  ? "border-primary-500 text-primary-600 dark:text-primary-400"
-                  : "border-transparent text-surface-500 hover:text-surface-700 dark:hover:text-surface-300"
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
+        {/* Tabs — grouped & scrollable */}
+        <div className="-mx-4 sm:-mx-6 px-4 sm:px-6 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-0.5 mb-6 border-b border-surface-200 dark:border-surface-700 min-w-max">
+            {tabGroups.map((group, gi) => (
+              <div key={group.label} className="flex items-center">
+                {gi > 0 && (
+                  <div className="w-px h-5 bg-surface-200 dark:bg-surface-700 mx-1.5" />
+                )}
+                {group.tabs.map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className={clsx(
+                        "px-3 py-2.5 text-[13px] font-medium border-b-2 transition-colors -mb-px flex items-center gap-1.5 whitespace-nowrap",
+                        tab === t.id
+                          ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                          : "border-transparent text-surface-400 hover:text-surface-600 dark:hover:text-surface-300"
+                      )}
+                    >
+                      <Icon size={14} />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Overview Tab */}
@@ -2069,26 +2110,54 @@ export function AdminPage() {
         )}
 
         {tab === "agents" && (
-          <div className="card p-6">
-            <AgentsAdmin />
+          <div className="card overflow-hidden">
+            <div className="px-5 py-4 border-b bg-surface-50 dark:bg-surface-850 flex items-center gap-2">
+              <Bot size={16} className="text-primary-500" />
+              <span className="text-sm font-semibold">AI Agents</span>
+              <span className="text-xs text-surface-400 ml-auto">Create and manage AI agent personas</span>
+            </div>
+            <div className="p-5">
+              <AgentsAdmin />
+            </div>
           </div>
         )}
 
         {tab === "knowledge" && (
-          <div className="card p-6">
-            <KnowledgeBaseAdmin />
+          <div className="card overflow-hidden">
+            <div className="px-5 py-4 border-b bg-surface-50 dark:bg-surface-850 flex items-center gap-2">
+              <BookOpen size={16} className="text-primary-500" />
+              <span className="text-sm font-semibold">Knowledge Base</span>
+              <span className="text-xs text-surface-400 ml-auto">Manage documents and RAG retrieval</span>
+            </div>
+            <div className="p-5">
+              <KnowledgeBaseAdmin />
+            </div>
           </div>
         )}
 
         {tab === "skills" && (
-          <div className="card p-6">
-            <SkillsPanel />
+          <div className="card overflow-hidden">
+            <div className="px-5 py-4 border-b bg-surface-50 dark:bg-surface-850 flex items-center gap-2">
+              <Zap size={16} className="text-primary-500" />
+              <span className="text-sm font-semibold">Skills</span>
+              <span className="text-xs text-surface-400 ml-auto">Browse and execute AI skills</span>
+            </div>
+            <div className="p-5 min-h-[400px]">
+              <SkillsPanel />
+            </div>
           </div>
         )}
 
         {tab === "tasks" && (
-          <div className="card p-6">
-            <TasksAdmin />
+          <div className="card overflow-hidden">
+            <div className="px-5 py-4 border-b bg-surface-50 dark:bg-surface-850 flex items-center gap-2">
+              <ListTodo size={16} className="text-primary-500" />
+              <span className="text-sm font-semibold">Scheduled Tasks</span>
+              <span className="text-xs text-surface-400 ml-auto">Automate recurring operations</span>
+            </div>
+            <div className="p-5">
+              <TasksAdmin />
+            </div>
           </div>
         )}
       </div>

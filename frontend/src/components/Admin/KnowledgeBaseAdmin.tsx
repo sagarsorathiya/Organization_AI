@@ -143,7 +143,7 @@ export function KnowledgeBaseAdmin() {
   // Detail view
   if (selectedKb) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
@@ -151,13 +151,13 @@ export function KnowledgeBaseAdmin() {
               setDocs([]);
               setSearchResults([]);
             }}
-            className="btn-ghost p-2"
+            className="btn-ghost p-1.5 rounded-md"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </button>
-          <div>
-            <h3 className="font-semibold">{selectedKb.name}</h3>
-            <p className="text-xs text-surface-500">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-surface-800 dark:text-surface-100">{selectedKb.name}</h3>
+            <p className="text-xs text-surface-400">
               {selectedKb.document_count} documents · {selectedKb.total_chunks} chunks
             </p>
           </div>
@@ -215,39 +215,47 @@ export function KnowledgeBaseAdmin() {
 
         {/* Documents */}
         <div className="space-y-1">
-          <h4 className="text-sm font-medium mb-2">Documents</h4>
+          <h4 className="text-xs font-medium text-surface-400 uppercase tracking-wider mb-2">Documents</h4>
           {docs.length === 0 ? (
-            <p className="text-sm text-surface-500 text-center py-4">No documents yet</p>
+            <div className="text-center py-8">
+              <FileText size={28} className="mx-auto text-surface-300 dark:text-surface-600 mb-2" />
+              <p className="text-sm text-surface-500">No documents yet</p>
+              <p className="text-xs text-surface-400 mt-1">Upload files to populate this knowledge base</p>
+            </div>
           ) : (
-            docs.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800"
-              >
-                <FileText size={18} className="text-surface-400 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{doc.title}</p>
-                  <p className="text-xs text-surface-500">
-                    {doc.file_type} · {doc.chunk_count} chunks ·{" "}
-                    <span
-                      className={clsx(
-                        doc.status === "ready" && "text-green-600",
-                        doc.status === "failed" && "text-red-600",
-                        doc.status === "processing" && "text-amber-600"
-                      )}
-                    >
-                      {doc.status}
-                    </span>
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleDeleteDoc(doc.id)}
-                  className="btn-ghost p-1 text-red-500 opacity-0 group-hover:opacity-100"
+            <div className="divide-y divide-surface-100 dark:divide-surface-800">
+              {docs.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center gap-3 py-3 px-1 group"
                 >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))
+                  <FileText size={16} className="text-surface-400 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate text-surface-800 dark:text-surface-100">{doc.title}</p>
+                    <p className="text-xs text-surface-400 mt-0.5">
+                      {doc.file_type} · {doc.chunk_count} chunks ·{" "}
+                      <span
+                        className={clsx(
+                          "font-medium",
+                          doc.status === "ready" && "text-green-600 dark:text-green-400",
+                          doc.status === "failed" && "text-red-600 dark:text-red-400",
+                          doc.status === "processing" && "text-amber-600 dark:text-amber-400"
+                        )}
+                      >
+                        {doc.status}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteDoc(doc.id)}
+                    className="btn-ghost p-1.5 rounded-md text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))
+            }
+            </div>
           )}
         </div>
       </div>
@@ -258,13 +266,10 @@ export function KnowledgeBaseAdmin() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Database size={18} />
-          Knowledge Bases
-        </h3>
+        <p className="text-sm text-surface-500">{kbs.length} knowledge base{kbs.length !== 1 ? "s" : ""}</p>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="btn-primary text-sm flex items-center gap-1"
+          className="btn-primary text-sm flex items-center gap-1.5"
         >
           <Plus size={14} />
           New
@@ -272,7 +277,7 @@ export function KnowledgeBaseAdmin() {
       </div>
 
       {showCreate && (
-        <div className="card p-4 space-y-3">
+        <div className="rounded-lg border border-surface-200 dark:border-surface-700 p-4 space-y-3 bg-surface-50 dark:bg-surface-850">
           <input
             type="text"
             placeholder="Knowledge base name"
@@ -306,29 +311,32 @@ export function KnowledgeBaseAdmin() {
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-8">
+        <div className="flex items-center justify-center py-12">
           <Loader2 size={20} className="animate-spin text-surface-400" />
         </div>
       ) : kbs.length === 0 ? (
-        <div className="text-center py-8">
-          <Database size={32} className="mx-auto text-surface-300 mb-2" />
-          <p className="text-sm text-surface-500">No knowledge bases yet</p>
+        <div className="text-center py-12">
+          <Database size={36} className="mx-auto text-surface-300 dark:text-surface-600 mb-3" />
+          <p className="text-sm font-medium text-surface-500">No knowledge bases yet</p>
+          <p className="text-xs text-surface-400 mt-1">Create a knowledge base and upload documents for RAG</p>
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="divide-y divide-surface-100 dark:divide-surface-800">
           {kbs.map((kb) => (
             <div
               key={kb.id}
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800 cursor-pointer group"
+              className="flex items-center gap-3 py-3 px-1 cursor-pointer group"
               onClick={() => {
                 setSelectedKb(kb);
                 loadDocs(kb.id);
               }}
             >
-              <Database size={18} className="text-primary-500 flex-shrink-0" />
+              <div className="w-9 h-9 rounded-lg bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center flex-shrink-0">
+                <Database size={16} className="text-primary-500" />
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{kb.name}</p>
-                <p className="text-xs text-surface-500">
+                <p className="text-sm font-medium text-surface-800 dark:text-surface-100">{kb.name}</p>
+                <p className="text-xs text-surface-400 mt-0.5">
                   {kb.document_count} docs · {kb.total_chunks} chunks
                   {kb.department && ` · ${kb.department}`}
                 </p>
@@ -339,11 +347,11 @@ export function KnowledgeBaseAdmin() {
                     e.stopPropagation();
                     handleDelete(kb.id);
                   }}
-                  className="btn-ghost p-1 text-red-500 opacity-0 group-hover:opacity-100"
+                  className="btn-ghost p-1.5 rounded-md text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 size={14} />
                 </button>
-                <ChevronRight size={16} className="text-surface-400" />
+                <ChevronRight size={16} className="text-surface-300" />
               </div>
             </div>
           ))}

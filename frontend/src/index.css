@@ -66,6 +66,15 @@
     @apply bg-white dark:bg-surface-850 border border-surface-200 dark:border-surface-700
            rounded-xl shadow-sm;
   }
+
+  /* Hide scrollbar while keeping scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Markdown content styling */
