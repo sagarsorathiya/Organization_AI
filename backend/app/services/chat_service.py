@@ -204,6 +204,7 @@ class ChatService:
         content: str,
         model: str | None,
         db: AsyncSession,
+        agent_id: uuid.UUID | None = None,
     ) -> tuple[Message, Message, Conversation]:
         """Process a user message: save it, get LLM response, save that too."""
 
@@ -218,6 +219,8 @@ class ChatService:
             if len(content) > 80:
                 title += "..."
             conv = await self.create_conversation(user_id, title, db)
+            if agent_id:
+                conv.agent_id = agent_id
 
         # Save user message
         user_msg = Message(
@@ -229,7 +232,7 @@ class ChatService:
         await db.flush()
 
         # Build message history for context
-        history = await self._build_message_history(conv.id, user_id, db)
+        history = await self._build_message_history(conv.id, user_id, db, agent_id=agent_id)
 
         # Get LLM response
         response_content = await llm_service.generate(history, model=model)
@@ -252,6 +255,7 @@ class ChatService:
         conversation_id: uuid.UUID | None,
         content: str,
         model: str | None,
+        agent_id: uuid.UUID | None = None,
     ) -> AsyncGenerator[str, None]:
         """Stream a response: yields JSON chunks, saves full message at end.
 
@@ -272,6 +276,8 @@ class ChatService:
                     if len(content) > 80:
                         title += "..."
                     conv = await self.create_conversation(user_id, title, db)
+                    if agent_id:
+                        conv.agent_id = agent_id
 
                 # Save user message
                 user_msg = Message(conversation_id=conv.id, role="user", content=content)
@@ -286,7 +292,7 @@ class ChatService:
                 }).decode() + "\n"
 
                 # Build history and stream
-                history = await self._build_message_history(conv.id, user_id, db)
+                history = await self._build_message_history(conv.id, user_id, db, agent_id=agent_id)
                 full_response = []
                 token_buffer = []
 
@@ -379,24 +385,86 @@ class ChatService:
         ]
 
     async def _build_message_history(
-        self, conversation_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession
+        self, conversation_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession,
+        agent_id: uuid.UUID | None = None,
     ) -> list[dict]:
         """Build the message list for LLM context, prepending system prompt if set.
 
-        Limits to the most recent 50 messages to stay within typical LLM context
+        Integrates V2 features: agent system prompts, AI memory, and RAG context.
+        Limits to the most recent N messages to stay within typical LLM context
         windows and avoid excessive memory / token usage.
         """
         MAX_CONTEXT_MESSAGES = app_settings.CHAT_MAX_CONTEXT_MESSAGES
         MAX_CONTEXT_CHARS = app_settings.CHAT_MAX_CONTEXT_CHARS
 
-        # Get user's system prompt
-        settings_result = await db.execute(
-            select(UserSettings.system_prompt).where(
-                UserSettings.user_id == user_id
-            )
-        )
-        system_prompt = settings_result.scalar_one_or_none()
+        system_prompt = None
+        agent = None
 
+        # V2: Load agent if specified — agent system_prompt overrides user prompt
+        if agent_id and app_settings.ENABLE_AGENTS:
+            try:
+                from app.models.agent import Agent
+                agent_result = await db.execute(
+                    select(Agent).where(Agent.id == agent_id, Agent.is_active == True)
+                )
+                agent = agent_result.scalar_one_or_none()
+                if agent:
+                    system_prompt = agent.system_prompt
+            except Exception:
+                logger.warning("Failed to load agent %s", agent_id)
+
+        # Fallback to user's custom system prompt
+        if not system_prompt:
+            settings_result = await db.execute(
+                select(UserSettings.system_prompt).where(
+                    UserSettings.user_id == user_id
+                )
+            )
+            system_prompt = settings_result.scalar_one_or_none()
+
+        # V2: Inject AI Memory context
+        memory_context = ""
+        if app_settings.ENABLE_MEMORY:
+            try:
+                from app.services.memory_service import memory_service
+                # Get user info for department-scoped memories
+                from app.models.user import User
+                user_result = await db.execute(select(User.department).where(User.id == user_id))
+                department = user_result.scalar_one_or_none()
+
+                memories = await memory_service.get_relevant_memories(
+                    user_id=user_id, department=department, limit=10, db=db
+                )
+                if memories:
+                    memory_lines = [f"- {m.key}: {m.content}" for m in memories]
+                    memory_context = "\n\n[Remembered Context]\n" + "\n".join(memory_lines)
+            except Exception:
+                logger.warning("Failed to load memories for user %s", user_id)
+
+        # V2: Inject RAG context if agent has a knowledge base
+        rag_context = ""
+        if agent and agent.knowledge_base_id and app_settings.ENABLE_RAG:
+            try:
+                from app.services.rag_service import rag_service
+                # Get the last user message for RAG query
+                last_msg_q = (
+                    select(Message.content)
+                    .where(Message.conversation_id == conversation_id)
+                    .order_by(Message.created_at.desc())
+                    .limit(1)
+                )
+                last_msg_result = await db.execute(last_msg_q)
+                query_text = last_msg_result.scalar_one_or_none()
+                if query_text:
+                    rag_context = await rag_service.augmented_context(
+                        knowledge_base_id=agent.knowledge_base_id,
+                        query=query_text,
+                        db=db,
+                    )
+            except Exception:
+                logger.warning("Failed to load RAG context for agent %s", agent_id)
+
+        # Fetch recent messages
         q = (
             select(Message)
             .where(Message.conversation_id == conversation_id)
@@ -408,7 +476,15 @@ class ChatService:
 
         history = []
         if system_prompt:
-            history.append({"role": "system", "content": system_prompt})
+            full_system = system_prompt
+            if memory_context:
+                full_system += memory_context
+            if rag_context:
+                full_system += rag_context
+            history.append({"role": "system", "content": full_system})
+        elif memory_context or rag_context:
+            # No system prompt but we have memory/RAG context
+            history.append({"role": "system", "content": (memory_context + rag_context).strip()})
 
         # P5: Truncate history to MAX_CONTEXT_CHARS to prevent unbounded token usage
         total_chars = 0

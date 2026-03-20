@@ -51,6 +51,8 @@ async def send_message(
     """Send a message and get a non-streaming LLM response."""
     conv_id = uuid.UUID(body.conversation_id) if body.conversation_id else None
 
+    agent_id = uuid.UUID(body.agent_id) if body.agent_id else None
+
     try:
         user_msg, assistant_msg, conv = await chat_service.send_message(
             user_id=user_id,
@@ -58,6 +60,7 @@ async def send_message(
             content=body.message,
             model=body.model,
             db=db,
+            agent_id=agent_id,
         )
     except PermissionError:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -98,6 +101,7 @@ async def send_message_stream(
 ):
     """Send a message and stream the LLM response (SSE-like NDJSON)."""
     conv_id = uuid.UUID(body.conversation_id) if body.conversation_id else None
+    agent_id = uuid.UUID(body.agent_id) if body.agent_id else None
 
     await audit_service.log(
         db,
@@ -115,6 +119,7 @@ async def send_message_stream(
             conversation_id=conv_id,
             content=body.message,
             model=body.model,
+            agent_id=agent_id,
         ),
         media_type="application/x-ndjson",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},

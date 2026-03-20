@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { PromptTemplate, TemplateCategory } from "@/types";
-import { get, post, del } from "@/api/client";
+import { get, post } from "@/api/client";
 
 interface TemplateState {
   templates: PromptTemplate[];

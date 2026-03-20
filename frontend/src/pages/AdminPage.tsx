@@ -47,8 +47,12 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
+import { AgentsAdmin } from "@/components/Admin/AgentsAdmin";
+import { KnowledgeBaseAdmin } from "@/components/Admin/KnowledgeBaseAdmin";
+import { TasksAdmin } from "@/components/Admin/TasksAdmin";
+import { SkillsPanel } from "@/components/Skills/SkillsPanel";
 
-type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback";
+type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks";
 
 const POPULAR_MODELS = [
   { name: "llama3.3:70b",         family: "Llama",     params: "70B",   size: "43 GB",   desc: "Meta's most capable open model" },
@@ -703,6 +707,10 @@ export function AdminPage() {
     { id: "announcements", label: "Announcements" },
     { id: "templates", label: "Templates" },
     { id: "feedback", label: "Feedback" },
+    { id: "agents", label: "AI Agents" },
+    { id: "knowledge", label: "Knowledge Base" },
+    { id: "skills", label: "Skills" },
+    { id: "tasks", label: "Tasks" },
   ];
 
   return (
@@ -2057,6 +2065,30 @@ export function AdminPage() {
             ) : (
               <p className="text-sm text-surface-400 text-center py-8">No feedback data available.</p>
             )}
+          </div>
+        )}
+
+        {tab === "agents" && (
+          <div className="card p-6">
+            <AgentsAdmin />
+          </div>
+        )}
+
+        {tab === "knowledge" && (
+          <div className="card p-6">
+            <KnowledgeBaseAdmin />
+          </div>
+        )}
+
+        {tab === "skills" && (
+          <div className="card p-6">
+            <SkillsPanel />
+          </div>
+        )}
+
+        {tab === "tasks" && (
+          <div className="card p-6">
+            <TasksAdmin />
           </div>
         )}
       </div>

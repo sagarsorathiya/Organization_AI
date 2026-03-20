@@ -1,0 +1,20 @@
+{
+  "name": "Organization AI Assistant",
+  "short_name": "Org AI",
+  "description": "Enterprise AI Assistant — private, secure, on-premises",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/ai-favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "lang": "en"
+}

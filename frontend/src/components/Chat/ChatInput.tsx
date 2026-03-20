@@ -4,6 +4,7 @@ import { Send, StopCircle, ChevronDown, Paperclip, X, FileText, Loader2 } from "
 import { uploadFile } from "@/api/client";
 import { toast } from "sonner";
 import { TemplateSelector } from "./TemplateSelector";
+import { AgentSelector } from "./AgentSelector";
 
 interface UploadResponse {
   filename: string;
@@ -176,6 +177,7 @@ export function ChatInput() {
               <span className="truncate max-w-[200px]">{activeModel || "Select model"}</span>
               <ChevronDown size={12} />
             </button>
+            <AgentSelector />
             {showModels && (
               <div className="absolute bottom-full left-0 mb-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto min-w-[200px]">
                 {availableModels.map((m) => (

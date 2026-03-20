@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Conversation, Message, StreamChunk, ModelsResponse } from "@/types";
 import { get, post, patch, del, postStream } from "@/api/client";
+import { useAgentStore } from "@/store/agentStore";
 
 interface ChatState {
   conversations: Conversation[];
@@ -153,6 +154,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
     set((s) => ({ messages: [...s.messages, tempUserMsg] }));
 
     try {
+      const agentId = useAgentStore.getState().selectedAgent?.id;
       const data = await post<{
         message: Message;
         conversation_id: string;
@@ -160,6 +162,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
         message: content,
         conversation_id: state.activeConversationId,
         model,
+        agent_id: agentId || undefined,
       });
 
       // If this was a new conversation, update the ID
@@ -215,10 +218,12 @@ export const useChatStore = create<ChatState>((set, getState) => ({
     try {
       let fullContent = "";
 
+      const agentId = useAgentStore.getState().selectedAgent?.id;
       const stream = postStream<StreamChunk>("/chat/stream", {
         message: content,
         conversation_id: state.activeConversationId,
         model,
+        agent_id: agentId || undefined,
       }, abortController.signal);
 
       for await (const chunk of stream) {

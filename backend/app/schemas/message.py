@@ -8,6 +8,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=500000)
     conversation_id: str | None = None
     model: str | None = None
+    agent_id: str | None = None
 
 
 class MessageResponse(BaseModel):

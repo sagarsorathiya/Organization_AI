@@ -45,6 +45,7 @@ export interface ChatRequest {
   message: string;
   conversation_id?: string;
   model?: string;
+  agent_id?: string;
 }
 
 export interface ChatResponse {
@@ -269,4 +270,130 @@ export interface UserStats {
   messages_this_month: number;
   total_uploads: number;
   top_models: { model: string; count: number }[];
+}
+
+/* ───── V2 Types ───── */
+
+export interface Agent {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  category: string | null;
+  system_prompt: string;
+  temperature: number;
+  preferred_model: string | null;
+  max_tokens: number | null;
+  is_active: boolean;
+  is_default: boolean;
+  is_system: boolean;
+  allowed_roles: string[] | null;
+  allowed_departments: string[] | null;
+  knowledge_base_id: string | null;
+  usage_count: number;
+  created_at: string;
+}
+
+export interface AIMemory {
+  id: string;
+  user_id: string | null;
+  department: string | null;
+  scope: "user" | "department" | "organization";
+  category: "preference" | "fact" | "context" | "skill";
+  key: string;
+  content: string;
+  confidence: number;
+  source: "auto" | "explicit" | "admin";
+  access_count: number;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface AgentSkill {
+  id: string;
+  agent_id: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  category: string | null;
+  skill_type: "prompt_chain" | "template" | "extraction";
+  input_schema: Record<string, { type: string; label: string }> | null;
+  output_format: string;
+  is_active: boolean;
+  is_system: boolean;
+  requires_approval: boolean;
+  usage_count: number;
+  avg_rating: number | null;
+  created_at: string;
+}
+
+export interface SkillExecution {
+  id: string;
+  skill_id: string;
+  user_id: string;
+  status: "pending" | "running" | "completed" | "failed";
+  inputs: Record<string, string> | null;
+  result: string | null;
+  error_message: string | null;
+  duration_ms: number | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string | null;
+  type: "info" | "warning" | "task_result" | "alert";
+  source: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface KnowledgeBase {
+  id: string;
+  name: string;
+  description: string | null;
+  department: string | null;
+  is_public: boolean;
+  embedding_model: string;
+  chunk_size: number;
+  chunk_overlap: number;
+  document_count: number;
+  total_chunks: number;
+  last_synced_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface KnowledgeDocument {
+  id: string;
+  knowledge_base_id: string;
+  title: string;
+  file_name: string | null;
+  file_type: string | null;
+  file_size: number | null;
+  status: "pending" | "processing" | "ready" | "failed";
+  chunk_count: number;
+  error_message: string | null;
+  version: number;
+  created_at: string;
+}
+
+export interface ScheduledTask {
+  id: string;
+  name: string;
+  description: string | null;
+  task_type: string;
+  cron_expression: string;
+  timezone: string;
+  is_active: boolean;
+  last_run_at: string | null;
+  last_status: string | null;
+  next_run_at: string | null;
+  run_count: number;
+  created_at: string;
 }

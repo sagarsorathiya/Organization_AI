@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Sun, Moon, Monitor, LogOut, User, Menu } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { KeyboardShortcutsButton } from "@/components/KeyboardShortcutsModal";
+import { NotificationBell } from "@/components/Notifications/NotificationBell";
 
 export function Header({
   onMenuClick,
@@ -62,6 +63,9 @@ export function Header({
       <div className="flex items-center gap-2">
         {/* Keyboard shortcuts */}
         <KeyboardShortcutsButton />
+
+        {/* Notifications */}
+        <NotificationBell />
 
         {/* Theme toggle */}
         <button

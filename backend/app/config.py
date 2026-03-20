@@ -82,6 +82,28 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "logs/app.log"
 
+    # V2 Feature Flags
+    ENABLE_AGENTS: bool = True
+    ENABLE_MEMORY: bool = True
+    ENABLE_SKILLS: bool = True
+    ENABLE_RAG: bool = True
+    ENABLE_SCHEDULER: bool = True
+    ENABLE_NOTIFICATIONS: bool = True
+
+    # V2 Memory
+    MAX_MEMORIES_PER_USER: int = 500
+    MEMORY_AUTO_EXTRACT: bool = True
+
+    # V2 RAG / Embeddings
+    EMBEDDING_MODEL: str = "nomic-embed-text"
+    RAG_CHUNK_SIZE: int = 500
+    RAG_CHUNK_OVERLAP: int = 50
+    RAG_TOP_K: int = 5
+    MAX_KB_DOCUMENTS: int = 1000
+
+    # V2 Scheduler
+    SCHEDULER_TIMEZONE: str = "UTC"
+
     # Admin
     ADMIN_GROUPS: List[str] = ["AI-Admins", "IT-Admins"]
 

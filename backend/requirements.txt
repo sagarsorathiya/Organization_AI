@@ -27,9 +27,14 @@ orjson>=3.9.0
 
 # Document text extraction
 PyPDF2==3.0.1
+pdfplumber==0.11.4
 python-docx==1.1.2
 openpyxl==3.1.5
 python-pptx==1.0.2
+beautifulsoup4==4.12.3
+
+# Background task scheduler
+APScheduler==3.10.4
 
 # Rate Limiting
 slowapi==0.1.9

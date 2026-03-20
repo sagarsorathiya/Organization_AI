@@ -15,6 +15,8 @@ from app.middleware.rate_limit import limiter
 from app.middleware.request_id import RequestIDMiddleware
 from app.api import auth, chat, conversations, settings as settings_api, admin
 from app.api import feedback, templates, tags, bookmarks, announcements, sharing
+from app.api import agents as agents_api, memory as memory_api, skills as skills_api
+from app.api import tasks as tasks_api, knowledge as knowledge_api
 
 # ---- Logging Setup ----
 os.makedirs(os.path.dirname(settings.LOG_FILE) or "logs", exist_ok=True)
@@ -98,6 +100,23 @@ app.include_router(bookmarks.router, prefix="/api")
 app.include_router(announcements.router, prefix="/api")
 app.include_router(sharing.router, prefix="/api")
 
+# V2 Routers
+if settings.ENABLE_AGENTS:
+    app.include_router(agents_api.router, prefix="/api")
+    app.include_router(agents_api.admin_router, prefix="/api")
+if settings.ENABLE_MEMORY:
+    app.include_router(memory_api.router, prefix="/api")
+    app.include_router(memory_api.admin_router, prefix="/api")
+if settings.ENABLE_SKILLS:
+    app.include_router(skills_api.router, prefix="/api")
+    app.include_router(skills_api.admin_router, prefix="/api")
+if settings.ENABLE_RAG:
+    app.include_router(knowledge_api.router, prefix="/api")
+if settings.ENABLE_NOTIFICATIONS:
+    app.include_router(tasks_api.notification_router, prefix="/api")
+if settings.ENABLE_SCHEDULER:
+    app.include_router(tasks_api.task_router, prefix="/api")
+
 
 # ---- Health Check ----
 @app.get("/api/health")
@@ -127,6 +146,9 @@ async def on_startup():
             User, Conversation, Message, AuditLog, UserSettings,
             MessageFeedback, PromptTemplate, ConversationTag, ConversationTagLink,
             Announcement, SharedConversation, MessageBookmark,
+            KnowledgeBase, KnowledgeDocument, DocumentChunk,
+            Agent, AIMemory, AgentSkill, SkillExecution,
+            ScheduledTask, TaskExecution, Notification,
         )
 
         async with engine.begin() as conn:
@@ -139,6 +161,20 @@ async def on_startup():
 
     # Seed default prompt templates
     await _seed_default_templates()
+
+    # Seed default agents and skills
+    if settings.ENABLE_AGENTS:
+        await _seed_default_agents()
+    if settings.ENABLE_SKILLS:
+        await _seed_default_skills()
+
+    # Start background task scheduler
+    if settings.ENABLE_SCHEDULER:
+        try:
+            from app.services.scheduler_service import scheduler_service
+            await scheduler_service.start()
+        except Exception:
+            logger.exception("Failed to start task scheduler")
 
     # Run data retention enforcement on startup
     try:
@@ -330,10 +366,314 @@ async def _seed_default_templates():
         logger.info("Seeded %d default prompt templates", len(_DEFAULT_TEMPLATES))
 
 
+# ---- Default Agents ----
+_DEFAULT_AGENTS = [
+    {
+        "name": "HR Policy Assistant",
+        "slug": "hr-policy",
+        "description": "Expert on company HR policies, employee handbook, benefits, and workplace guidelines.",
+        "icon": "👥",
+        "category": "Human Resources",
+        "system_prompt": "You are an expert HR Policy Assistant for the organization. You help employees understand company policies, benefits, leave procedures, workplace guidelines, and employee handbook contents. Always cite specific policy sections when possible. If you're unsure about a policy, say so and recommend contacting HR directly. Be professional, empathetic, and clear.",
+        "temperature": 0.3,
+    },
+    {
+        "name": "IT Helpdesk",
+        "slug": "it-helpdesk",
+        "description": "Technical support for common IT issues, software setup, and troubleshooting.",
+        "icon": "🖥️",
+        "category": "IT Support",
+        "system_prompt": "You are an IT Helpdesk Assistant. Help users troubleshoot technical issues, set up software, resolve connectivity problems, and follow IT best practices. Provide step-by-step instructions. Always ask for error messages and system details when relevant. Recommend escalation to the IT team for hardware issues or security incidents.",
+        "temperature": 0.2,
+    },
+    {
+        "name": "Code Review Assistant",
+        "slug": "code-review",
+        "description": "Reviews code for bugs, security vulnerabilities, performance, and best practices.",
+        "icon": "🔍",
+        "category": "Development",
+        "system_prompt": "You are a senior Code Review Assistant. Analyze code for bugs, security vulnerabilities (OWASP Top 10), performance issues, and adherence to best practices. Provide specific suggestions with code examples. Rate severity as Critical/High/Medium/Low. Focus on actionable feedback.",
+        "temperature": 0.2,
+    },
+    {
+        "name": "Document Writer",
+        "slug": "document-writer",
+        "description": "Creates professional documents, reports, proposals, and business communications.",
+        "icon": "📝",
+        "category": "Writing",
+        "system_prompt": "You are a professional Document Writer. Create well-structured, clear, and professional documents including reports, proposals, memos, SOPs, and business communications. Follow standard document formatting with proper headings, sections, and executive summaries. Adapt tone to the audience and purpose.",
+        "temperature": 0.5,
+    },
+    {
+        "name": "Data Analyst",
+        "slug": "data-analyst",
+        "description": "Helps analyze data, create SQL queries, interpret results, and build reports.",
+        "icon": "📊",
+        "category": "Analytics",
+        "system_prompt": "You are a Data Analyst Assistant. Help users write SQL queries, analyze datasets, interpret statistical results, and create data-driven reports. Explain complex concepts simply. Always consider data quality, potential biases, and statistical significance. Suggest appropriate visualizations.",
+        "temperature": 0.2,
+    },
+    {
+        "name": "Meeting Summarizer",
+        "slug": "meeting-summarizer",
+        "description": "Converts meeting notes into structured summaries with action items and decisions.",
+        "icon": "📋",
+        "category": "Productivity",
+        "system_prompt": "You are a Meeting Summarizer. Convert raw meeting notes into structured summaries with: Key Decisions, Action Items (with owners and deadlines), Discussion Points, and Next Steps. Be concise and focus on actionable outcomes. Flag any unclear items that need follow-up.",
+        "temperature": 0.3,
+    },
+    {
+        "name": "Email Composer",
+        "slug": "email-composer",
+        "description": "Drafts professional emails with appropriate tone, structure, and etiquette.",
+        "icon": "✉️",
+        "category": "Communication",
+        "system_prompt": "You are a Professional Email Composer. Draft clear, concise, and professional emails. Adapt tone based on the recipient (executive, colleague, client, vendor). Include appropriate subject lines, greetings, body structure, and closings. Ask for context if needed. Provide multiple versions for different tones when appropriate.",
+        "temperature": 0.5,
+    },
+    {
+        "name": "Compliance Reviewer",
+        "slug": "compliance-reviewer",
+        "description": "Reviews documents and processes for regulatory compliance and risk.",
+        "icon": "⚖️",
+        "category": "Legal & Compliance",
+        "system_prompt": "You are a Compliance Review Assistant. Help review documents, processes, and policies for regulatory compliance. Identify potential compliance risks and suggest remediation. Note: Your analysis is advisory only and should not replace professional legal counsel. Always recommend consulting the legal team for critical decisions.",
+        "temperature": 0.2,
+    },
+    {
+        "name": "Onboarding Buddy",
+        "slug": "onboarding-buddy",
+        "description": "Helps new employees navigate the organization, tools, and processes.",
+        "icon": "🎯",
+        "category": "Human Resources",
+        "system_prompt": "You are a friendly Onboarding Buddy for new employees. Help them understand the organization structure, tools, processes, and culture. Answer questions about getting started, setting up accounts, finding resources, and meeting team members. Be welcoming, patient, and encouraging.",
+        "temperature": 0.5,
+    },
+    {
+        "name": "Project Planner",
+        "slug": "project-planner",
+        "description": "Helps plan projects with timelines, milestones, resource allocation, and risk assessment.",
+        "icon": "🗂️",
+        "category": "Project Management",
+        "system_prompt": "You are a Project Planning Assistant. Help create project plans with clear objectives, work breakdown structures, timelines, milestones, resource allocation, dependencies, and risk assessments. Use standard PM methodologies. Suggest tools and templates. Flag potential risks and suggest mitigations.",
+        "temperature": 0.3,
+    },
+]
+
+
+async def _seed_default_agents():
+    """Seed default AI agents if none exist."""
+    from sqlalchemy import select, func
+    from app.database import async_session_factory
+    from app.models.agent import Agent
+
+    async with async_session_factory() as db:
+        count = (await db.execute(
+            select(func.count()).select_from(Agent).where(Agent.is_system == True)
+        )).scalar() or 0
+
+        if count > 0:
+            return
+
+        for agent_data in _DEFAULT_AGENTS:
+            db.add(Agent(
+                name=agent_data["name"],
+                slug=agent_data["slug"],
+                description=agent_data["description"],
+                icon=agent_data["icon"],
+                category=agent_data["category"],
+                system_prompt=agent_data["system_prompt"],
+                temperature=agent_data["temperature"],
+                is_active=True,
+                is_system=True,
+                is_default=False,
+            ))
+
+        await db.commit()
+        logger.info("Seeded %d default AI agents", len(_DEFAULT_AGENTS))
+
+
+# ---- Default Skills ----
+_DEFAULT_SKILLS = [
+    {
+        "name": "Email from Notes",
+        "slug": "email-from-notes",
+        "description": "Convert rough notes into a professional email",
+        "icon": "✉️",
+        "category": "Communication",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Convert these rough notes into a professional email. Notes: {input}\n\nWrite a clear, well-structured email with subject line, greeting, body, and closing.", "output_key": "email"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Your rough notes"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "Meeting Minutes",
+        "slug": "meeting-minutes",
+        "description": "Transform meeting notes into structured minutes",
+        "icon": "📋",
+        "category": "Productivity",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Transform these meeting notes into structured meeting minutes with: Attendees, Agenda Items, Key Decisions, Action Items (with owners), and Next Steps.\n\nNotes: {input}", "output_key": "minutes"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Meeting notes"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "Code Explainer",
+        "slug": "code-explainer",
+        "description": "Explain complex code in simple terms",
+        "icon": "💡",
+        "category": "Development",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Explain this code in simple terms. Break down what it does, how it works step by step, and key concepts used:\n\n```\n{input}\n```", "output_key": "explanation"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Paste your code"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "SWOT Analysis",
+        "slug": "swot-analysis",
+        "description": "Generate a SWOT analysis for any topic",
+        "icon": "📊",
+        "category": "Analysis",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Create a comprehensive SWOT analysis for: {input}\n\nFormat as four sections: Strengths, Weaknesses, Opportunities, Threats. Include 4-6 points per section with brief explanations.", "output_key": "analysis"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Topic or business to analyze"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "Bug Report Writer",
+        "slug": "bug-report",
+        "description": "Create a structured bug report from a description",
+        "icon": "🐛",
+        "category": "Development",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Create a structured bug report from this description: {input}\n\nInclude: Title, Severity, Steps to Reproduce, Expected Behavior, Actual Behavior, Environment, and Suggested Fix (if obvious).", "output_key": "report"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Describe the bug"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "Text Summarizer",
+        "slug": "text-summarizer",
+        "description": "Summarize long text into key points",
+        "icon": "📝",
+        "category": "Productivity",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Summarize the following text into key points. Provide an executive summary (2-3 sentences) followed by bullet points of the main ideas:\n\n{input}", "output_key": "summary"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Text to summarize"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "SQL Query Builder",
+        "slug": "sql-builder",
+        "description": "Generate SQL queries from natural language",
+        "icon": "🗃️",
+        "category": "Development",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Generate a SQL query for: {input}\n\nProvide the query with comments explaining each section. Include any necessary JOINs, WHERE clauses, and ORDER BY. Mention any assumptions about table structure.", "output_key": "query"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Describe what data you need"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "Translate & Localize",
+        "slug": "translate",
+        "description": "Translate text between languages with context awareness",
+        "icon": "🌐",
+        "category": "Communication",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Translate the following text to {language}. Maintain tone and meaning. Adapt idioms and cultural references appropriately.\n\nText: {input}", "output_key": "translation"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Text to translate"}, "language": {"type": "text", "label": "Target language"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "Risk Assessment",
+        "slug": "risk-assessment",
+        "description": "Assess risks for a project or decision",
+        "icon": "⚠️",
+        "category": "Analysis",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Perform a risk assessment for: {input}\n\nFor each risk identified, provide: Risk Description, Likelihood (High/Medium/Low), Impact (High/Medium/Low), Risk Score, and Mitigation Strategy. Format as a table.", "output_key": "assessment"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "Project or decision to assess"}},
+        "output_format": "markdown",
+    },
+    {
+        "name": "API Documentation",
+        "slug": "api-docs",
+        "description": "Generate API documentation from code or descriptions",
+        "icon": "📚",
+        "category": "Development",
+        "skill_type": "prompt_chain",
+        "steps": [
+            {"prompt": "Generate comprehensive API documentation for: {input}\n\nInclude: Endpoint, Method, Description, Request Parameters, Request Body (with JSON example), Response (with JSON example), Error Codes, and Usage Example.", "output_key": "docs"}
+        ],
+        "input_schema": {"input": {"type": "text", "label": "API details or code"}},
+        "output_format": "markdown",
+    },
+]
+
+
+async def _seed_default_skills():
+    """Seed default skills if none exist."""
+    from sqlalchemy import select, func
+    from app.database import async_session_factory
+    from app.models.agent_skill import AgentSkill
+
+    async with async_session_factory() as db:
+        count = (await db.execute(
+            select(func.count()).select_from(AgentSkill).where(AgentSkill.is_system == True)
+        )).scalar() or 0
+
+        if count > 0:
+            return
+
+        for skill_data in _DEFAULT_SKILLS:
+            db.add(AgentSkill(
+                name=skill_data["name"],
+                slug=skill_data["slug"],
+                description=skill_data["description"],
+                icon=skill_data["icon"],
+                category=skill_data["category"],
+                skill_type=skill_data["skill_type"],
+                steps=skill_data["steps"],
+                input_schema=skill_data["input_schema"],
+                output_format=skill_data["output_format"],
+                is_active=True,
+                is_system=True,
+            ))
+
+        await db.commit()
+        logger.info("Seeded %d default skills", len(_DEFAULT_SKILLS))
+
+
 @app.on_event("shutdown")
 async def on_shutdown():
     from app.database import engine
     from app.services.llm_service import llm_service
+
+    # Stop scheduler
+    if settings.ENABLE_SCHEDULER:
+        try:
+            from app.services.scheduler_service import scheduler_service
+            scheduler_service.stop()
+        except Exception:
+            logger.exception("Error stopping scheduler")
+
     await llm_service.close()
     await engine.dispose()
     logger.info("Application shut down")

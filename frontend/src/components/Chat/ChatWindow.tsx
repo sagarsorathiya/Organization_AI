@@ -8,6 +8,8 @@ import { ChatInput } from "./ChatInput";
 import { StreamingMessage } from "./StreamingMessage";
 import { ShareDialog } from "@/components/ShareDialog";
 import { KeyboardShortcutsButton } from "@/components/KeyboardShortcutsModal";
+import { SkillsPanel } from "@/components/Skills/SkillsPanel";
+import { MemoryPanel } from "@/components/Memory/MemoryPanel";
 import { toast } from "sonner";
 import {
   Bot,
@@ -24,6 +26,9 @@ import {
   Lock,
   Zap,
   Share2,
+  Wrench,
+  Brain,
+  PanelRightClose,
 } from "lucide-react";
 import type { Message } from "@/types";
 
@@ -80,6 +85,7 @@ export function ChatWindow() {
   const { loadConversationFeedback } = useFeedbackStore();
   const { loadBookmarks } = useBookmarkStore();
   const [showShare, setShowShare] = useState(false);
+  const [rightPanel, setRightPanel] = useState<"skills" | "memory" | null>(null);
 
   // Load feedback + bookmarks when conversation changes
   useEffect(() => {
@@ -231,7 +237,8 @@ export function ChatWindow() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full">
+      <div className="flex flex-col flex-1 min-w-0">
       {/* Error banner */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-4 py-2 text-sm text-red-600 dark:text-red-400 flex justify-between items-center">
@@ -246,6 +253,24 @@ export function ChatWindow() {
       {activeConversationId && messages.length > 0 && (
         <div className="flex justify-end px-4 pt-2 gap-1">
           <KeyboardShortcutsButton />
+          <button
+            onClick={() => setRightPanel(rightPanel === "skills" ? null : "skills")}
+            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
+              rightPanel === "skills" ? "text-primary-600 bg-primary-50 dark:bg-primary-900/20" : "text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800"
+            }`}
+            aria-label="Toggle skills panel"
+          >
+            <Wrench size={12} /> Skills
+          </button>
+          <button
+            onClick={() => setRightPanel(rightPanel === "memory" ? null : "memory")}
+            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
+              rightPanel === "memory" ? "text-primary-600 bg-primary-50 dark:bg-primary-900/20" : "text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800"
+            }`}
+            aria-label="Toggle memory panel"
+          >
+            <Brain size={12} /> Memory
+          </button>
           <button
             onClick={() => setShowShare(true)}
             className="flex items-center gap-1 text-xs text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 px-2 py-1 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800"
@@ -314,6 +339,26 @@ export function ChatWindow() {
 
       {/* Input */}
       <ChatInput />
+      </div>
+
+      {/* Right Panel — Skills / Memory */}
+      {rightPanel && (
+        <div className="w-80 border-l bg-white dark:bg-surface-900 flex flex-col shrink-0 h-full">
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <span className="text-sm font-semibold">{rightPanel === "skills" ? "Skills" : "AI Memory"}</span>
+            <button
+              onClick={() => setRightPanel(null)}
+              className="btn-ghost p-1"
+              aria-label="Close panel"
+            >
+              <PanelRightClose size={16} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {rightPanel === "skills" ? <SkillsPanel /> : <MemoryPanel />}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
