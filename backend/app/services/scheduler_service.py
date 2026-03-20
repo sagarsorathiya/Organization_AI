@@ -1,5 +1,6 @@
 """Scheduler service — executes background tasks on cron schedules."""
 
+import asyncio
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ class TaskSchedulerService:
     def __init__(self):
         self._scheduler = None
         self._running = False
+        self._task_locks: dict[uuid.UUID, asyncio.Lock] = {}
 
     async def start(self):
         """Load active tasks and start the scheduler."""
@@ -81,50 +83,62 @@ class TaskSchedulerService:
 
     async def _execute_task(self, task_id: uuid.UUID):
         """Execute a scheduled task with audit trail."""
-        async with async_session_factory() as db:
-            task = await db.get(ScheduledTask, task_id)
-            if not task:
-                return
+        lock = self._task_locks.setdefault(task_id, asyncio.Lock())
+        if lock.locked():
+            logger.warning("Task %s already running, skipping", task_id)
+            return
 
-            execution = TaskExecution(task_id=task_id, status="running")
-            db.add(execution)
-            await db.commit()
-
-            try:
-                handler = TASK_HANDLERS.get(task.task_type)
-                if not handler:
-                    raise ValueError(f"No handler registered for task type: {task.task_type}")
-
-                result = await handler(task, db)
-                execution.status = "success"
-                execution.result_summary = str(result.get("summary", ""))[:2000] if isinstance(result, dict) else str(result)[:2000]
-                execution.affected_users = result.get("affected_count", 0) if isinstance(result, dict) else 0
-                task.last_status = "success"
-                task.last_error = None
-
-            except Exception as e:
-                logger.error("Task %s failed: %s", task.name, str(e))
-                await db.rollback()
-                # Re-fetch objects after rollback (they are expired)
+        async with lock:
+            async with async_session_factory() as db:
                 task = await db.get(ScheduledTask, task_id)
-                execution = await db.get(TaskExecution, execution.id)
-                if not task or not execution:
+                if not task:
                     return
-                execution.status = "failed"
-                execution.error_message = str(e)[:2000]
-                task.last_status = "failed"
-                task.last_error = str(e)[:2000]
 
-            finally:
-                now = datetime.now(timezone.utc)
-                execution.completed_at = now
-                if execution.started_at:
-                    execution.duration_ms = int(
-                        (now - execution.started_at).total_seconds() * 1000
-                    )
-                task.last_run_at = now
-                task.run_count = (task.run_count or 0) + 1
+                execution = TaskExecution(task_id=task_id, status="running")
+                db.add(execution)
                 await db.commit()
+
+                try:
+                    handler = TASK_HANDLERS.get(task.task_type)
+                    if not handler:
+                        raise ValueError(f"No handler registered for task type: {task.task_type}")
+
+                    result = await handler(task, db)
+                    execution.status = "success"
+                    execution.result_summary = str(result.get("summary", ""))[:2000] if isinstance(result, dict) else str(result)[:2000]
+                    execution.affected_users = result.get("affected_count", 0) if isinstance(result, dict) else 0
+                    task.last_status = "success"
+                    task.last_error = None
+
+                except Exception as e:
+                    logger.error("Task %s failed: %s", task.name, str(e))
+                    await db.rollback()
+                    # Re-fetch objects after rollback (they are expired)
+                    task = await db.get(ScheduledTask, task_id)
+                    execution = await db.get(TaskExecution, execution.id)
+                    if not task or not execution:
+                        return
+                    execution.status = "failed"
+                    execution.error_message = str(e)[:2000]
+                    task.last_status = "failed"
+                    task.last_error = str(e)[:2000]
+
+                finally:
+                    try:
+                        if task is None or execution is None:
+                            return
+                        now = datetime.now(timezone.utc)
+                        execution.completed_at = now
+                        if execution.started_at:
+                            execution.duration_ms = int(
+                                (now - execution.started_at).total_seconds() * 1000
+                            )
+                        task.last_run_at = now
+                        task.run_count = (task.run_count or 0) + 1
+                        await db.commit()
+                    except Exception:
+                        logger.exception("Failed to finalize task execution %s", task_id)
+                        await db.rollback()
 
     async def run_task_now(self, task_id: uuid.UUID):
         """Manually trigger a task immediately."""
