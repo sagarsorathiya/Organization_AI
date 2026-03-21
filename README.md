@@ -11,7 +11,7 @@
 - **Private & Secure** — All AI inference runs locally via [Ollama](https://ollama.ai). Zero cloud dependency.
 - **Active Directory / LDAP** — Authenticate users against your existing AD/LDAP directory.
 - **Multi-Model Support** — 27 popular models cataloged; download, update, and delete from the admin panel.
-- **Admin Panel** — 13 tabs in 3 groups (System, Content, AI & Automation) for full platform management.
+- **Admin Panel** — 13 tabs in 3 groups (System, Content, AI & Automation) for full platform management, with contextual floating help button.
 - **Streaming Responses** — Real-time token streaming with optimized rendering.
 - **Full-Text Search** — PostgreSQL-powered search across all conversations and messages.
 - **Custom System Prompts** — Per-user customizable AI behavior and preferences.
@@ -37,7 +37,7 @@
 - **Read-Only Conversation Sharing** — Generate shareable links for conversations; accessible without authentication.
 - **Onboarding / Welcome Tour** — Interactive first-time user onboarding walkthrough highlighting key features.
 - **Message Bookmarks** — Bookmark important messages and access them from a dedicated bookmarks page.
-- **Conversation Management** — Pin, archive (with dedicated archived view), export, rename, and delete conversations.
+- **Conversation Management** — Pin, archive (with dedicated archived view), export (.md / .pdf), rename, and delete conversations.
 - **Admin Password Reset** — Admins can reset passwords for local user accounts from the user management panel.
 
 ### AI & Automation Features (v2)

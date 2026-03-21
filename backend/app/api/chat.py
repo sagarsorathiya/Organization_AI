@@ -79,7 +79,7 @@ async def send_message(
         )
     except PermissionError:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Failed to generate response")
 
     await audit_service.log(

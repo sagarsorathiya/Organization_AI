@@ -210,7 +210,7 @@ This starts **both** the backend and frontend together. You should see:
 ```
 [backend] INFO:     Uvicorn running on http://0.0.0.0:8000
 [frontend] VITE v5.4.x  ready in xxx ms
-[frontend]   ➜  Local:   http://localhost:3000/
+[frontend]   ➜  Local:   http://localhost:3005/
 ```
 
 ---
@@ -219,7 +219,7 @@ This starts **both** the backend and frontend together. You should see:
 
 ### Open in Browser
 
-Go to: **http://localhost:3000**
+Go to: **http://localhost:3005**
 
 ### Login
 
@@ -302,7 +302,7 @@ Make sure PostgreSQL and Ollama are running first:
 - **PostgreSQL**: Starts automatically with Windows (check Services if not)
 - **Ollama**: Look for it in system tray. If not there, open Ollama from Start Menu.
 
-Then open **http://localhost:3000** in your browser.
+Then open **http://localhost:3005** in your browser.
 
 ---
 
@@ -368,7 +368,7 @@ npm run dev
 
 | What | Value |
 |------|-------|
-| **App URL** | http://localhost:3000 |
+| **App URL** | http://localhost:3005 |
 | **Admin Login** | username: `admin` / password: `your_admin_password` (as set in your .env file) |
 | **Backend API** | http://localhost:8000 |
 | **API Docs (Swagger)** | http://localhost:8000/api/docs |

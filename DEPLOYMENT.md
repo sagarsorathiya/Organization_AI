@@ -754,7 +754,7 @@ docker compose exec -T db pg_dump -U org_ai_user org_ai | Out-File "$backupDir\d
 
 The Admin Panel includes a **Database → Export** feature that exports all 24 tables as JSON. Use this for quick manual backups.
 
-Users can also export all their conversations as a **ZIP archive** from **Settings → Bulk Export**. Each conversation is saved as an individual JSON or Markdown file inside the ZIP.
+Users can also export all their conversations as a **ZIP archive** from **Settings → Bulk Export**. Each conversation is saved as an individual Markdown or JSON file inside the ZIP. Individual conversations can be exported as **.md** (Markdown) or **.pdf** (styled PDF) from the chat toolbar.
 
 ### 12.3 Restore from Backup
 

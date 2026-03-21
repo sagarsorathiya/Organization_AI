@@ -59,12 +59,15 @@ if settings.APP_ENV == "development":
         allow_headers=["Authorization", "Content-Type"],
     )
 else:
+    # Production: strict origin enforcement, no wildcard
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
+        expose_headers=["X-Request-ID"],
+        max_age=3600,
     )
 
 # Security headers

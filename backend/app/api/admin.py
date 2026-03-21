@@ -151,6 +151,8 @@ def _update_env_file(updates: dict[str, str]) -> None:
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
     if not os.path.isfile(env_path):
         return
+    # Audit: log which keys are being written (never log values)
+    logger.info("Persisting %d setting(s) to .env: %s", len(updates), list(updates.keys()))
 
     with open(env_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
