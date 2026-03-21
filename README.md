@@ -1,9 +1,69 @@
+﻿<div align="center">
+
 # Organization AI Assistant
 
-> **A self-hosted, enterprise-grade AI chat assistant for organizations.**  
-> Runs 100% on-premises — no data ever leaves your network.
+### The Private, Enterprise-Grade AI Portal That Runs Entirely On Your Hardware
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.135-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React 18](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Ollama](https://img.shields.io/badge/Ollama-Local_LLM-000000?logo=ollama&logoColor=white)](https://ollama.ai)
+
+**Zero data leakage** · **Active Directory SSO** · **200+ users** · **Your hardware, your models**
+
+[Live Landing Page](https://sagarsorathiya.github.io/Organization_AI/) · [Deployment Guide](DEPLOYMENT_GUIDE.md) · [Requirements](Requirement.md) · [Report Issue](https://github.com/sagarsorathiya/Organization_AI/issues)
+
+</div>
+
+---
+
+<div align="center">
+<img src="docs/screenshot/Dashboard.png" alt="Organization AI Dashboard" width="90%">
+<br><em>Dashboard — 8 AI capability cards, model & agent selectors, real-time streaming</em>
+</div>
+
+---
+
+## Why Organization AI?
+
+| | Traditional Cloud AI | Organization AI |
+|---|---|---|
+| **Data Privacy** | Data sent to third-party servers | 100% on-premises — nothing leaves your network |
+| **Authentication** | Separate credentials | Active Directory / LDAP SSO |
+| **Cost** | Per-token pricing | One-time hardware — unlimited usage |
+| **Customization** | Limited | Full control: agents, skills, RAG, templates |
+| **Compliance** | Depends on provider | Fully auditable, air-gap ready |
+
+---
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshot/Login page.png" alt="Login Page"><br><b>Login</b> — Dark themed with on-premise badge</td>
+<td width="50%"><img src="docs/screenshot/Chat Screen.png" alt="Chat Screen"><br><b>Chat</b> — Streaming, toolbar, export (.md/.pdf)</td>
+</tr>
+<tr>
+<td><img src="docs/screenshot/AI agents.png" alt="AI Agents"><br><b>AI Agents</b> — 10+ agent personas with categories</td>
+<td><img src="docs/screenshot/Knowledge.png" alt="Knowledge Base"><br><b>Knowledge Base</b> — RAG with local embeddings</td>
+</tr>
+<tr>
+<td><img src="docs/screenshot/Skills.png" alt="Skills Engine"><br><b>Skills</b> — Prompt chains across 4 categories</td>
+<td><img src="docs/screenshot/Templetes.png" alt="Prompt Templates"><br><b>Templates</b> — 17 templates (Writing/Coding/Analysis)</td>
+</tr>
+<tr>
+<td><img src="docs/screenshot/Admin Setting.png" alt="Admin Settings"><br><b>Admin Settings</b> — LDAP config, security, help button</td>
+<td><img src="docs/screenshot/Database Setting.png" alt="Database Management"><br><b>Database</b> — 24 tables, export/import, PostgreSQL 18</td>
+</tr>
+<tr>
+<td colspan="2" align="center"><img src="docs/screenshot/Health Report.png" alt="Health Dashboard" width="50%"><br><b>Health Report</b> — System, Database, LLM status at a glance</td>
+</tr>
+</table>
+
+---
 
 ## Features
 
@@ -16,38 +76,48 @@
 - **Full-Text Search** — PostgreSQL-powered search across all conversations and messages.
 - **Custom System Prompts** — Per-user customizable AI behavior and preferences.
 - **Dark / Light / System Theme** — User-selectable theme with system auto-detection.
-- **Database Management** — Admin tools for export, import, schema inspection, and data maintenance.
+- **Database Management** — Admin tools for export (JSON/ZIP), import, schema inspection, and data maintenance across all 24 tables.
 - **One-Click Setup** — Automated setup scripts for Windows (`setup.ps1`) and Linux (`setup.sh`).
 - **Scales to 200+ Users** — Configurable connection pools, worker counts, and GPU acceleration.
 - **Hardware-Agnostic** — Works on CPU-only servers, GPU servers, or mixed environments.
 - **Progressive Web App (PWA)** — Installable with service worker, offline cache, and standalone display.
 
-### Enterprise Features (v1)
-- **Response Feedback (👍/👎)** — Users can rate AI responses; admins view aggregated feedback stats and satisfaction metrics.
-- **Prompt Templates / Library** — Admin-curated prompt templates with categories; users can browse and apply templates in chat.
-- **Multi-File Attachments** — Upload multiple files (14+ formats: PDF, DOCX, XLSX, PPTX, CSV, etc.) in a single message.
-- **Bulk Export All Chats** — Download all conversations as a ZIP archive from the settings page.
-- **Data Retention Enforcement** — Automatic cleanup of old conversations based on admin-configured retention policies.
-- **Admin Announcements / MOTD** — Admins create banner announcements displayed to all users; toggle active/inactive.
-- **Regenerate Response** — Re-generate the last AI response with a single click.
-- **Conversation Tags / Folders** — Create custom tags, assign them to conversations, and filter the sidebar by tag.
-- **Keyboard Shortcuts Panel** — Quick-reference modal for all keyboard shortcuts accessible from the header.
-- **User Usage Dashboard** — Personal stats: total conversations, messages, monthly activity, top model, uploads.
-- **Request ID / Correlation** — Every API request gets a unique `X-Request-ID` header for tracing and debugging.
-- **Read-Only Conversation Sharing** — Generate shareable links for conversations; accessible without authentication.
-- **Onboarding / Welcome Tour** — Interactive first-time user onboarding walkthrough highlighting key features.
-- **Message Bookmarks** — Bookmark important messages and access them from a dedicated bookmarks page.
-- **Conversation Management** — Pin, archive (with dedicated archived view), export (.md / .pdf), rename, and delete conversations.
-- **Admin Password Reset** — Admins can reset passwords for local user accounts from the user management panel.
-
-### AI & Automation Features (v2)
-- **AI Agents** — Custom agent personas with system prompts, temperature, model, category, icon, and knowledge base linking. Per-conversation agent selection from the chat bar.
-- **Memory System** — Scoped memories (user/department/organization) with categories (preference, fact, context, skill), confidence scoring, expiration, and access tracking.
-- **Skills Engine** — Prompt chains, templates, and extraction skills with multi-step definitions, input schemas, execution tracking, and agent linking.
+### Enterprise Features
+- **AI Agents** — Custom agent personas with system prompts, temperature, model, category, icon, and knowledge base linking. Per-conversation agent selection.
 - **Knowledge Base / RAG** — 100% local embeddings via Ollama (nomic-embed-text). Upload 13 document formats, configurable chunking, vector similarity search, department-scoped access.
-- **Background Tasks / Scheduler** — Cron-based scheduling via APScheduler with timezone support, run-now trigger, execution logs, and concurrency guards.
-- **Notifications** — In-app notifications (info/warning/task_result/alert) with unread badge, mark read, and notification bell.
+- **Skills Engine** — Prompt chains, templates, and extraction skills with multi-step definitions, input schemas, execution tracking, and agent linking.
+- **Memory System** — Scoped memories (user/department/organization) with categories (preference, fact, context, skill), confidence scoring, expiration.
+- **Prompt Templates** — Admin-curated prompt library with categories; users can browse and apply templates in chat.
+- **Response Feedback (👍/👎)** — Rate AI responses; admins view aggregated feedback stats and satisfaction metrics.
+- **Multi-File Attachments** — Upload multiple files (14+ formats: PDF, DOCX, XLSX, PPTX, CSV, etc.) in a single message.
+- **Conversation Management** — Pin, archive, export (.md/.pdf), rename, tag, and share conversations.
+- **Background Tasks / Scheduler** — Cron-based scheduling via APScheduler with timezone support, run-now trigger, execution logs.
+- **Notifications** — In-app notifications (info/warning/task_result/alert) with unread badge and notification bell.
+- **Read-Only Sharing** — Generate shareable links for conversations; accessible without authentication.
+- **Message Bookmarks** — Bookmark important messages and access them from a dedicated bookmarks page.
+- **Keyboard Shortcuts** — Quick-reference modal for all keyboard shortcuts.
+- **User Usage Dashboard** — Personal stats: total conversations, messages, monthly activity, top model, uploads.
+- **Onboarding Tour** — Interactive first-time walkthrough highlighting key features.
+- **Admin Password Reset** — Reset passwords for local user accounts from the admin panel.
+- **Bulk Export** — Download all conversations as a ZIP archive.
+- **Data Retention** — Automatic cleanup based on admin-configured retention policies.
+- **Announcements** — Admin-created banners displayed to all users.
 - **Feature Flags** — 6 toggles (agents, memory, skills, RAG, scheduler, notifications) for modular enablement.
+
+---
+
+## Project Stats
+
+| Metric | Value |
+|--------|-------|
+| **Features** | 40+ |
+| **API Endpoints** | ~119 across 17 route files |
+| **Database Tables** | 24 (14 core + 10 AI/automation) |
+| **Alembic Migrations** | 9 |
+| **Backend Services** | 12 (6 core + 6 AI) |
+| **Frontend Stores** | 11 (Zustand) |
+| **Admin Panel Tabs** | 13 in 3 groups |
+| **Feature Flags** | 6 |
 
 ---
 
@@ -62,46 +132,49 @@
 | PostgreSQL  | 16+      | Database             |
 | Ollama      | Latest   | Local LLM runtime    |
 
-### 1. Clone & Configure
+### One-Click Setup
+
+```powershell
+# Windows
+.\setup.ps1
+```
+
+```bash
+# Linux / macOS
+chmod +x setup.sh && ./setup.sh
+```
+
+### Manual Setup
+
+#### 1. Clone & Configure
 
 ```bash
 git clone https://github.com/sagarsorathiya/Organization_AI.git
-cd organization-ai
+cd Organization_AI
 cp .env.example .env
 # Edit .env — set DATABASE_PASSWORD, SECRET_KEY, SESSION_SECRET at minimum
 ```
 
-### 2. Database Setup
+#### 2. Database
 
 ```bash
-# Create PostgreSQL database
 createdb -U postgres org_ai
-psql -U postgres -c "CREATE USER org_ai_user WITH PASSWORD 'your_secure_password';"
-psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE org_ai TO org_ai_user;"
 ```
 
-### 3. Backend
+#### 3. Backend
 
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-# source .venv/bin/activate  # Linux
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # Linux
 
 pip install -r requirements.txt
-
-# Set environment for dev (creates tables automatically)
-set APP_ENV=development  # Windows
-# export APP_ENV=development  # Linux
-
-# Run migrations (production)
 alembic upgrade head
-
-# Start server
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 4. Frontend
+#### 4. Frontend
 
 ```bash
 cd frontend
@@ -109,70 +182,60 @@ npm install
 npm run dev
 ```
 
-### 5. Ollama (LLM)
+#### 5. Ollama
 
 ```bash
-# Install Ollama (https://ollama.ai)
 ollama pull gemma3:4b     # Lightweight, great for most tasks
-# Or: ollama pull llama3.1:8b  # Larger, more capable
-ollama serve  # Runs on port 11434
+ollama serve              # Runs on port 11434
 ```
 
-### 6. Access
+#### 6. Access
 
-Open `http://localhost:3005` in your browser.
+Open **http://localhost:3005** in your browser.  
+Development mode: any username/password works, user `admin` gets admin rights.
 
 ---
 
 ## Production Deployment
 
-### Option A: Docker Compose (Recommended)
+### Docker Compose (Recommended)
 
 ```bash
 cp .env.example .env
 # Configure .env for production
 
-# CPU-only (works on any server)
+# CPU-only
 docker compose up -d
 
-# With NVIDIA GPU acceleration
+# With NVIDIA GPU
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 ```
 
-### Option B: Manual Deployment
-
-#### Backend
+### Manual Deployment
 
 ```bash
+# Backend
 cd backend
 pip install -r requirements.txt
 alembic upgrade head
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 16
-```
 
-#### Frontend
-
-```bash
+# Frontend
 cd frontend
-npm install
 npm run build
 # Serve dist/ with Nginx or IIS
 ```
 
 ### Reverse Proxy
 
-Copy `deployment/nginx.conf` and adjust:
-- Server name to your internal domain
-- SSL certificates from your internal CA
-- Backend/frontend upstream addresses
+Copy `deployment/nginx.conf` and adjust server name, SSL, and upstream addresses.
 
 ---
 
 ## Active Directory Configuration
 
-### LDAP Mode (Recommended)
-
 ```env
+# LDAP Mode
 AD_ENABLED=true
 AD_SERVER=ldap://dc01.corp.local
 AD_PORT=389
@@ -183,22 +246,60 @@ AD_USER_SEARCH_BASE=OU=Users,DC=corp,DC=local
 AD_BIND_USER=CN=svc_ai,OU=ServiceAccounts,DC=corp,DC=local
 AD_BIND_PASSWORD=<service_account_password>
 AD_ADMIN_GROUP=CN=AI-Admins,OU=Groups,DC=corp,DC=local
-```
 
-### LDAPS (Encrypted)
-
-```env
+# LDAPS (Encrypted)
 AD_SERVER=ldaps://dc01.corp.local
 AD_PORT=636
 AD_USE_SSL=true
-```
 
-### Development Mode (No AD)
-
-```env
+# Development (No AD)
 AD_ENABLED=false
 ```
-Any username/password is accepted. User "admin" gets admin rights.
+
+---
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────┐
+│                    Internal Network                   │
+│                                                       │
+│  ┌──────────┐   ┌──────────┐   ┌──────────────────┐ │
+│  │ Browser  │──▶│  Nginx   │──▶│    FastAPI        │ │
+│  │ (React   │   │ (Reverse │   │    Backend        │ │
+│  │  PWA)    │   │  Proxy)  │   │   (12 services)   │ │
+│  └──────────┘   └──────────┘   │                    │ │
+│                                 │  ┌──────────────┐ │ │
+│  ┌──────────┐                  │  │ Auth (LDAP)  │ │ │
+│  │ Active   │◀─────────────────│  └──────────────┘ │ │
+│  │Directory │                  │  ┌──────────────┐ │ │
+│  └──────────┘                  │  │ Agents /     │ │ │
+│                                 │  │ Memory /     │ │ │
+│  ┌──────────┐                  │  │ Skills / RAG │ │ │
+│  │PostgreSQL│◀─────────────────│  └──────────────┘ │ │
+│  │ 24 tables│                  │  ┌──────────────┐ │ │
+│  └──────────┘                  │  │ Scheduler /  │ │ │
+│                                 │  │ Notifications│ │ │
+│  ┌──────────┐                  │  └──────────────┘ │ │
+│  │ Ollama   │◀─────────────────│                    │ │
+│  │ LLM +    │                  └──────────────────┘ │
+│  │ Embeddings│                                       │
+│  └──────────┘         ❌ No Internet Access          │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## Scaling Guide
+
+| Users   | CPU   | RAM    | GPU           | Model              | Workers |
+|---------|-------|--------|---------------|--------------------|---------| 
+| 1–30    | 4+    | 16 GB  | Optional      | `gemma3:4b`        | 4       |
+| 30–80   | 8+    | 32 GB  | 4+ GB VRAM    | `gemma3:4b`        | 8       |
+| 80–200  | 16+   | 64 GB  | 8+ GB VRAM    | `llama3.1:8b`      | 12      |
+| 200+    | 32+   | 128 GB | 16+ GB VRAM   | `llama3.1:8b`      | 16      |
+
+See [.env.example](.env.example) for all tuning parameters.
 
 ---
 
@@ -209,62 +310,16 @@ Any username/password is accepted. User "admin" gets admin rights.
 - [ ] Enable `SESSION_COOKIE_SECURE=true` (requires HTTPS)
 - [ ] Configure AD bind account with minimal read-only permissions
 - [ ] Set up SSL certificates from internal CA
-- [ ] Configure firewall: block all outbound internet from the server
+- [ ] Block all outbound internet from the server
 - [ ] Restrict database access to backend server only
 - [ ] Set up log rotation for `logs/app.log`
-- [ ] Review and adjust rate limiting settings
-- [ ] Create AD security group for admin users
 
 ---
 
-## Architecture
-
-```
-┌──────────────────────────────────────────────────┐
-│                  Internal Network                 │
-│                                                   │
-│  ┌─────────┐   ┌──────────┐   ┌──────────────┐  │
-│  │ Browser  │──▶│  Nginx   │──▶│   FastAPI     │  │
-│  │ (React   │   │ (Reverse │   │   Backend     │  │
-│  │  PWA)    │   │  Proxy)  │   │  (12 services)│  │
-│  └─────────┘   └──────────┘   │              │  │
-│                                │  ┌──────────┐│  │
-│                                │  │  Auth    ││  │
-│  ┌──────────┐                 │  │  (LDAP)  ││  │
-│  │ Active   │◀────────────────│  └──────────┘│  │
-│  │Directory │                 │  ┌──────────┐│  │
-│  └──────────┘                 │  │ Agents/  ││  │
-│                                │  │ Memory/  ││  │
-│  ┌──────────┐                 │  │ Skills   ││  │
-│  │PostgreSQL│◀────────────────│  └──────────┘│  │
-│  │ 24 tables│                 │  ┌──────────┐│  │
-│  └──────────┘                 │  │ RAG /    ││  │
-│                                │  │ Embeddings││  │
-│  ┌──────────┐                 │  └──────────┘│  │
-│  │ Ollama   │◀────────────────│  ┌──────────┐│  │
-│  │ (LLM +   │                 │  │ Scheduler││  │
-│  │ Embeddings)│                │  └──────────┘│  │
-│  └──────────┘                 └──────────────┘  │
-│                                                   │
-│              ❌ No Internet Access                │
-└──────────────────────────────────────────────────┘
-```
-
-### Project Stats
-
-| Metric | Value |
-|--------|-------|
-| API Endpoints | ~119 across 17 route files |
-| Database Tables | 24 (14 V1 + 10 V2) |
-| Alembic Migrations | 9 |
-| Backend Services | 12 (6 V1 + 6 V2) |
-| Frontend Stores | 11 (Zustand) |
-| Admin Panel Tabs | 13 in 3 groups |
-| Feature Flags | 6 |
-
 ## API Endpoints
 
-### Authentication
+<details>
+<summary><strong>Authentication</strong> (4 endpoints)</summary>
 
 | Method | Endpoint                    | Description              | Auth     |
 |--------|-----------------------------|--------------------------|----------|
@@ -273,218 +328,218 @@ Any username/password is accepted. User "admin" gets admin rights.
 | GET    | /api/auth/me                | Current user info        | Required |
 | POST   | /api/auth/change-password   | Change password (local)  | Required |
 
-### Chat
+</details>
 
-| Method | Endpoint                    | Description              | Auth     |
-|--------|-----------------------------|--------------------------|----------|
-| POST   | /api/chat                   | Send message (sync)      | Required |
-| POST   | /api/chat/stream            | Send message (streaming) | Required |
-| POST   | /api/chat/search            | Search messages          | Required |
-| GET    | /api/chat/models            | List available models    | Required |
-| GET    | /api/chat/attachments-enabled | Check attachment status | Required |
-| POST   | /api/chat/upload            | Upload single file       | Required |
-| POST   | /api/chat/upload-multiple   | Upload multiple files    | Required |
-| POST   | /api/chat/regenerate        | Regenerate last response | Required |
+<details>
+<summary><strong>Chat</strong> (8 endpoints)</summary>
 
-### Conversations
+| Method | Endpoint                      | Description              | Auth     |
+|--------|-------------------------------|--------------------------|----------|
+| POST   | /api/chat                     | Send message (sync)      | Required |
+| POST   | /api/chat/stream              | Send message (streaming) | Required |
+| POST   | /api/chat/search              | Search messages          | Required |
+| GET    | /api/chat/models              | List available models    | Required |
+| GET    | /api/chat/attachments-enabled | Check attachment status  | Required |
+| POST   | /api/chat/upload              | Upload single file       | Required |
+| POST   | /api/chat/upload-multiple     | Upload multiple files    | Required |
+| POST   | /api/chat/regenerate          | Regenerate last response | Required |
 
-| Method | Endpoint                    | Description              | Auth     |
-|--------|-----------------------------|--------------------------|----------|
-| GET    | /api/conversations          | List conversations       | Required |
-| POST   | /api/conversations          | Create conversation      | Required |
-| GET    | /api/conversations/:id      | Get with messages        | Required |
-| PATCH  | /api/conversations/:id      | Rename                   | Required |
-| DELETE | /api/conversations/:id      | Delete                   | Required |
-| PATCH  | /api/conversations/:id/pin  | Pin/unpin conversation   | Required |
-| PATCH  | /api/conversations/:id/archive | Archive conversation  | Required |
-| GET    | /api/conversations/:id/export | Export conversation     | Required |
-| GET    | /api/conversations/export-all | Bulk export all (ZIP)  | Required |
+</details>
 
-### Settings
+<details>
+<summary><strong>Conversations</strong> (9 endpoints)</summary>
 
-| Method | Endpoint                    | Description              | Auth     |
-|--------|-----------------------------|--------------------------|----------|
-| GET    | /api/settings               | Get user settings        | Required |
-| PATCH  | /api/settings               | Update user settings     | Required |
-| GET    | /api/settings/stats         | User usage statistics    | Required |
+| Method | Endpoint                         | Description              | Auth     |
+|--------|----------------------------------|--------------------------|----------|
+| GET    | /api/conversations               | List conversations       | Required |
+| POST   | /api/conversations               | Create conversation      | Required |
+| GET    | /api/conversations/:id           | Get with messages        | Required |
+| PATCH  | /api/conversations/:id           | Rename                   | Required |
+| DELETE | /api/conversations/:id           | Delete                   | Required |
+| PATCH  | /api/conversations/:id/pin       | Pin/unpin                | Required |
+| PATCH  | /api/conversations/:id/archive   | Archive                  | Required |
+| GET    | /api/conversations/:id/export    | Export conversation      | Required |
+| GET    | /api/conversations/export-all    | Bulk export all (ZIP)    | Required |
 
-### Feedback
+</details>
 
-| Method | Endpoint                    | Description              | Auth     |
-|--------|-----------------------------|--------------------------|----------|
-| POST   | /api/feedback               | Submit feedback (👍/👎)  | Required |
-| DELETE | /api/feedback/:id           | Remove feedback          | Required |
-| GET    | /api/feedback/message/:id   | Get feedback for message | Required |
-| GET    | /api/feedback/conversation/:id | Get conversation feedback | Required |
-| GET    | /api/feedback/stats         | Feedback statistics      | Admin    |
+<details>
+<summary><strong>Settings & Feedback</strong> (8 endpoints)</summary>
 
-### Prompt Templates
+| Method | Endpoint                           | Description              | Auth     |
+|--------|------------------------------------|--------------------------|----------|
+| GET    | /api/settings                      | Get user settings        | Required |
+| PATCH  | /api/settings                      | Update user settings     | Required |
+| GET    | /api/settings/stats                | User usage statistics    | Required |
+| POST   | /api/feedback                      | Submit feedback (👍/👎)  | Required |
+| DELETE | /api/feedback/:id                  | Remove feedback          | Required |
+| GET    | /api/feedback/message/:id          | Get message feedback     | Required |
+| GET    | /api/feedback/conversation/:id     | Conversation feedback    | Required |
+| GET    | /api/feedback/stats                | Feedback statistics      | Admin    |
 
-| Method | Endpoint                    | Description              | Auth     |
-|--------|-----------------------------|--------------------------|----------|
-| GET    | /api/templates              | List all templates       | Required |
-| GET    | /api/templates/categories   | List template categories | Required |
-| POST   | /api/templates/use/:id      | Record template usage    | Required |
-| POST   | /api/templates              | Create template          | Admin    |
-| PATCH  | /api/templates/:id          | Update template          | Admin    |
-| DELETE | /api/templates/:id          | Delete template          | Admin    |
+</details>
 
-### Tags
-
-| Method | Endpoint                    | Description              | Auth     |
-|--------|-----------------------------|--------------------------|----------|
-| GET    | /api/tags                   | List user's tags         | Required |
-| POST   | /api/tags                   | Create tag               | Required |
-| DELETE | /api/tags/:id               | Delete tag               | Required |
-| POST   | /api/tags/link              | Link tag to conversation | Required |
-| DELETE | /api/tags/link              | Unlink tag               | Required |
-| GET    | /api/tags/conversation/:id  | Tags for conversation    | Required |
-| GET    | /api/tags/:id/conversations | Conversations for tag    | Required |
-
-### Bookmarks
-
-| Method | Endpoint                    | Description              | Auth     |
-|--------|-----------------------------|--------------------------|----------|
-| GET    | /api/bookmarks              | List bookmarks           | Required |
-| POST   | /api/bookmarks              | Create bookmark          | Required |
-| DELETE | /api/bookmarks/:id          | Delete bookmark          | Required |
-| DELETE | /api/bookmarks/message/:id  | Remove by message ID     | Required |
-| GET    | /api/bookmarks/check/:id    | Check if bookmarked      | Required |
-
-### Announcements
+<details>
+<summary><strong>Templates, Tags & Bookmarks</strong> (18 endpoints)</summary>
 
 | Method | Endpoint                       | Description              | Auth     |
 |--------|--------------------------------|--------------------------|----------|
-| GET    | /api/announcements             | Active announcements     | Required |
-| GET    | /api/announcements/all         | All announcements        | Admin    |
-| POST   | /api/announcements             | Create announcement      | Admin    |
-| PATCH  | /api/announcements/:id/toggle  | Toggle active/inactive   | Admin    |
-| DELETE | /api/announcements/:id         | Delete announcement      | Admin    |
+| GET    | /api/templates                 | List all templates       | Required |
+| GET    | /api/templates/categories      | List categories          | Required |
+| POST   | /api/templates/use/:id         | Record template usage    | Required |
+| POST   | /api/templates                 | Create template          | Admin    |
+| PATCH  | /api/templates/:id             | Update template          | Admin    |
+| DELETE | /api/templates/:id             | Delete template          | Admin    |
+| GET    | /api/tags                      | List user's tags         | Required |
+| POST   | /api/tags                      | Create tag               | Required |
+| DELETE | /api/tags/:id                  | Delete tag               | Required |
+| POST   | /api/tags/link                 | Link tag to conversation | Required |
+| DELETE | /api/tags/link                 | Unlink tag               | Required |
+| GET    | /api/tags/conversation/:id     | Tags for conversation    | Required |
+| GET    | /api/tags/:id/conversations    | Conversations for tag    | Required |
+| GET    | /api/bookmarks                 | List bookmarks           | Required |
+| POST   | /api/bookmarks                 | Create bookmark          | Required |
+| DELETE | /api/bookmarks/:id             | Delete bookmark          | Required |
+| DELETE | /api/bookmarks/message/:id     | Remove by message ID     | Required |
+| GET    | /api/bookmarks/check/:id       | Check if bookmarked      | Required |
 
-### Sharing
+</details>
 
-| Method | Endpoint                    | Description              | Auth     |
-|--------|-----------------------------|--------------------------|----------|
-| POST   | /api/sharing/create         | Create shared link       | Required |
-| GET    | /api/sharing/:token         | View shared conversation | Public   |
-| DELETE | /api/sharing/:id            | Revoke shared link       | Required |
-| GET    | /api/sharing/check/:id      | Check sharing status     | Required |
+<details>
+<summary><strong>Announcements & Sharing</strong> (9 endpoints)</summary>
 
-### Admin
+| Method | Endpoint                          | Description              | Auth     |
+|--------|-----------------------------------|--------------------------|----------|
+| GET    | /api/announcements                | Active announcements     | Required |
+| GET    | /api/announcements/all            | All announcements        | Admin    |
+| POST   | /api/announcements                | Create announcement      | Admin    |
+| PATCH  | /api/announcements/:id/toggle     | Toggle active/inactive   | Admin    |
+| DELETE | /api/announcements/:id            | Delete announcement      | Admin    |
+| POST   | /api/sharing/create               | Create shared link       | Required |
+| GET    | /api/sharing/:token               | View shared conversation | Public   |
+| DELETE | /api/sharing/:id                  | Revoke shared link       | Required |
+| GET    | /api/sharing/check/:id            | Check sharing status     | Required |
 
-| Method | Endpoint                       | Description              | Auth     |
-|--------|--------------------------------|--------------------------|----------|
-| GET    | /api/admin/health              | System health            | Admin    |
-| GET    | /api/admin/metrics             | Usage metrics            | Admin    |
-| GET    | /api/admin/settings            | Get system settings      | Admin    |
-| PATCH  | /api/admin/settings            | Update system settings   | Admin    |
-| POST   | /api/admin/test-ldap           | Test LDAP connection     | Admin    |
-| GET    | /api/admin/users               | List users               | Admin    |
-| POST   | /api/admin/users               | Create new user          | Admin    |
-| PATCH  | /api/admin/users/:id           | Update user              | Admin    |
-| GET    | /api/admin/audit-logs          | View audit logs          | Admin    |
-| GET    | /api/admin/models              | List LLM models          | Admin    |
-| POST   | /api/admin/models/pull         | Download model           | Admin    |
-| DELETE | /api/admin/models/:name        | Delete model             | Admin    |
-| POST   | /api/admin/models/set-default  | Set default model        | Admin    |
-| GET    | /api/admin/database/info       | Database schema info     | Admin    |
-| GET    | /api/admin/database/export     | Export data              | Admin    |
-| POST   | /api/admin/database/import     | Import data              | Admin    |
-| DELETE | /api/admin/database/clear/:table | Clear table data       | Admin    |
-| DELETE | /api/admin/database/clear-all  | Clear all data           | Admin    |
+</details>
 
-### AI Agents (v2)
+<details>
+<summary><strong>Admin</strong> (18 endpoints)</summary>
 
-| Method | Endpoint                       | Description              | Auth     |
-|--------|--------------------------------|--------------------------|----------|
-| GET    | /api/agents                    | List available agents    | Required |
-| GET    | /api/agents/:id                | Get agent details        | Required |
-| GET    | /api/admin/agents              | List all agents (admin)  | Admin    |
-| POST   | /api/admin/agents              | Create agent             | Admin    |
-| PUT    | /api/admin/agents/:id          | Update agent             | Admin    |
-| DELETE | /api/admin/agents/:id          | Delete agent             | Admin    |
-| POST   | /api/admin/agents/:id/duplicate | Duplicate agent         | Admin    |
-| PATCH  | /api/admin/agents/:id/toggle   | Toggle active/inactive   | Admin    |
+| Method | Endpoint                          | Description              | Auth     |
+|--------|-----------------------------------|--------------------------|----------|
+| GET    | /api/admin/health                 | System health            | Admin    |
+| GET    | /api/admin/metrics                | Usage metrics            | Admin    |
+| GET    | /api/admin/settings               | Get system settings      | Admin    |
+| PATCH  | /api/admin/settings               | Update system settings   | Admin    |
+| POST   | /api/admin/test-ldap              | Test LDAP connection     | Admin    |
+| GET    | /api/admin/users                  | List users               | Admin    |
+| POST   | /api/admin/users                  | Create new user          | Admin    |
+| PATCH  | /api/admin/users/:id              | Update user              | Admin    |
+| GET    | /api/admin/audit-logs             | View audit logs          | Admin    |
+| GET    | /api/admin/models                 | List LLM models          | Admin    |
+| POST   | /api/admin/models/pull            | Download model           | Admin    |
+| DELETE | /api/admin/models/:name           | Delete model             | Admin    |
+| POST   | /api/admin/models/set-default     | Set default model        | Admin    |
+| GET    | /api/admin/database/info          | Database schema info     | Admin    |
+| GET    | /api/admin/database/export        | Export data              | Admin    |
+| POST   | /api/admin/database/import        | Import data              | Admin    |
+| DELETE | /api/admin/database/clear/:table  | Clear table data         | Admin    |
+| DELETE | /api/admin/database/clear-all     | Clear all data           | Admin    |
 
-### Memory (v2)
+</details>
 
-| Method | Endpoint                       | Description              | Auth     |
-|--------|--------------------------------|--------------------------|----------|
-| GET    | /api/memory                    | List user memories       | Required |
-| POST   | /api/memory                    | Create memory            | Required |
-| PUT    | /api/memory/:id                | Update memory            | Required |
-| DELETE | /api/memory/:id                | Delete memory            | Required |
-| GET    | /api/memory/search             | Search memories          | Required |
-| GET    | /api/admin/memory              | List dept/org memories   | Admin    |
-| POST   | /api/admin/memory              | Create dept/org memory   | Admin    |
+<details>
+<summary><strong>AI Agents</strong> (8 endpoints)</summary>
 
-### Skills (v2)
+| Method | Endpoint                          | Description              | Auth     |
+|--------|-----------------------------------|--------------------------|----------|
+| GET    | /api/agents                       | List available agents    | Required |
+| GET    | /api/agents/:id                   | Get agent details        | Required |
+| GET    | /api/admin/agents                 | List all agents (admin)  | Admin    |
+| POST   | /api/admin/agents                 | Create agent             | Admin    |
+| PUT    | /api/admin/agents/:id             | Update agent             | Admin    |
+| DELETE | /api/admin/agents/:id             | Delete agent             | Admin    |
+| POST   | /api/admin/agents/:id/duplicate   | Duplicate agent          | Admin    |
+| PATCH  | /api/admin/agents/:id/toggle      | Toggle active/inactive   | Admin    |
 
-| Method | Endpoint                       | Description              | Auth     |
-|--------|--------------------------------|--------------------------|----------|
-| GET    | /api/skills                    | List available skills    | Required |
-| GET    | /api/skills/:id                | Get skill details        | Required |
-| POST   | /api/skills/:id/execute        | Execute a skill          | Required |
-| GET    | /api/skills/:id/executions     | Execution history        | Required |
-| GET    | /api/admin/skills              | List all skills (admin)  | Admin    |
-| POST   | /api/admin/skills              | Create skill             | Admin    |
-| PUT    | /api/admin/skills/:id          | Update skill             | Admin    |
-| DELETE | /api/admin/skills/:id          | Delete skill             | Admin    |
+</details>
 
-### Knowledge Base / RAG (v2)
+<details>
+<summary><strong>Memory</strong> (7 endpoints)</summary>
 
-| Method | Endpoint                       | Description              | Auth     |
-|--------|--------------------------------|--------------------------|----------|
-| GET    | /api/admin/knowledge           | List knowledge bases     | Admin    |
-| POST   | /api/admin/knowledge           | Create knowledge base    | Admin    |
-| PUT    | /api/admin/knowledge/:id       | Update knowledge base    | Admin    |
-| DELETE | /api/admin/knowledge/:id       | Delete knowledge base    | Admin    |
-| GET    | /api/admin/knowledge/:id/documents | List documents        | Admin    |
-| POST   | /api/admin/knowledge/:id/documents | Upload document       | Admin    |
-| DELETE | /api/admin/knowledge/documents/:id | Delete document       | Admin    |
-| POST   | /api/admin/knowledge/:id/sync  | Re-embed all documents   | Admin    |
-| POST   | /api/admin/knowledge/search    | Vector similarity search | Admin    |
-| GET    | /api/admin/knowledge/:id/stats | Knowledge base stats     | Admin    |
-| POST   | /api/admin/knowledge/:id/query | Query knowledge base     | Admin    |
+| Method | Endpoint                          | Description              | Auth     |
+|--------|-----------------------------------|--------------------------|----------|
+| GET    | /api/memory                       | List user memories       | Required |
+| POST   | /api/memory                       | Create memory            | Required |
+| PUT    | /api/memory/:id                   | Update memory            | Required |
+| DELETE | /api/memory/:id                   | Delete memory            | Required |
+| GET    | /api/memory/search                | Search memories          | Required |
+| GET    | /api/admin/memory                 | List dept/org memories   | Admin    |
+| POST   | /api/admin/memory                 | Create dept/org memory   | Admin    |
 
-### Scheduled Tasks (v2)
+</details>
 
-| Method | Endpoint                       | Description              | Auth     |
-|--------|--------------------------------|--------------------------|----------|
-| GET    | /api/admin/tasks               | List scheduled tasks     | Admin    |
-| POST   | /api/admin/tasks               | Create task              | Admin    |
-| PUT    | /api/admin/tasks/:id           | Update task              | Admin    |
-| DELETE | /api/admin/tasks/:id           | Delete task              | Admin    |
-| POST   | /api/admin/tasks/:id/run       | Run task now             | Admin    |
-| PATCH  | /api/admin/tasks/:id/toggle    | Toggle enabled/disabled  | Admin    |
-| GET    | /api/admin/tasks/:id/executions | Task execution history  | Admin    |
+<details>
+<summary><strong>Skills</strong> (8 endpoints)</summary>
 
-### Notifications (v2)
+| Method | Endpoint                          | Description              | Auth     |
+|--------|-----------------------------------|--------------------------|----------|
+| GET    | /api/skills                       | List available skills    | Required |
+| GET    | /api/skills/:id                   | Get skill details        | Required |
+| POST   | /api/skills/:id/execute           | Execute a skill          | Required |
+| GET    | /api/skills/:id/executions        | Execution history        | Required |
+| GET    | /api/admin/skills                 | List all skills (admin)  | Admin    |
+| POST   | /api/admin/skills                 | Create skill             | Admin    |
+| PUT    | /api/admin/skills/:id             | Update skill             | Admin    |
+| DELETE | /api/admin/skills/:id             | Delete skill             | Admin    |
 
-| Method | Endpoint                       | Description              | Auth     |
-|--------|--------------------------------|--------------------------|----------|
-| GET    | /api/notifications             | List notifications       | Required |
-| PATCH  | /api/notifications/:id/read    | Mark as read             | Required |
-| POST   | /api/notifications/read-all    | Mark all as read         | Required |
+</details>
 
-### Health
+<details>
+<summary><strong>Knowledge Base / RAG</strong> (11 endpoints)</summary>
 
-| Method | Endpoint                       | Description              | Auth     |
-|--------|--------------------------------|--------------------------|----------|
-| GET    | /api/health                    | Service health check     | Public   |
+| Method | Endpoint                              | Description              | Auth     |
+|--------|---------------------------------------|--------------------------|----------|
+| GET    | /api/admin/knowledge                  | List knowledge bases     | Admin    |
+| POST   | /api/admin/knowledge                  | Create knowledge base    | Admin    |
+| PUT    | /api/admin/knowledge/:id              | Update knowledge base    | Admin    |
+| DELETE | /api/admin/knowledge/:id              | Delete knowledge base    | Admin    |
+| GET    | /api/admin/knowledge/:id/documents    | List documents           | Admin    |
+| POST   | /api/admin/knowledge/:id/documents    | Upload document          | Admin    |
+| DELETE | /api/admin/knowledge/documents/:id    | Delete document          | Admin    |
+| POST   | /api/admin/knowledge/:id/sync         | Re-embed all documents   | Admin    |
+| POST   | /api/admin/knowledge/search           | Vector similarity search | Admin    |
+| GET    | /api/admin/knowledge/:id/stats        | Knowledge base stats     | Admin    |
+| POST   | /api/admin/knowledge/:id/query        | Query knowledge base     | Admin    |
 
----
+</details>
 
-## Scaling Guide
+<details>
+<summary><strong>Tasks & Notifications</strong> (10 endpoints)</summary>
 
-| Users   | CPU Cores | RAM    | GPU              | Model Recommendation | Key Settings |
-|---------|-----------|--------|------------------|---------------------|-------------|
-| 1–30    | 4+        | 16 GB  | Optional         | `gemma3:4b`         | `OLLAMA_NUM_PARALLEL=4`, pool=50 |
-| 30–80   | 8+        | 32 GB  | 4+ GB VRAM       | `gemma3:4b`         | `OLLAMA_NUM_PARALLEL=8`, pool=50 |
-| 80–200  | 16+       | 64 GB  | 8+ GB VRAM       | `llama3.1:8b`       | `OLLAMA_NUM_PARALLEL=12`, pool=100, workers=12 |
-| 200+    | 32+       | 128 GB | 16+ GB VRAM      | `llama3.1:8b`       | `OLLAMA_NUM_PARALLEL=16`, pool=100, workers=16 |
+| Method | Endpoint                              | Description              | Auth     |
+|--------|---------------------------------------|--------------------------|----------|
+| GET    | /api/admin/tasks                      | List scheduled tasks     | Admin    |
+| POST   | /api/admin/tasks                      | Create task              | Admin    |
+| PUT    | /api/admin/tasks/:id                  | Update task              | Admin    |
+| DELETE | /api/admin/tasks/:id                  | Delete task              | Admin    |
+| POST   | /api/admin/tasks/:id/run              | Run task now             | Admin    |
+| PATCH  | /api/admin/tasks/:id/toggle           | Toggle enabled/disabled  | Admin    |
+| GET    | /api/admin/tasks/:id/executions       | Task execution history   | Admin    |
+| GET    | /api/notifications                    | List notifications       | Required |
+| PATCH  | /api/notifications/:id/read           | Mark as read             | Required |
+| POST   | /api/notifications/read-all           | Mark all as read         | Required |
 
-See `.env.example` for all tuning parameters with inline documentation.
+</details>
+
+<details>
+<summary><strong>Health</strong> (1 endpoint)</summary>
+
+| Method | Endpoint       | Description        | Auth   |
+|--------|----------------|--------------------|--------|
+| GET    | /api/health    | Service health check | Public |
+
+</details>
 
 ---
 
@@ -492,14 +547,15 @@ See `.env.example` for all tuning parameters with inline documentation.
 
 | Document | Description |
 |----------|-------------|
+| [Landing Page](https://sagarsorathiya.github.io/Organization_AI/) | Interactive feature showcase with screenshots |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Docker-based production deployment |
 | [DEPLOYMENT_WITHOUT_DOCKER.md](DEPLOYMENT_WITHOUT_DOCKER.md) | Bare-metal / VM deployment |
 | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Step-by-step server setup guide |
 | [LAPTOP_TESTING_GUIDE.md](LAPTOP_TESTING_GUIDE.md) | Windows laptop testing walkthrough |
-| [Requirement.md](Requirement.md) | Full project requirements & V2 feature specs |
+| [Requirement.md](Requirement.md) | Full project requirements & feature specs |
 | [.env.example](.env.example) | All configuration options with documentation |
-| [setup.ps1](setup.ps1) | One-click setup script for Windows |
-| [setup.sh](setup.sh) | One-click setup script for Linux / macOS |
+| [setup.ps1](setup.ps1) | One-click setup for Windows |
+| [setup.sh](setup.sh) | One-click setup for Linux / macOS |
 
 ---
 
