@@ -50,6 +50,6 @@ class User(Base):
     # Relationships
     conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    company = relationship("Company", back_populates="users", lazy="selectin")
-    department_obj = relationship("Department", back_populates="users", lazy="selectin")
-    designation_obj = relationship("Designation", back_populates="users", lazy="selectin")
+    company = relationship("Company", back_populates="users", lazy="selectin", foreign_keys=[company_id])
+    department_obj = relationship("Department", back_populates="users", lazy="selectin", foreign_keys=[department_id])
+    designation_obj = relationship("Designation", back_populates="users", lazy="selectin", foreign_keys=[designation_id])
