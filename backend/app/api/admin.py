@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select, func, desc, text, inspect
+from sqlalchemy import select, func, desc, text, inspect, and_, Table
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db, engine
@@ -649,6 +649,8 @@ _TABLE_MODELS = {
     "companies": Company,
     "departments": Department,
     "designations": Designation,
+    "company_departments": company_departments,
+    "department_designations": department_designations,
 }
 
 
@@ -713,6 +715,22 @@ def _serialize_row(row, columns: list[str]) -> dict:
     return obj
 
 
+def _serialize_mapping_row(row: dict, columns: list[str]) -> dict:
+    """Convert a SQLAlchemy mapping row to a JSON-safe dict."""
+    obj = {}
+    for col in columns:
+        val = row.get(col)
+        if val is None:
+            obj[col] = None
+        elif isinstance(val, datetime):
+            obj[col] = val.isoformat()
+        elif hasattr(val, "hex"):  # UUID
+            obj[col] = str(val)
+        else:
+            obj[col] = val
+    return obj
+
+
 @router.get("/database/export")
 async def database_export(
     _admin=Depends(require_admin),
@@ -724,10 +742,16 @@ async def database_export(
     export_data: dict = {"exported_at": datetime.now(timezone.utc).isoformat(), "tables": {}}
 
     for table_name, model in _TABLE_MODELS.items():
-        result = await db.execute(select(model))
-        rows = result.scalars().all()
-        columns = [c.key for c in inspect(model).mapper.column_attrs]
-        export_data["tables"][table_name] = [_serialize_row(r, columns) for r in rows]
+        if isinstance(model, Table):
+            result = await db.execute(select(model))
+            rows = result.mappings().all()
+            columns = [c.name for c in model.columns]
+            export_data["tables"][table_name] = [_serialize_mapping_row(r, columns) for r in rows]
+        else:
+            result = await db.execute(select(model))
+            rows = result.scalars().all()
+            columns = [c.key for c in inspect(model).mapper.column_attrs]
+            export_data["tables"][table_name] = [_serialize_row(r, columns) for r in rows]
 
     json_bytes = json.dumps(export_data, indent=2, ensure_ascii=False).encode("utf-8")
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -769,6 +793,8 @@ async def database_import(
     import_order = [
         # Phase 0 — Organization structure (no FK deps)
         "companies", "departments", "designations",
+        # Phase 0.5 — Organization mappings
+        "company_departments", "department_designations",
         # Phase 1 — no FK dependencies
         "users", "user_settings", "token_blacklist", "announcements",
         "prompt_templates", "audit_logs",
@@ -797,18 +823,21 @@ async def database_import(
 
         count = 0
         for row_data in rows:
-            pk_val = row_data.get("id")
-            if pk_val:
-                import uuid as _uuid
-                try:
-                    uid = _uuid.UUID(pk_val)
-                except ValueError:
-                    continue
-                exists = (await db.execute(select(model).where(model.id == uid))).scalar_one_or_none()
-                if exists:
-                    continue
+            if isinstance(model, Table):
+                columns = {c.name for c in model.columns}
+            else:
+                pk_val = row_data.get("id")
+                if pk_val:
+                    import uuid as _uuid
+                    try:
+                        uid = _uuid.UUID(pk_val)
+                    except ValueError:
+                        continue
+                    exists = (await db.execute(select(model).where(model.id == uid))).scalar_one_or_none()
+                    if exists:
+                        continue
+                columns = {c.key for c in inspect(model).mapper.column_attrs}
 
-            columns = {c.key for c in inspect(model).mapper.column_attrs}
             clean = {}
             for k, v in row_data.items():
                 if k not in columns:
@@ -830,8 +859,17 @@ async def database_import(
                     clean[k] = v
 
             try:
-                obj = model(**clean)
-                db.add(obj)
+                if isinstance(model, Table):
+                    pk_cols = [c.name for c in model.primary_key.columns]
+                    if pk_cols and all(pk in clean for pk in pk_cols):
+                        where_clause = and_(*[model.c[pk] == clean[pk] for pk in pk_cols])
+                        exists = (await db.execute(select(model).where(where_clause))).first()
+                        if exists:
+                            continue
+                    await db.execute(model.insert().values(**clean))
+                else:
+                    obj = model(**clean)
+                    db.add(obj)
                 await db.flush()
                 count += 1
             except Exception as e:
