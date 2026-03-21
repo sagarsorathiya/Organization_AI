@@ -3,12 +3,12 @@
 import uuid
 import logging
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.company import Company
-from app.models.department import Department
+from app.models.department import Department, company_departments, department_designations
 from app.models.designation import Designation
 
 logger = logging.getLogger(__name__)
@@ -190,11 +190,18 @@ class OrgService:
     ) -> Department:
         """Set companies for a department (reverse of set_company_departments)."""
         cids = [uuid.UUID(c) for c in company_ids]
-        companies = (await db.execute(
-            select(Company).where(Company.id.in_(cids))
-        )).scalars().all()
-        dept.companies = list(companies)
+
+        # Use direct junction table writes to avoid async lazy-load on relationship assignment.
+        await db.execute(
+            delete(company_departments).where(company_departments.c.department_id == dept.id)
+        )
+        if cids:
+            await db.execute(
+                insert(company_departments),
+                [{"company_id": cid, "department_id": dept.id} for cid in cids],
+            )
         await db.flush()
+        await db.refresh(dept, attribute_names=["companies", "designations"])
         return dept
 
     async def set_designation_departments(
@@ -202,11 +209,20 @@ class OrgService:
     ) -> Designation:
         """Set departments for a designation (reverse of set_department_designations)."""
         dids = [uuid.UUID(d) for d in department_ids]
-        depts = (await db.execute(
-            select(Department).where(Department.id.in_(dids))
-        )).scalars().all()
-        desig.departments = list(depts)
+
+        # Use direct junction table writes to avoid async lazy-load on relationship assignment.
+        await db.execute(
+            delete(department_designations).where(
+                department_designations.c.designation_id == desig.id
+            )
+        )
+        if dids:
+            await db.execute(
+                insert(department_designations),
+                [{"department_id": did, "designation_id": desig.id} for did in dids],
+            )
         await db.flush()
+        await db.refresh(desig, attribute_names=["departments"])
         return desig
 
     # ── Stats ──
