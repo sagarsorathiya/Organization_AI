@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useChatStore } from "@/store/chatStore";
-import { Send, StopCircle, ChevronDown, Paperclip, X, FileText, Loader2 } from "lucide-react";
+import { Send, StopCircle, ChevronDown, Paperclip, X, FileText, Image, Loader2 } from "lucide-react";
 import { uploadFile } from "@/api/client";
 import { toast } from "sonner";
 import { TemplateSelector } from "./TemplateSelector";
@@ -12,9 +12,10 @@ interface UploadResponse {
   extension: string;
   text: string;
   truncated: boolean;
+  image_url?: string;
 }
 
-const ACCEPTED_TYPES = ".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.md,.json,.xml,.html,.rtf";
+const ACCEPTED_TYPES = ".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.md,.json,.xml,.html,.rtf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg";
 const ACCEPTED_EXTENSIONS = new Set(ACCEPTED_TYPES.split(","));
 
 export function ChatInput() {
@@ -22,7 +23,7 @@ export function ChatInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showModels, setShowModels] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<{ name: string; text: string; truncated: boolean }[]>([]);
+  const [attachedFile, setAttachedFile] = useState<{ name: string; text: string; truncated: boolean; image_url?: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const {
     sendMessageStream,
@@ -83,9 +84,12 @@ export function ChatInput() {
 
     let messageContent = trimmed;
     if (attachedFile.length > 0) {
-      const fileParts = attachedFile.map(
-        (f) => `[Attached file: ${f.name}]\n\n--- File Content ---\n${f.text}\n--- End of File ---`
-      );
+      const fileParts = attachedFile.map((f) => {
+        if (f.image_url) {
+          return `[Attached image: ${f.name}]\n\n![${f.name}](${f.image_url})`;
+        }
+        return `[Attached file: ${f.name}]\n\n--- File Content ---\n${f.text}\n--- End of File ---`;
+      });
       messageContent = `${fileParts.join("\n\n")}\n\n${trimmed}`;
       setAttachedFile([]);
     }
@@ -116,13 +120,17 @@ export function ChatInput() {
         try {
           const res = await uploadFile<UploadResponse>("/chat/upload", file);
           toast.dismiss(toastId);
-          if (!res.text || res.text.trim().length === 0) {
-            toast.error(`${file.name}: Could not extract text`);
-            continue;
-          }
-          setAttachedFile((prev) => [...prev, { name: res.filename, text: res.text, truncated: res.truncated }]);
-          if (res.truncated) {
-            toast.info(`${file.name} was truncated due to length.`);
+          if (res.image_url) {
+            setAttachedFile((prev) => [...prev, { name: res.filename, text: "", truncated: false, image_url: res.image_url }]);
+          } else {
+            if (!res.text || res.text.trim().length === 0) {
+              toast.error(`${file.name}: Could not extract text`);
+              continue;
+            }
+            setAttachedFile((prev) => [...prev, { name: res.filename, text: res.text, truncated: res.truncated }]);
+            if (res.truncated) {
+              toast.info(`${file.name} was truncated due to length.`);
+            }
           }
         } catch (uploadErr) {
           toast.dismiss(toastId);
@@ -208,11 +216,18 @@ export function ChatInput() {
         {attachmentsEnabled && attachedFile.length > 0 && (
           <div className="flex items-center gap-2 mb-2 px-1 flex-wrap">
             {attachedFile.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg px-3 py-1.5 text-sm">
-                <FileText size={14} className="text-primary-600 dark:text-primary-400 shrink-0" />
-                <span className="text-primary-700 dark:text-primary-300 truncate max-w-[250px]">
-                  {f.name}
-                </span>
+              <div key={i} className="relative flex items-center gap-2 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg px-3 py-1.5 text-sm">
+                {f.image_url ? (
+                  <>
+                    <img src={f.image_url} alt={f.name} className="h-10 w-10 rounded object-cover shrink-0" />
+                    <span className="text-primary-700 dark:text-primary-300 truncate max-w-[200px]">{f.name}</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText size={14} className="text-primary-600 dark:text-primary-400 shrink-0" />
+                    <span className="text-primary-700 dark:text-primary-300 truncate max-w-[250px]">{f.name}</span>
+                  </>
+                )}
                 <button
                   onClick={() => removeAttachment(i)}
                   className="text-primary-400 hover:text-red-500 transition-colors shrink-0"
@@ -249,7 +264,7 @@ export function ChatInput() {
               disabled={isUploading || isStreaming}
               className="p-2 rounded-xl text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:bg-surface-200 dark:hover:bg-surface-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
               aria-label="Attach file"
-              title="Attach a document (PDF, DOCX, XLSX, PPTX, TXT, CSV, etc.)"
+              title="Attach a file (PDF, DOCX, XLSX, PPTX, TXT, CSV, Images, etc.)"
             >
               {isUploading ? (
                 <Loader2 size={18} className="animate-spin" />

@@ -1,6 +1,7 @@
 """Chat / messaging API routes with streaming support."""
 
 import asyncio
+import base64
 import uuid
 import io
 import csv
@@ -37,6 +38,20 @@ ALLOWED_EXTENSIONS = {
     ".pptx", ".ppt",
     ".rtf",
     ".json", ".xml", ".html",
+    # Images
+    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg",
+}
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
+
+MIME_MAP = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+    ".svg": "image/svg+xml",
 }
 
 
@@ -333,6 +348,45 @@ async def upload_file(
     if len(data) > max_bytes:
         raise HTTPException(status_code=400, detail=f"File too large. Maximum size is {app_settings.ATTACHMENTS_MAX_SIZE_MB} MB.")
 
+    # --- Image uploads: return base64 data URL instead of extracted text ---
+    if ext in IMAGE_EXTENSIONS:
+        mime = MIME_MAP.get(ext, "application/octet-stream")
+        b64 = base64.b64encode(data).decode("ascii")
+        image_url = f"data:{mime};base64,{b64}"
+
+        # Log to DB
+        conv_uuid = None
+        if conversation_id:
+            try:
+                conv_uuid = uuid.UUID(conversation_id)
+            except ValueError:
+                pass
+        try:
+            upload_record = FileUpload(
+                user_id=user_id,
+                conversation_id=conv_uuid,
+                filename=file.filename,
+                extension=ext,
+                size_bytes=len(data),
+                char_count=0,
+                truncated=False,
+            )
+            db.add(upload_record)
+            await db.flush()
+        except Exception:
+            logger.warning("Failed to log upload to DB for %s (table may not exist)", file.filename)
+            await db.rollback()
+
+        return {
+            "filename": _sanitize_filename(file.filename),
+            "size": len(data),
+            "extension": ext,
+            "text": "",
+            "truncated": False,
+            "image_url": image_url,
+        }
+
+    # --- Document uploads: extract text ---
     extractor = EXTRACTOR_MAP.get(ext)
     if not extractor:
         raise HTTPException(status_code=400, detail=f"No text extractor for '{ext}'")
