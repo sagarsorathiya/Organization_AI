@@ -65,11 +65,18 @@ class OrgService:
         company = await self.get_company(company_id, db)
         if not company:
             return None
-        depts = (await db.execute(
-            select(Department).where(Department.id.in_(department_ids))
-        )).scalars().all()
-        company.departments = list(depts)
+
+        # Use direct junction table writes to avoid async lazy-load side effects.
+        await db.execute(
+            delete(company_departments).where(company_departments.c.company_id == company.id)
+        )
+        if department_ids:
+            await db.execute(
+                insert(company_departments),
+                [{"company_id": company.id, "department_id": did} for did in department_ids],
+            )
         await db.flush()
+        await db.refresh(company, attribute_names=["departments"])
         return company
 
     # ── Departments ──
@@ -130,11 +137,20 @@ class OrgService:
         dept = await self.get_department(dept_id, db)
         if not dept:
             return None
-        desigs = (await db.execute(
-            select(Designation).where(Designation.id.in_(designation_ids))
-        )).scalars().all()
-        dept.designations = list(desigs)
+
+        # Use direct junction table writes to avoid async lazy-load side effects.
+        await db.execute(
+            delete(department_designations).where(
+                department_designations.c.department_id == dept.id
+            )
+        )
+        if designation_ids:
+            await db.execute(
+                insert(department_designations),
+                [{"department_id": dept.id, "designation_id": desig_id} for desig_id in designation_ids],
+            )
         await db.flush()
+        await db.refresh(dept, attribute_names=["companies", "designations"])
         return dept
 
     # ── Designations ──
