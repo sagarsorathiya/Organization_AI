@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 
 type Section = "companies" | "departments" | "designations";
+const FORM_INPUT_CLASS = "text-sm px-3 py-2 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100 w-full";
 
 /* ─── Shared: Status Badge ─── */
 function StatusBadge({ active }: { active: boolean }) {
@@ -197,7 +198,7 @@ function CompanySection({
       </div>
 
       {editing && (
-        <div className="card p-5 border-2 border-primary-200 dark:border-primary-800 space-y-4">
+        <div className="card p-5 space-y-3">
           <h4 className="text-sm font-semibold text-surface-700 dark:text-surface-200 flex items-center gap-2">
             <Building2 size={15} />
             {isNew ? "New Company" : "Edit Company"}
@@ -206,7 +207,7 @@ function CompanySection({
             <div>
               <label className="text-xs font-medium text-surface-500 mb-1 block">Name *</label>
               <input
-                className="input w-full"
+                className={FORM_INPUT_CLASS}
                 value={editing.name || ""}
                 onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                 placeholder="Acme Corporation"
@@ -215,7 +216,7 @@ function CompanySection({
             <div>
               <label className="text-xs font-medium text-surface-500 mb-1 block">Code *</label>
               <input
-                className="input w-full"
+                className={FORM_INPUT_CLASS}
                 value={editing.code || ""}
                 onChange={(e) => setEditing({ ...editing, code: e.target.value.toUpperCase() })}
                 placeholder="ACME"
@@ -225,7 +226,7 @@ function CompanySection({
           <div>
             <label className="text-xs font-medium text-surface-500 mb-1 block">Description</label>
             <input
-              className="input w-full"
+              className={FORM_INPUT_CLASS}
               value={editing.description || ""}
               onChange={(e) => setEditing({ ...editing, description: e.target.value })}
               placeholder="Optional description"
@@ -392,7 +393,7 @@ function DepartmentSection({
       </div>
 
       {editing && (
-        <div className="card p-5 border-2 border-primary-200 dark:border-primary-800 space-y-4">
+        <div className="card p-5 space-y-3">
           <h4 className="text-sm font-semibold text-surface-700 dark:text-surface-200 flex items-center gap-2">
             <Network size={15} />
             {isNew ? "New Department" : "Edit Department"}
@@ -400,16 +401,16 @@ function DepartmentSection({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-surface-500 mb-1 block">Name *</label>
-              <input className="input w-full" value={editing.name || ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Engineering" />
+              <input className={FORM_INPUT_CLASS} value={editing.name || ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Engineering" />
             </div>
             <div>
               <label className="text-xs font-medium text-surface-500 mb-1 block">Code *</label>
-              <input className="input w-full" value={editing.code || ""} onChange={(e) => setEditing({ ...editing, code: e.target.value.toUpperCase() })} placeholder="ENG" />
+              <input className={FORM_INPUT_CLASS} value={editing.code || ""} onChange={(e) => setEditing({ ...editing, code: e.target.value.toUpperCase() })} placeholder="ENG" />
             </div>
           </div>
           <div>
             <label className="text-xs font-medium text-surface-500 mb-1 block">Description</label>
-            <input className="input w-full" value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Optional description" />
+            <input className={FORM_INPUT_CLASS} value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Optional description" />
           </div>
           {companies.length > 0 && (
             <div>
@@ -605,7 +606,7 @@ function DesignationSection({
       </div>
 
       {editing && (
-        <div className="card p-5 border-2 border-primary-200 dark:border-primary-800 space-y-4">
+        <div className="card p-5 space-y-3">
           <h4 className="text-sm font-semibold text-surface-700 dark:text-surface-200 flex items-center gap-2">
             <Award size={15} />
             {isNew ? "New Designation" : "Edit Designation"}
@@ -613,20 +614,20 @@ function DesignationSection({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-medium text-surface-500 mb-1 block">Name *</label>
-              <input className="input w-full" value={editing.name || ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Senior Engineer" />
+              <input className={FORM_INPUT_CLASS} value={editing.name || ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Senior Engineer" />
             </div>
             <div>
               <label className="text-xs font-medium text-surface-500 mb-1 block">Code *</label>
-              <input className="input w-full" value={editing.code || ""} onChange={(e) => setEditing({ ...editing, code: e.target.value.toUpperCase() })} placeholder="SR-ENG" />
+              <input className={FORM_INPUT_CLASS} value={editing.code || ""} onChange={(e) => setEditing({ ...editing, code: e.target.value.toUpperCase() })} placeholder="SR-ENG" />
             </div>
             <div>
               <label className="text-xs font-medium text-surface-500 mb-1 block">Level</label>
-              <input className="input w-full" type="number" min="0" value={editing.level ?? 0} onChange={(e) => setEditing({ ...editing, level: parseInt(e.target.value) || 0 })} />
+              <input className={FORM_INPUT_CLASS} type="number" min="0" value={editing.level ?? 0} onChange={(e) => setEditing({ ...editing, level: parseInt(e.target.value) || 0 })} />
             </div>
           </div>
           <div>
             <label className="text-xs font-medium text-surface-500 mb-1 block">Description</label>
-            <input className="input w-full" value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Optional description" />
+            <input className={FORM_INPUT_CLASS} value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Optional description" />
           </div>
           {departments.length > 0 && (
             <div>
