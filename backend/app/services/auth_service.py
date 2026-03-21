@@ -86,6 +86,7 @@ class AuthService:
                 department=ad_info.department,
                 ad_groups=json.dumps(ad_info.groups),
                 is_admin=is_admin,
+                needs_profile_setup=True,
             )
             db.add(user)
             await db.flush()  # Populate user.id

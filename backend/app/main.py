@@ -17,6 +17,7 @@ from app.api import auth, chat, conversations, settings as settings_api, admin
 from app.api import feedback, templates, tags, bookmarks, announcements, sharing
 from app.api import agents as agents_api, memory as memory_api, skills as skills_api
 from app.api import tasks as tasks_api, knowledge as knowledge_api
+from app.api import organization as org_api
 
 # ---- Logging Setup ----
 os.makedirs(os.path.dirname(settings.LOG_FILE) or "logs", exist_ok=True)
@@ -102,6 +103,8 @@ app.include_router(tags.router, prefix="/api")
 app.include_router(bookmarks.router, prefix="/api")
 app.include_router(announcements.router, prefix="/api")
 app.include_router(sharing.router, prefix="/api")
+app.include_router(org_api.router, prefix="/api")
+app.include_router(org_api.admin_router, prefix="/api")
 
 # V2 Routers
 if settings.ENABLE_AGENTS:

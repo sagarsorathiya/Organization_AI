@@ -56,7 +56,7 @@
 </tr>
 <tr>
 <td><img src="docs/screenshot/Admin Setting.png" alt="Admin Settings"><br><b>Admin Settings</b> — LDAP config, security, help button</td>
-<td><img src="docs/screenshot/Database Setting.png" alt="Database Management"><br><b>Database</b> — 24 tables, export/import, PostgreSQL 18</td>
+<td><img src="docs/screenshot/Database Setting.png" alt="Database Management"><br><b>Database</b> — 29 tables, export/import, PostgreSQL 18</td>
 </tr>
 <tr>
 <td colspan="2" align="center"><img src="docs/screenshot/Health Report.png" alt="Health Dashboard" width="50%"><br><b>Health Report</b> — System, Database, LLM status at a glance</td>
@@ -71,12 +71,12 @@
 - **Private & Secure** — All AI inference runs locally via [Ollama](https://ollama.ai). Zero cloud dependency.
 - **Active Directory / LDAP** — Authenticate users against your existing AD/LDAP directory.
 - **Multi-Model Support** — 27 popular models cataloged; download, update, and delete from the admin panel.
-- **Admin Panel** — 13 tabs in 3 groups (System, Content, AI & Automation) for full platform management, with contextual floating help button.
+- **Admin Panel** — 14 tabs in 3 groups (System, Content, AI & Automation) for full platform management, with contextual floating help button.
 - **Streaming Responses** — Real-time token streaming with optimized rendering.
 - **Full-Text Search** — PostgreSQL-powered search across all conversations and messages.
 - **Custom System Prompts** — Per-user customizable AI behavior and preferences.
 - **Dark / Light / System Theme** — User-selectable theme with system auto-detection.
-- **Database Management** — Admin tools for export (JSON/ZIP), import, schema inspection, and data maintenance across all 24 tables.
+- **Database Management** — Admin tools for export (JSON/ZIP), import, schema inspection, and data maintenance across all 29 tables.
 - **One-Click Setup** — Automated setup scripts for Windows (`setup.ps1`) and Linux (`setup.sh`).
 - **Scales to 200+ Users** — Configurable connection pools, worker counts, and GPU acceleration.
 - **Hardware-Agnostic** — Works on CPU-only servers, GPU servers, or mixed environments.
@@ -103,6 +103,7 @@
 - **Data Retention** — Automatic cleanup based on admin-configured retention policies.
 - **Announcements** — Admin-created banners displayed to all users.
 - **Feature Flags** — 6 toggles (agents, memory, skills, RAG, scheduler, notifications) for modular enablement.
+- **Organization Structure** — Companies, departments, and designations with many-to-many mapping. First-login profile setup dialog for AD users, settings page org profile section.
 
 ---
 
@@ -110,13 +111,13 @@
 
 | Metric | Value |
 |--------|-------|
-| **Features** | 40+ |
-| **API Endpoints** | ~119 across 17 route files |
-| **Database Tables** | 24 (14 core + 10 AI/automation) |
-| **Alembic Migrations** | 9 |
-| **Backend Services** | 12 (6 core + 6 AI) |
-| **Frontend Stores** | 11 (Zustand) |
-| **Admin Panel Tabs** | 13 in 3 groups |
+| **Features** | 45+ |
+| **API Endpoints** | ~139 across 18 route files |
+| **Database Tables** | 29 (14 core + 10 AI/automation + 5 organization) |
+| **Alembic Migrations** | 10 |
+| **Backend Services** | 13 (6 core + 6 AI + 1 org) |
+| **Frontend Stores** | 12 (Zustand) |
+| **Admin Panel Tabs** | 14 in 3 groups |
 | **Feature Flags** | 6 |
 
 ---
@@ -267,17 +268,17 @@ AD_ENABLED=false
 │  ┌──────────┐   ┌──────────┐   ┌──────────────────┐ │
 │  │ Browser  │──▶│  Nginx   │──▶│    FastAPI        │ │
 │  │ (React   │   │ (Reverse │   │    Backend        │ │
-│  │  PWA)    │   │  Proxy)  │   │   (12 services)   │ │
+│  │  PWA)    │   │  Proxy)  │   │   (13 services)   │ │
 │  └──────────┘   └──────────┘   │                    │ │
 │                                 │  ┌──────────────┐ │ │
 │  ┌──────────┐                  │  │ Auth (LDAP)  │ │ │
 │  │ Active   │◀─────────────────│  └──────────────┘ │ │
 │  │Directory │                  │  ┌──────────────┐ │ │
-│  └──────────┘                  │  │ Agents /     │ │ │
+│  └──────────┘                  │  │ Org / Agents │ │ │
 │                                 │  │ Memory /     │ │ │
 │  ┌──────────┐                  │  │ Skills / RAG │ │ │
 │  │PostgreSQL│◀─────────────────│  └──────────────┘ │ │
-│  │ 24 tables│                  │  ┌──────────────┐ │ │
+│  │ 29 tables│                  │  ┌──────────────┐ │ │
 │  └──────────┘                  │  │ Scheduler /  │ │ │
 │                                 │  │ Notifications│ │ │
 │  ┌──────────┐                  │  └──────────────┘ │ │
@@ -445,6 +446,34 @@ See [.env.example](.env.example) for all tuning parameters.
 | POST   | /api/admin/database/import        | Import data              | Admin    |
 | DELETE | /api/admin/database/clear/:table  | Clear table data         | Admin    |
 | DELETE | /api/admin/database/clear-all     | Clear all data           | Admin    |
+
+</details>
+
+<details>
+<summary><strong>Organization</strong> (20 endpoints)</summary>
+
+| Method | Endpoint                                      | Description                    | Auth     |
+|--------|-----------------------------------------------|--------------------------------|----------|
+| GET    | /api/org/companies                            | List active companies          | Required |
+| GET    | /api/org/departments                          | Departments for a company      | Required |
+| GET    | /api/org/designations                         | Designations for a department  | Required |
+| POST   | /api/org/profile-setup                        | First-login profile setup      | Required |
+| PATCH  | /api/org/profile                              | Update org profile             | Required |
+| GET    | /api/admin/org/companies                      | List all companies             | Admin    |
+| POST   | /api/admin/org/companies                      | Create company                 | Admin    |
+| PUT    | /api/admin/org/companies/:id                  | Update company                 | Admin    |
+| DELETE | /api/admin/org/companies/:id                  | Delete company                 | Admin    |
+| PUT    | /api/admin/org/companies/:id/departments      | Map departments to company     | Admin    |
+| GET    | /api/admin/org/departments                    | List all departments           | Admin    |
+| POST   | /api/admin/org/departments                    | Create department              | Admin    |
+| PUT    | /api/admin/org/departments/:id                | Update department              | Admin    |
+| DELETE | /api/admin/org/departments/:id                | Delete department              | Admin    |
+| PUT    | /api/admin/org/departments/:id/designations   | Map designations to department | Admin    |
+| GET    | /api/admin/org/designations                   | List all designations          | Admin    |
+| POST   | /api/admin/org/designations                   | Create designation             | Admin    |
+| PUT    | /api/admin/org/designations/:id               | Update designation             | Admin    |
+| DELETE | /api/admin/org/designations/:id               | Delete designation             | Admin    |
+| GET    | /api/admin/org/stats                          | Organization statistics        | Admin    |
 
 </details>
 

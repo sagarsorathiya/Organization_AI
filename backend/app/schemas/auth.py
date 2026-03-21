@@ -21,6 +21,13 @@ class UserInfo(BaseModel):
     department: str | None = None
     is_admin: bool = False
     is_local_account: bool = False
+    company_id: str | None = None
+    company_name: str | None = None
+    department_id: str | None = None
+    department_name: str | None = None
+    designation_id: str | None = None
+    designation_name: str | None = None
+    needs_profile_setup: bool = False
 
     model_config = {"from_attributes": True}
 

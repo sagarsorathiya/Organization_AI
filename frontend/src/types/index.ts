@@ -8,6 +8,13 @@ export interface User {
   department: string | null;
   is_admin: boolean;
   is_local_account: boolean;
+  company_id: string | null;
+  company_name: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  designation_id: string | null;
+  designation_name: string | null;
+  needs_profile_setup: boolean;
 }
 
 export interface LoginRequest {
@@ -409,4 +416,38 @@ export interface ScheduledTask {
   next_run_at: string | null;
   run_count: number;
   created_at: string;
+}
+
+/* ───── Organization Types ───── */
+
+export interface Company {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  is_active: boolean;
+  department_ids: string[];
+  created_at: string | null;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  is_active: boolean;
+  company_ids: string[];
+  designation_ids: string[];
+  created_at: string | null;
+}
+
+export interface Designation {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  level: number;
+  is_active: boolean;
+  department_ids: string[];
+  created_at: string | null;
 }

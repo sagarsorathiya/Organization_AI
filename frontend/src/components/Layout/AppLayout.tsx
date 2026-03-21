@@ -5,6 +5,7 @@ import { Header } from "./Header";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
+import { ProfileSetupDialog } from "@/components/ProfileSetupDialog";
 import { X } from "lucide-react";
 
 export function AppLayout() {
@@ -78,6 +79,9 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* First-login profile setup */}
+      <ProfileSetupDialog />
     </div>
   );
 }

@@ -20,6 +20,11 @@ from app.models.agent_skill import AgentSkill, SkillExecution
 from app.models.scheduled_task import ScheduledTask, TaskExecution
 from app.models.notification import Notification
 
+# V3 Models — Organization Structure
+from app.models.company import Company
+from app.models.department import Department
+from app.models.designation import Designation
+
 __all__ = [
     "User", "Conversation", "Message", "AuditLog", "UserSettings", "FileUpload",
     "MessageFeedback", "PromptTemplate", "ConversationTag", "ConversationTagLink",
@@ -28,4 +33,6 @@ __all__ = [
     "KnowledgeBase", "KnowledgeDocument", "DocumentChunk",
     "Agent", "AIMemory", "AgentSkill", "SkillExecution",
     "ScheduledTask", "TaskExecution", "Notification",
+    # V3 — Organization
+    "Company", "Department", "Designation",
 ]

@@ -33,6 +33,9 @@ from app.models.ai_memory import AIMemory
 from app.models.agent_skill import AgentSkill, SkillExecution
 from app.models.scheduled_task import ScheduledTask, TaskExecution
 from app.models.notification import Notification
+from app.models.company import Company
+from app.models.department import Department, company_departments, department_designations
+from app.models.designation import Designation
 from app.schemas.admin import (
     AuditLogEntry,
     AuditLogListResponse,
@@ -614,6 +617,10 @@ _TABLE_MODELS = {
     "scheduled_tasks": ScheduledTask,
     "task_executions": TaskExecution,
     "notifications": Notification,
+    # V3 — Organization
+    "companies": Company,
+    "departments": Department,
+    "designations": Designation,
 }
 
 
@@ -732,6 +739,8 @@ async def database_import(
 
     imported_counts: dict[str, int] = {}
     import_order = [
+        # Phase 0 — Organization structure (no FK deps)
+        "companies", "departments", "designations",
         # Phase 1 — no FK dependencies
         "users", "user_settings", "token_blacklist", "announcements",
         "prompt_templates", "audit_logs",

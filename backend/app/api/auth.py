@@ -115,6 +115,13 @@ async def login(
             department=user.department,
             is_admin=user.is_admin,
             is_local_account=user.is_local_account,
+            company_id=str(user.company_id) if user.company_id else None,
+            company_name=user.company.name if user.company else None,
+            department_id=str(user.department_id) if user.department_id else None,
+            department_name=user.department_obj.name if user.department_obj else None,
+            designation_id=str(user.designation_id) if user.designation_id else None,
+            designation_name=user.designation_obj.name if user.designation_obj else None,
+            needs_profile_setup=user.needs_profile_setup,
         ),
     )
 
@@ -169,6 +176,13 @@ async def get_current_user(
         department=user.department,
         is_admin=user.is_admin,
         is_local_account=user.is_local_account,
+        company_id=str(user.company_id) if user.company_id else None,
+        company_name=user.company.name if user.company else None,
+        department_id=str(user.department_id) if user.department_id else None,
+        department_name=user.department_obj.name if user.department_obj else None,
+        designation_id=str(user.designation_id) if user.designation_id else None,
+        designation_name=user.designation_obj.name if user.designation_obj else None,
+        needs_profile_setup=user.needs_profile_setup,
     )
 
 

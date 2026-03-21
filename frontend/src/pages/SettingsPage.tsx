@@ -3,9 +3,10 @@ import { useThemeStore } from "@/store/themeStore";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
 import { useBookmarkStore } from "@/store/bookmarkStore";
+import { useOrgStore } from "@/store/orgStore";
 import { get, patch } from "@/api/client";
 import type { UserSettings, UserStats } from "@/types";
-import { Sun, Moon, Monitor, Save, Loader2, Key, BarChart3, Download, Bookmark, Trash2 } from "lucide-react";
+import { Sun, Moon, Monitor, Save, Loader2, Key, BarChart3, Download, Bookmark, Trash2, Building2, Network, Award } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
 
@@ -205,6 +206,9 @@ export function SettingsPage() {
             </div>
           </div>
 
+          {/* Organization Profile */}
+          <OrgProfileSection />
+
           {/* Password Change (local users only) */}
           {(user?.is_local_account ?? false) && <div className="card p-5">
             <h3 className="font-medium text-surface-700 dark:text-surface-200 mb-1 flex items-center gap-2">
@@ -374,6 +378,98 @@ export function SettingsPage() {
             )}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Organization Profile sub-section ─── */
+
+function OrgProfileSection() {
+  const { user, checkAuth } = useAuthStore();
+  const {
+    companies, departments, designations,
+    fetchCompanies, fetchDepartments, fetchDesignations,
+    updateProfile,
+  } = useOrgStore();
+
+  const [companyId, setCompanyId] = useState(user?.company_id || "");
+  const [deptId, setDeptId] = useState(user?.department_id || "");
+  const [desigId, setDesigId] = useState(user?.designation_id || "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { fetchCompanies(false); }, [fetchCompanies]);
+
+  useEffect(() => {
+    if (companyId) fetchDepartments(companyId, false);
+  }, [companyId, fetchDepartments]);
+
+  useEffect(() => {
+    if (deptId) fetchDesignations(deptId, false);
+  }, [deptId, fetchDesignations]);
+
+  const handleSave = async () => {
+    if (!companyId || !deptId || !desigId) {
+      toast.error("Please select all fields");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateProfile(companyId, deptId, desigId);
+      toast.success("Organization profile updated");
+      await checkAuth();
+    } catch {
+      toast.error("Failed to update");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card p-5">
+      <h3 className="font-medium text-surface-700 dark:text-surface-200 mb-1 flex items-center gap-2">
+        <Building2 size={16} />
+        Organization Profile
+      </h3>
+      <p className="text-xs text-surface-400 mb-3">
+        Update your company, department, and designation.
+      </p>
+      <div className="space-y-3 max-w-sm">
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-surface-500 mb-1">
+            <Building2 size={12} /> Company
+          </label>
+          <select className="input-field w-full text-sm" value={companyId} onChange={(e) => { setCompanyId(e.target.value); setDeptId(""); setDesigId(""); }}>
+            <option value="">Select company...</option>
+            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-surface-500 mb-1">
+            <Network size={12} /> Department
+          </label>
+          <select className="input-field w-full text-sm" value={deptId} onChange={(e) => { setDeptId(e.target.value); setDesigId(""); }} disabled={!companyId}>
+            <option value="">{companyId ? "Select department..." : "Select company first"}</option>
+            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-surface-500 mb-1">
+            <Award size={12} /> Designation
+          </label>
+          <select className="input-field w-full text-sm" value={desigId} onChange={(e) => setDesigId(e.target.value)} disabled={!deptId}>
+            <option value="">{deptId ? "Select designation..." : "Select department first"}</option>
+            {designations.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving || !companyId || !deptId || !desigId}
+          className="btn-primary text-sm flex items-center gap-2"
+        >
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Building2 size={14} />}
+          Update Organization
+        </button>
       </div>
     </div>
   );

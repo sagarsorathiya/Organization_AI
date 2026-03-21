@@ -58,8 +58,9 @@ import { KnowledgeBaseAdmin } from "@/components/Admin/KnowledgeBaseAdmin";
 import { TasksAdmin } from "@/components/Admin/TasksAdmin";
 import { SkillsPanel } from "@/components/Skills/SkillsPanel";
 import { AdminHelpButton } from "@/components/Admin/AdminHelpButton";
+import { OrganizationAdmin } from "@/components/Admin/OrganizationAdmin";
 
-type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks";
+type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks" | "organization";
 
 const POPULAR_MODELS = [
   { name: "llama3.3:70b",         family: "Llama",     params: "70B",   size: "43 GB",   desc: "Meta's most capable open model" },
@@ -711,6 +712,7 @@ export function AdminPage() {
         { id: "overview", label: "Overview", icon: Activity },
         { id: "settings", label: "Settings", icon: Settings },
         { id: "users", label: "Users", icon: Users },
+        { id: "organization", label: "Organization", icon: Shield },
         { id: "database", label: "Database", icon: HardDrive },
         { id: "audit", label: "Audit Logs", icon: ScrollText },
       ],
@@ -2158,6 +2160,19 @@ export function AdminPage() {
             </div>
             <div className="p-5">
               <TasksAdmin />
+            </div>
+          </div>
+        )}
+
+        {tab === "organization" && (
+          <div className="card overflow-hidden">
+            <div className="px-5 py-4 border-b bg-surface-50 dark:bg-surface-850 flex items-center gap-2">
+              <Shield size={16} className="text-primary-500" />
+              <span className="text-sm font-semibold">Organization Structure</span>
+              <span className="text-xs text-surface-400 ml-auto">Manage companies, departments &amp; designations</span>
+            </div>
+            <div className="p-5">
+              <OrganizationAdmin />
             </div>
           </div>
         )}

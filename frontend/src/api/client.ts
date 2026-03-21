@@ -85,6 +85,16 @@ export async function del<T = void>(path: string): Promise<T> {
   return handleResponse<T>(res);
 }
 
+export async function put<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  return handleResponse<T>(res);
+}
+
 /**
  * Stream a POST request and yield parsed NDJSON chunks.
  */

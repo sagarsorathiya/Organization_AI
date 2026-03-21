@@ -2,7 +2,7 @@ import { useState } from "react";
 import { HelpCircle, X, ChevronRight, ChevronDown } from "lucide-react";
 import clsx from "clsx";
 
-type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks";
+type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks" | "organization";
 
 interface HelpSection {
   title: string;
@@ -126,6 +126,15 @@ const HELP_DATA: Record<Tab, HelpSection> = {
       { q: "How do I create a task?", a: "Click '+ New Task', set the name, schedule (cron expression), the action to perform, and enable it." },
       { q: "What is a cron expression?", a: "A schedule format: '0 0 * * *' = daily at midnight, '0 */6 * * *' = every 6 hours, '0 9 * * 1' = every Monday at 9 AM." },
       { q: "Can I run a task manually?", a: "Yes, click the play (▶) button next to any task to trigger it immediately, regardless of its schedule." },
+    ],
+  },
+  organization: {
+    title: "Organization Structure",
+    items: [
+      { q: "What is Organization management?", a: "Manage companies, departments, and designations. Departments can be shared across multiple companies, and designations across multiple departments." },
+      { q: "How do I create a company?", a: "Go to the Companies sub-tab, click 'Add Company', fill in the name and code, then save." },
+      { q: "How do mappings work?", a: "Departments map to companies (M2M) and designations map to departments (M2M). Use the chip-toggle UI when editing to assign mappings." },
+      { q: "How do users select their org?", a: "New domain users see a setup dialog on first login. Users can change from Settings > Organization Profile anytime." },
     ],
   },
 };

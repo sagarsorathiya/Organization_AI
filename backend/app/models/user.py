@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Boolean, DateTime, Text
+from sqlalchemy import String, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,7 +25,19 @@ class User(Base):
     is_local_account: Mapped[bool] = mapped_column(Boolean, default=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    needs_profile_setup: Mapped[bool] = mapped_column(Boolean, default=False)
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Organization structure
+    company_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="SET NULL"), nullable=True
+    )
+    department_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True
+    )
+    designation_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("designations.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -38,3 +50,6 @@ class User(Base):
     # Relationships
     conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    company = relationship("Company", back_populates="users", lazy="selectin")
+    department_obj = relationship("Department", back_populates="users", lazy="selectin")
+    designation_obj = relationship("Designation", back_populates="users", lazy="selectin")
