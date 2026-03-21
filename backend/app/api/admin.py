@@ -124,6 +124,12 @@ async def get_system_settings(
         chat_max_context_chars=app_settings.CHAT_MAX_CONTEXT_CHARS,
         local_admin_enabled=app_settings.LOCAL_ADMIN_ENABLED,
         local_admin_username=app_settings.LOCAL_ADMIN_USERNAME,
+        enable_agents=app_settings.ENABLE_AGENTS,
+        enable_memory=app_settings.ENABLE_MEMORY,
+        enable_skills=app_settings.ENABLE_SKILLS,
+        enable_rag=app_settings.ENABLE_RAG,
+        enable_scheduler=app_settings.ENABLE_SCHEDULER,
+        enable_notifications=app_settings.ENABLE_NOTIFICATIONS,
     )
 
 
@@ -160,6 +166,12 @@ _SETTING_KEY_MAP = {
     "chat_max_context_chars": "CHAT_MAX_CONTEXT_CHARS",
     "local_admin_enabled": "LOCAL_ADMIN_ENABLED",
     "local_admin_username": "LOCAL_ADMIN_USERNAME",
+    "enable_agents": "ENABLE_AGENTS",
+    "enable_memory": "ENABLE_MEMORY",
+    "enable_skills": "ENABLE_SKILLS",
+    "enable_rag": "ENABLE_RAG",
+    "enable_scheduler": "ENABLE_SCHEDULER",
+    "enable_notifications": "ENABLE_NOTIFICATIONS",
 }
 
 # Regex to validate Ollama model names (alphanumeric, dash, dot, colon, slash)

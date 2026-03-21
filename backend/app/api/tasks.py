@@ -176,8 +176,9 @@ async def create_task(
     try:
         from app.services.scheduler_service import scheduler_service
         await scheduler_service.reload_task(task)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception("Failed to sync created task %s with scheduler", task.id)
+        raise HTTPException(status_code=500, detail=f"Task saved but scheduler sync failed: {e}")
 
     return _serialize_task(task)
 
@@ -209,8 +210,9 @@ async def update_task(
     try:
         from app.services.scheduler_service import scheduler_service
         await scheduler_service.reload_task(task)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception("Failed to sync updated task %s with scheduler", task.id)
+        raise HTTPException(status_code=500, detail=f"Task updated but scheduler sync failed: {e}")
 
     return _serialize_task(task)
 
@@ -228,8 +230,9 @@ async def delete_task(task_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
         from app.services.scheduler_service import scheduler_service
         if scheduler_service._scheduler:
             scheduler_service._scheduler.remove_job(str(task_id))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception("Failed to remove task %s from scheduler", task_id)
+        raise HTTPException(status_code=500, detail=f"Task deleted in DB but scheduler cleanup failed: {e}")
 
     return {"status": "deleted"}
 

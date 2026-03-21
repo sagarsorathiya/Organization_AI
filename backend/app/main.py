@@ -2,6 +2,7 @@
 
 import logging
 import os
+import asyncio
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,6 +33,20 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+_data_retention_task: asyncio.Task | None = None
+
+
+async def _data_retention_loop(interval_seconds: int = 24 * 60 * 60):
+    """Run data retention periodically in the background."""
+    while True:
+        try:
+            from app.tasks.data_retention import enforce_data_retention
+            deleted = await enforce_data_retention()
+            if deleted:
+                logger.info("Data retention: deleted %d expired conversations", deleted)
+        except Exception:
+            logger.exception("Periodic data retention task failed")
+        await asyncio.sleep(interval_seconds)
 
 # ---- App Instance ----
 app = FastAPI(
@@ -133,6 +148,7 @@ async def health():
 # ---- Startup / Shutdown Events ----
 @app.on_event("startup")
 async def on_startup():
+    global _data_retention_task
     logger.info("🚀 %s starting up (env=%s)", settings.APP_NAME, settings.APP_ENV)
 
     # Warn about insecure default secrets
@@ -191,6 +207,21 @@ async def on_startup():
             logger.info("Data retention: deleted %d expired conversations", deleted)
     except Exception:
         logger.exception("Data retention task failed")
+
+    # Keep retention enforcement running periodically without requiring restarts
+    if _data_retention_task is None or _data_retention_task.done():
+        _data_retention_task = asyncio.create_task(_data_retention_loop())
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    global _data_retention_task
+    if _data_retention_task and not _data_retention_task.done():
+        _data_retention_task.cancel()
+        try:
+            await _data_retention_task
+        except asyncio.CancelledError:
+            pass
 
 
 async def _seed_local_admin():

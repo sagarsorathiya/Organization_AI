@@ -119,6 +119,14 @@ class SystemSettingsResponse(BaseModel):
     local_admin_enabled: bool
     local_admin_username: str
 
+    # Feature Flags
+    enable_agents: bool
+    enable_memory: bool
+    enable_skills: bool
+    enable_rag: bool
+    enable_scheduler: bool
+    enable_notifications: bool
+
 
 class SystemSettingsUpdate(BaseModel):
     """Partial update for system settings — all fields optional."""

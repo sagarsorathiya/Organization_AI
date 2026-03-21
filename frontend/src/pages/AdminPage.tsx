@@ -191,6 +191,13 @@ export function AdminPage() {
   const [feedbackStats, setFeedbackStats] = useState<{ total: number; positive: number; negative: number; recent: { message_id: string; is_positive: boolean; comment: string | null; created_at: string }[] } | null>(null);
   const [fbLoading, setFbLoading] = useState(false);
 
+  const featureEnabled = {
+    agents: adminSettings?.enable_agents ?? true,
+    knowledge: adminSettings?.enable_rag ?? true,
+    skills: adminSettings?.enable_skills ?? true,
+    tasks: adminSettings?.enable_scheduler ?? true,
+  };
+
   const createUser = async () => {
     if (!newUser.username || !newUser.password || !newUser.display_name) {
       toast.error("Username, password, and display name are required");
@@ -725,7 +732,15 @@ export function AdminPage() {
 
   useEffect(() => {
     fetchData();
+    fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (tab === "agents" && !featureEnabled.agents) setTab("overview");
+    if (tab === "knowledge" && !featureEnabled.knowledge) setTab("overview");
+    if (tab === "skills" && !featureEnabled.skills) setTab("overview");
+    if (tab === "tasks" && !featureEnabled.tasks) setTab("overview");
+  }, [tab, featureEnabled.agents, featureEnabled.knowledge, featureEnabled.skills, featureEnabled.tasks]);
 
   useEffect(() => {
     if (tab === "audit") fetchLogs();
@@ -786,10 +801,10 @@ export function AdminPage() {
     {
       label: "AI & Automation",
       tabs: [
-        { id: "agents", label: "AI Agents", icon: Bot },
-        { id: "knowledge", label: "Knowledge", icon: BookOpen },
-        { id: "skills", label: "Skills", icon: Zap },
-        { id: "tasks", label: "Tasks", icon: ListTodo },
+        ...(featureEnabled.agents ? [{ id: "agents" as Tab, label: "AI Agents", icon: Bot }] : []),
+        ...(featureEnabled.knowledge ? [{ id: "knowledge" as Tab, label: "Knowledge", icon: BookOpen }] : []),
+        ...(featureEnabled.skills ? [{ id: "skills" as Tab, label: "Skills", icon: Zap }] : []),
+        ...(featureEnabled.tasks ? [{ id: "tasks" as Tab, label: "Tasks", icon: ListTodo }] : []),
       ],
     },
   ];

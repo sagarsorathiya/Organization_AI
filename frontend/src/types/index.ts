@@ -220,6 +220,12 @@ export interface AdminSettings {
   chat_max_context_chars: number;
   local_admin_enabled: boolean;
   local_admin_username: string;
+  enable_agents: boolean;
+  enable_memory: boolean;
+  enable_skills: boolean;
+  enable_rag: boolean;
+  enable_scheduler: boolean;
+  enable_notifications: boolean;
 }
 
 export interface DatabaseInfo {
