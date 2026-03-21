@@ -168,6 +168,7 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
               ) : (
                 <p className="whitespace-pre-wrap break-words">{message.content}</p>
               )
+            )
           ) : (
             <div className="markdown-content prose-sm max-w-none">
               <ReactMarkdown
