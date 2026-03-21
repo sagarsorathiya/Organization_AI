@@ -36,6 +36,27 @@ logger = logging.getLogger(__name__)
 _data_retention_task: asyncio.Task | None = None
 
 
+def _is_db_permission_error(exc: Exception) -> bool:
+    """Return True when an exception indicates DB privilege issues."""
+    msg = str(exc).lower()
+    return "insufficientprivilege" in msg or "permission denied" in msg
+
+
+async def _run_startup_seed(name: str, func):
+    """Run a seed task without crashing startup on permission errors."""
+    try:
+        await func()
+    except Exception as exc:
+        if _is_db_permission_error(exc):
+            logger.warning(
+                "Skipping startup seed '%s' due to database permissions: %s",
+                name,
+                exc,
+            )
+            return
+        raise
+
+
 async def _data_retention_loop(interval_seconds: int = 24 * 60 * 60):
     """Run data retention periodically in the background."""
     while True:
@@ -182,14 +203,14 @@ async def on_startup():
         await _seed_local_admin()
 
     # Seed default prompt templates
-    await _seed_default_templates()
+    await _run_startup_seed("default_templates", _seed_default_templates)
 
     # Seed default agents, skills, and knowledge bases
     if settings.ENABLE_AGENTS:
-        await _seed_default_agents()
+        await _run_startup_seed("default_agents", _seed_default_agents)
     if settings.ENABLE_SKILLS:
-        await _seed_default_skills()
-    await _seed_default_knowledge_bases()
+        await _run_startup_seed("default_skills", _seed_default_skills)
+    await _run_startup_seed("default_knowledge_bases", _seed_default_knowledge_bases)
 
     # Start background task scheduler
     if settings.ENABLE_SCHEDULER:
