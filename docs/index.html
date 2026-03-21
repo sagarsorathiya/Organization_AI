@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organization AI — Secure In-House Enterprise AI Portal</title>
-    <meta name="description" content="A 100% on-premises, enterprise-grade AI portal with AI Agents, RAG Knowledge Base, Skills Engine, and 40+ features. Active Directory SSO, zero cloud dependency, your data never leaves your network.">
+    <meta name="description" content="A 100% on-premises, enterprise-grade AI portal with AI Agents, RAG Knowledge Base, Skills Engine, Scheduler, and 40+ features. Active Directory SSO, zero cloud dependency, and your data never leaves your network.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -201,6 +201,17 @@
         .stat-number{font-size:2.4rem;font-weight:900;letter-spacing:-.03em;line-height:1;margin-bottom:8px;background:linear-gradient(135deg,var(--accent-light),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .stat-label{font-size:.82rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 
+        /* RELEASE UPDATES */
+        .release-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:16px}
+        .release-card{padding:22px;border-radius:14px;background:rgba(255,255,255,.02);border:1px solid var(--glass-border);text-align:left;transition:all .3s}
+        .release-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.04)}
+        .release-badge{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;margin-bottom:10px}
+        .release-badge.backend{background:rgba(34,211,238,.12);color:var(--cyan)}
+        .release-badge.frontend{background:rgba(99,102,241,.14);color:var(--accent-light)}
+        .release-badge.data{background:rgba(52,211,153,.12);color:var(--green)}
+        .release-card h3{font-size:1rem;margin-bottom:6px}
+        .release-card p{font-size:.86rem;color:var(--text-secondary);line-height:1.6}
+
         /* CTA */
         .cta-section{text-align:center;position:relative;z-index:2}
         .cta-box{padding:64px 48px;border-radius:24px;background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.15);position:relative;overflow:hidden}
@@ -222,9 +233,9 @@
         .lightbox-close:hover{opacity:1}
 
         /* RESPONSIVE */
-        @media(max-width:1024px){.features-grid{grid-template-columns:repeat(2,1fr)}.showcase-grid{grid-template-columns:1fr}.showcase-item.featured{grid-column:auto}.stats-bar{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:1024px){.features-grid{grid-template-columns:repeat(2,1fr)}.showcase-grid{grid-template-columns:1fr}.showcase-item.featured{grid-column:auto}.stats-bar{grid-template-columns:repeat(2,1fr)}.release-grid{grid-template-columns:1fr 1fr}}
         @media(max-width:900px){.privacy-grid{grid-template-columns:1fr;gap:40px}.nav-links{display:none}.nav-links.open{display:flex;flex-direction:column;position:absolute;top:64px;left:16px;right:16px;background:rgba(6,7,13,.95);border:1px solid var(--glass-border);border-radius:12px;padding:16px;backdrop-filter:blur(24px)}.hamburger{display:block}}
-        @media(max-width:640px){.features-grid{grid-template-columns:1fr}.stats-bar{grid-template-columns:1fr 1fr}.hero h1{font-size:2.2rem}section{padding:60px 0}.hero{padding:140px 0 60px}.trust-bar{gap:12px}.trust-item{padding:8px 12px;font-size:.82rem}.cta-box{padding:40px 24px}.scale-table{font-size:.78rem}.scale-table th,.scale-table td{padding:10px 14px}}
+        @media(max-width:640px){.features-grid{grid-template-columns:1fr}.stats-bar{grid-template-columns:1fr 1fr}.release-grid{grid-template-columns:1fr}.hero h1{font-size:2.2rem}section{padding:60px 0}.hero{padding:140px 0 60px}.trust-bar{gap:12px}.trust-item{padding:8px 12px;font-size:.82rem}.cta-box{padding:40px 24px}.scale-table{font-size:.78rem}.scale-table th,.scale-table td{padding:10px 14px}}
 
         /* ANIMATIONS */
         .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s cubic-bezier(.4,0,.2,1),transform .7s cubic-bezier(.4,0,.2,1)}
@@ -250,7 +261,7 @@
             <li><a href="#scaling">Scaling</a></li>
         </ul>
         <a href="#quickstart" class="nav-cta">Get Started</a>
-        <button class="hamburger" id="hamburger" aria-label="Menu">&#9776;</button>
+        <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">&#9776;</button>
     </div>
 </nav>
 
@@ -259,7 +270,7 @@
     <div class="container">
         <div class="hero-badge reveal"><span class="dot"></span> 100% On-Premises &bull; Zero Cloud Dependency</div>
         <h1 class="reveal reveal-delay-1">Your Enterprise<br><span class="gradient">AI Assistant</span></h1>
-        <p class="reveal reveal-delay-2">Self-hosted AI portal with Active Directory SSO, AI Agents, RAG Knowledge Base, Skills Engine, and 40+ enterprise features. <strong>Your data never leaves your network.</strong></p>
+        <p class="reveal reveal-delay-2">Self-hosted AI portal with Active Directory SSO, AI Agents, RAG Knowledge Base, Skills Engine, Scheduler, and 40+ enterprise features. <strong>Your data never leaves your network.</strong></p>
         <div class="hero-actions reveal reveal-delay-3">
             <a href="https://github.com/sagarsorathiya/Organization_AI" class="btn btn-primary" target="_blank">&#9733; Star on GitHub</a>
             <a href="#quickstart" class="btn btn-outline">&#9654; Quick Start</a>
@@ -322,9 +333,9 @@
             <div class="feature-card reveal" style="--card-glow:rgba(34,211,238,.06)"><div class="feature-icon cyan">&#128206;</div><h3>File Attachments</h3><p>Attach images and documents directly to chat. AI analyzes uploaded files (PDF, Word, Excel, PowerPoint, HTML) with full text extraction.</p></div>
             <div class="feature-card reveal reveal-delay-1" style="--card-glow:rgba(99,102,241,.06)"><div class="feature-icon blue">&#128230;</div><h3>Export (.md / .pdf)</h3><p>Export individual conversations as styled PDF or Markdown. Bulk export all conversations as a timestamped ZIP archive for compliance.</p></div>
             <div class="feature-card reveal reveal-delay-2" style="--card-glow:rgba(167,139,250,.06)"><div class="feature-icon purple">&#128279;</div><h3>Conversation Sharing</h3><p>Share conversations with colleagues via secure internal links. Bookmark important messages, tag conversations for easy retrieval.</p></div>
-            <div class="feature-card reveal" style="--card-glow:rgba(251,146,60,.06)"><div class="feature-icon orange">&#128736;</div><h3>Admin Panel (13 Tabs)</h3><p>Full-featured admin: Overview, Settings, Users, Database, Audit Logs, Models, Announcements, Templates, Feedback, Agents, Knowledge, Skills, Tasks.</p></div>
+            <div class="feature-card reveal" style="--card-glow:rgba(251,146,60,.06)"><div class="feature-icon orange">&#128736;</div><h3>Admin Panel (13+ Tabs)</h3><p>Full-featured admin with system, content, and AI automation modules. Tabs are feature-flag aware to match enabled backend capabilities.</p></div>
             <div class="feature-card reveal reveal-delay-1" style="--card-glow:rgba(52,211,153,.06)"><div class="feature-icon green">&#128202;</div><h3>Health Dashboard</h3><p>Real-time system health monitoring &mdash; database, LLM service, uptime, active users, total conversations, and message counts at a glance.</p></div>
-            <div class="feature-card reveal reveal-delay-2" style="--card-glow:rgba(248,113,113,.06)"><div class="feature-icon red">&#128451;</div><h3>Database Management</h3><p>Full backup/restore (all 24 tables), connection stats, table row counts, per-table clear. Export as JSON, import with FK-aware merge.</p></div>
+            <div class="feature-card reveal reveal-delay-2" style="--card-glow:rgba(248,113,113,.06)"><div class="feature-icon red">&#128451;</div><h3>Database Management</h3><p>Full backup/restore across mapped tables including organization mappings, connection stats, table row counts, and per-table clear controls.</p></div>
             <div class="feature-card reveal" style="--card-glow:rgba(167,139,250,.06)"><div class="feature-icon purple">&#127891;</div><h3>Model Management</h3><p>Pull, switch, and delete Ollama models from the admin UI. Configure temperature, max tokens, context window, GPU layers per model.</p></div>
             <div class="feature-card reveal reveal-delay-1" style="--card-glow:rgba(34,211,238,.06)"><div class="feature-icon cyan">&#128197;</div><h3>Scheduled Tasks</h3><p>Background job scheduler with cron expressions &mdash; automated reports, data cleanup, periodic notifications. Full execution history and error logs.</p></div>
             <div class="feature-card reveal reveal-delay-2" style="--card-glow:rgba(244,114,182,.06)"><div class="feature-icon pink">&#128276;</div><h3>Notifications &amp; Announcements</h3><p>In-app notification center and organization-wide announcements. Push alerts from scheduled tasks, admin broadcasts, and system events.</p></div>
@@ -332,8 +343,34 @@
         <div class="stats-bar">
             <div class="stat-item reveal"><div class="stat-number">40+</div><div class="stat-label">Features</div></div>
             <div class="stat-item reveal reveal-delay-1"><div class="stat-number">119</div><div class="stat-label">API Endpoints</div></div>
-            <div class="stat-item reveal reveal-delay-2"><div class="stat-number">24</div><div class="stat-label">Database Tables</div></div>
-            <div class="stat-item reveal reveal-delay-3"><div class="stat-number">13</div><div class="stat-label">Admin Tabs</div></div>
+            <div class="stat-item reveal reveal-delay-2"><div class="stat-number">29</div><div class="stat-label">Database Tables</div></div>
+            <div class="stat-item reveal reveal-delay-3"><div class="stat-number">13+</div><div class="stat-label">Admin Tabs</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- RELEASE UPDATES -->
+<section id="updates">
+    <div class="container centered">
+        <div class="section-label reveal">Latest Updates</div>
+        <h2 class="section-title reveal">Recent Stability &amp; Operations Improvements</h2>
+        <p class="section-subtitle reveal">Platform behavior and admin workflows were tightened for safer operations and better runtime transparency.</p>
+        <div class="release-grid">
+            <div class="release-card reveal">
+                <span class="release-badge backend">Backend</span>
+                <h3>Scheduler Errors Are Explicit</h3>
+                <p>Task create/update/delete now surfaces scheduler sync failures instead of silently passing, reducing hidden runtime drift.</p>
+            </div>
+            <div class="release-card reveal reveal-delay-1">
+                <span class="release-badge frontend">Frontend</span>
+                <h3>Feature-Aware Admin Tabs</h3>
+                <p>AI and automation tabs now respect backend feature flags so disabled modules do not appear as broken UI sections.</p>
+            </div>
+            <div class="release-card reveal reveal-delay-2">
+                <span class="release-badge data">Data</span>
+                <h3>Continuous Data Retention</h3>
+                <p>Retention enforcement now runs periodically in the background, not only at startup, for consistent data lifecycle handling.</p>
+            </div>
         </div>
     </div>
 </section>
@@ -372,7 +409,7 @@
                 <div class="arch-layer"><div class="arch-layer-icon api">&#9881;&#65039;</div><span class="arch-layer-label">API Layer</span><span class="arch-layer-desc">FastAPI 0.135 &bull; 119 REST Endpoints &bull; Async &bull; Rate Limiting</span><span class="arch-layer-tag tag-internal">Internal</span></div>
                 <div class="arch-firewall">&#128293; Corporate Firewall &mdash; No Outbound Connections</div>
                 <div class="arch-layer"><div class="arch-layer-icon ai">&#129302;</div><span class="arch-layer-label">AI Engine</span><span class="arch-layer-desc">Ollama &bull; Llama 3.2, Gemma 3 &bull; GPU / CPU inference</span><span class="arch-layer-tag tag-internal">Internal</span></div>
-                <div class="arch-layer"><div class="arch-layer-icon db">&#128451;</div><span class="arch-layer-label">Database</span><span class="arch-layer-desc">PostgreSQL &bull; 24 Tables &bull; 9 Migrations &bull; Full Backup</span><span class="arch-layer-tag tag-internal">Internal</span></div>
+                <div class="arch-layer"><div class="arch-layer-icon db">&#128451;</div><span class="arch-layer-label">Database</span><span class="arch-layer-desc">PostgreSQL &bull; 29 Tables &bull; Migrations &bull; Full Backup/Restore</span><span class="arch-layer-tag tag-internal">Internal</span></div>
             </div>
         </div>
     </div>
@@ -499,10 +536,31 @@
     const nav=document.getElementById('navbar');
     window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>40)});
     const hamburger=document.getElementById('hamburger'),navLinks=document.getElementById('navLinks');
-    hamburger.addEventListener('click',()=>{navLinks.classList.toggle('open')});
+    hamburger.addEventListener('click',()=>{
+        navLinks.classList.toggle('open');
+        hamburger.setAttribute('aria-expanded',navLinks.classList.contains('open')?'true':'false');
+    });
     navLinks.querySelectorAll('a').forEach(l=>{l.addEventListener('click',()=>navLinks.classList.remove('open'))});
     document.querySelectorAll('.tab-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('tab-'+b.dataset.tab).classList.add('active')})});
-    document.querySelectorAll('.copy-btn').forEach(b=>{b.addEventListener('click',()=>{const t=document.getElementById(b.dataset.target);if(t){navigator.clipboard.writeText(t.textContent).then(()=>{b.textContent='Copied!';setTimeout(()=>{b.textContent='Copy'},2000)})}})});
+    document.querySelectorAll('.copy-btn').forEach(b=>{b.addEventListener('click',()=>{
+        const t=document.getElementById(b.dataset.target);
+        if(!t) return;
+        const text=t.textContent||'';
+        const done=()=>{b.textContent='Copied!';setTimeout(()=>{b.textContent='Copy'},2000)};
+        if(navigator.clipboard&&window.isSecureContext){
+            navigator.clipboard.writeText(text).then(done);
+            return;
+        }
+        const ta=document.createElement('textarea');
+        ta.value=text;
+        ta.style.position='fixed';
+        ta.style.opacity='0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try{document.execCommand('copy');done();}catch(_e){}
+        document.body.removeChild(ta);
+    })});
     const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
     document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
     function openLightbox(el){const img=el.querySelector('img');if(img){document.getElementById('lightbox-img').src=img.src;document.getElementById('lightbox-img').alt=img.alt;document.getElementById('lightbox').classList.add('active');document.body.style.overflow='hidden'}}
