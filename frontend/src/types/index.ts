@@ -31,6 +31,12 @@ export interface Conversation {
   last_message_preview: string | null;
 }
 
+export interface MessageAttachment {
+  name: string;
+  type: "document" | "image";
+  url?: string;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -39,7 +45,8 @@ export interface Message {
   model: string | null;
   token_count: number | null;
   created_at: string;
-  imageUrls?: { name: string; url: string }[];
+  displayContent?: string;
+  attachments?: MessageAttachment[];
 }
 
 export interface ChatRequest {

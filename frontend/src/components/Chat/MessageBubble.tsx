@@ -1,5 +1,5 @@
 import type { Message } from "@/types";
-import { Bot, Copy, Check, Pencil, Send, ThumbsUp, ThumbsDown, Bookmark, RefreshCw } from "lucide-react";
+import { Bot, Copy, Check, Pencil, Send, ThumbsUp, ThumbsDown, Bookmark, RefreshCw, FileText } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -149,16 +149,23 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
                 </div>
               </div>
             ) : (
-              message.imageUrls && message.imageUrls.length > 0 ? (
-                <div className="whitespace-pre-wrap break-words">
-                  {message.imageUrls.map((img, idx) => (
-                    <img key={idx} src={img.url} alt={img.name} className="max-w-xs max-h-64 rounded-lg mt-1 mb-1 border border-white/20" />
-                  ))}
-                  <p className="whitespace-pre-wrap break-words mt-1">{message.content}</p>
-                </div>
-              ) : (
-                <p className="whitespace-pre-wrap break-words">{message.content}</p>
-              )
+              <div className="whitespace-pre-wrap break-words">
+                {message.attachments && message.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {message.attachments.map((att, idx) =>
+                      att.type === "image" && att.url ? (
+                        <img key={idx} src={att.url} alt={att.name} className="max-w-xs max-h-64 rounded-lg border border-white/20" />
+                      ) : (
+                        <div key={idx} className="flex items-center gap-1.5 bg-white/10 rounded-lg px-2.5 py-1.5 text-xs">
+                          <FileText size={14} className="shrink-0 opacity-70" />
+                          <span className="truncate max-w-[200px]">{att.name}</span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+                <p>{message.displayContent || message.content}</p>
+              </div>
             )
           ) : (
             <div className="markdown-content prose-sm max-w-none">

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Conversation, Message, StreamChunk, ModelsResponse } from "@/types";
+import type { Conversation, Message, MessageAttachment, StreamChunk, ModelsResponse } from "@/types";
 import { get, post, patch, del, postStream } from "@/api/client";
 import { useAgentStore } from "@/store/agentStore";
 
@@ -28,7 +28,7 @@ interface ChatState {
   pinConversation: (id: string, pinned: boolean) => Promise<void>;
   archiveConversation: (id: string) => Promise<void>;
   sendMessage: (content: string, model?: string) => Promise<void>;
-  sendMessageStream: (content: string, model?: string, imageUrls?: { name: string; url: string }[]) => Promise<void>;
+  sendMessageStream: (content: string, model?: string, options?: { displayContent?: string; attachments?: MessageAttachment[] }) => Promise<void>;
   editAndResend: (messageId: string, newContent: string) => Promise<void>;
   stopStreaming: () => void;
   clearChat: () => void;
@@ -195,7 +195,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
     set({ _abortController: null, isStreaming: false, streamingContent: "" });
   },
 
-  sendMessageStream: async (content: string, model?: string, imageUrls?: { name: string; url: string }[]) => {
+  sendMessageStream: async (content: string, model?: string, options?: { displayContent?: string; attachments?: MessageAttachment[] }) => {
     const state = getState();
     if (state.isStreaming) return; // F11: prevent race condition
     const abortController = new AbortController();
@@ -210,7 +210,8 @@ export const useChatStore = create<ChatState>((set, getState) => ({
       model: null,
       token_count: null,
       created_at: new Date().toISOString(),
-      imageUrls,
+      displayContent: options?.attachments ? options.displayContent : undefined,
+      attachments: options?.attachments,
     };
     set((s) => ({ messages: [...s.messages, tempUserMsg] }));
 
