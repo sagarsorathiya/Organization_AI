@@ -252,7 +252,7 @@ async def export_conversation(
     if fmt == "pdf":
         from fastapi.responses import Response
         return Response(
-            content=content,
+            content=bytes(content),
             media_type="application/pdf",
             headers={"Content-Disposition": "attachment; filename=chat-export.pdf"},
         )
