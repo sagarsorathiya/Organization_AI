@@ -59,6 +59,7 @@ import { TasksAdmin } from "@/components/Admin/TasksAdmin";
 import { SkillsPanel } from "@/components/Skills/SkillsPanel";
 import { AdminHelpButton } from "@/components/Admin/AdminHelpButton";
 import { OrganizationAdmin } from "@/components/Admin/OrganizationAdmin";
+import { useOrgStore } from "@/store/orgStore";
 
 type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks" | "organization";
 
@@ -95,6 +96,14 @@ const POPULAR_MODELS = [
 const POPULAR_MODEL_NAMES = POPULAR_MODELS.map((m) => m.name);
 
 export function AdminPage() {
+  const {
+    companies,
+    departments,
+    designations,
+    fetchCompanies,
+    fetchDepartments,
+    fetchDesignations,
+  } = useOrgStore();
   const [tab, setTab] = useState<Tab>("overview");
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [metrics, setMetrics] = useState<UsageMetrics | null>(null);
@@ -119,13 +128,23 @@ export function AdminPage() {
     display_name: "",
     email: "",
     department: "",
+    company_id: "",
+    department_id: "",
+    designation_id: "",
     is_admin: false,
   });
   const [creatingUser, setCreatingUser] = useState(false);
 
   // Edit user
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editUserData, setEditUserData] = useState({ display_name: "", email: "", department: "" });
+  const [editUserData, setEditUserData] = useState({
+    display_name: "",
+    email: "",
+    department: "",
+    company_id: "",
+    department_id: "",
+    designation_id: "",
+  });
   const [savingUser, setSavingUser] = useState(false);
 
   // Database
@@ -189,10 +208,23 @@ export function AdminPage() {
         display_name: newUser.display_name,
         email: newUser.email || undefined,
         department: newUser.department || undefined,
+        company_id: newUser.company_id || null,
+        department_id: newUser.department_id || null,
+        designation_id: newUser.designation_id || null,
         is_admin: newUser.is_admin,
       });
       toast.success(`User "${newUser.username}" created`);
-      setNewUser({ username: "", password: "", display_name: "", email: "", department: "", is_admin: false });
+      setNewUser({
+        username: "",
+        password: "",
+        display_name: "",
+        email: "",
+        department: "",
+        company_id: "",
+        department_id: "",
+        designation_id: "",
+        is_admin: false,
+      });
       setShowCreateUser(false);
       fetchUsers();
     } catch {
@@ -649,7 +681,14 @@ export function AdminPage() {
 
   const startEditUser = (u: AdminUser) => {
     setEditingUserId(u.id);
-    setEditUserData({ display_name: u.display_name, email: u.email || "", department: u.department || "" });
+    setEditUserData({
+      display_name: u.display_name,
+      email: u.email || "",
+      department: u.department || "",
+      company_id: u.company_id || "",
+      department_id: u.department_id || "",
+      designation_id: u.designation_id || "",
+    });
   };
 
   const cancelEditUser = () => {
@@ -667,6 +706,9 @@ export function AdminPage() {
         display_name: editUserData.display_name.trim(),
         email: editUserData.email.trim() || null,
         department: editUserData.department.trim() || null,
+        company_id: editUserData.company_id || null,
+        department_id: editUserData.department_id || null,
+        designation_id: editUserData.designation_id || null,
       });
       setEditingUserId(null);
       toast.success("User updated");
@@ -690,11 +732,26 @@ export function AdminPage() {
     if (tab === "models") fetchModels();
     if (tab === "settings") fetchSettings();
     if (tab === "users") fetchUsers();
+    if (tab === "users") {
+      fetchCompanies(true);
+      fetchDepartments(undefined, true);
+      fetchDesignations(undefined, true);
+    }
     if (tab === "database") fetchDbInfo();
     if (tab === "announcements") fetchAnnouncements();
     if (tab === "templates") fetchTemplates();
     if (tab === "feedback") fetchFeedbackStats();
-  }, [tab]);
+  }, [tab, fetchCompanies, fetchDepartments, fetchDesignations]);
+
+  const availableDepartmentsForCompany = (companyId: string) => {
+    if (!companyId) return departments;
+    return departments.filter((department) => department.company_ids.includes(companyId));
+  };
+
+  const availableDesignationsForDepartment = (departmentId: string) => {
+    if (!departmentId) return designations;
+    return designations.filter((designation) => designation.department_ids.includes(departmentId));
+  };
 
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
@@ -1457,6 +1514,51 @@ export function AdminPage() {
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                     className="text-sm px-3 py-2 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100"
                   />
+                  <select
+                    value={newUser.company_id}
+                    onChange={(e) => setNewUser({
+                      ...newUser,
+                      company_id: e.target.value,
+                      department_id: "",
+                      designation_id: "",
+                    })}
+                    className="text-sm px-3 py-2 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100"
+                  >
+                    <option value="">Company (optional)</option>
+                    {companies.filter((company) => company.is_active).map((company) => (
+                      <option key={company.id} value={company.id}>{company.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={newUser.department_id}
+                    onChange={(e) => setNewUser({
+                      ...newUser,
+                      department_id: e.target.value,
+                      designation_id: "",
+                    })}
+                    className="text-sm px-3 py-2 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100"
+                    disabled={!newUser.company_id}
+                  >
+                    <option value="">Department (optional)</option>
+                    {availableDepartmentsForCompany(newUser.company_id)
+                      .filter((department) => department.is_active)
+                      .map((department) => (
+                        <option key={department.id} value={department.id}>{department.name}</option>
+                      ))}
+                  </select>
+                  <select
+                    value={newUser.designation_id}
+                    onChange={(e) => setNewUser({ ...newUser, designation_id: e.target.value })}
+                    className="text-sm px-3 py-2 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100"
+                    disabled={!newUser.department_id}
+                  >
+                    <option value="">Designation (optional)</option>
+                    {availableDesignationsForDepartment(newUser.department_id)
+                      .filter((designation) => designation.is_active)
+                      .map((designation) => (
+                        <option key={designation.id} value={designation.id}>{designation.name}</option>
+                      ))}
+                  </select>
                   <input
                     type="text"
                     placeholder="Department (optional)"
@@ -1518,7 +1620,7 @@ export function AdminPage() {
                   <tr className="border-b bg-surface-50 dark:bg-surface-850">
                     <th className="text-left px-4 py-2 font-medium">User</th>
                     <th className="text-left px-4 py-2 font-medium">Email</th>
-                    <th className="text-left px-4 py-2 font-medium">Department</th>
+                    <th className="text-left px-4 py-2 font-medium">Organization</th>
                     <th className="text-left px-4 py-2 font-medium">Role</th>
                     <th className="text-left px-4 py-2 font-medium">Status</th>
                     <th className="text-left px-4 py-2 font-medium">Last Login</th>
@@ -1569,15 +1671,66 @@ export function AdminPage() {
                       </td>
                       <td className="px-4 py-2">
                         {isEditing ? (
-                          <input
-                            type="text"
-                            value={editUserData.department}
-                            onChange={(e) => setEditUserData({ ...editUserData, department: e.target.value })}
-                            className="text-sm px-2 py-1 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100 w-full"
-                            placeholder="Department"
-                          />
+                          <div className="space-y-2 min-w-48">
+                            <select
+                              value={editUserData.company_id}
+                              onChange={(e) => setEditUserData({
+                                ...editUserData,
+                                company_id: e.target.value,
+                                department_id: "",
+                                designation_id: "",
+                              })}
+                              className="text-sm px-2 py-1 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100 w-full"
+                            >
+                              <option value="">Company</option>
+                              {companies.filter((company) => company.is_active).map((company) => (
+                                <option key={company.id} value={company.id}>{company.name}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={editUserData.department_id}
+                              onChange={(e) => setEditUserData({
+                                ...editUserData,
+                                department_id: e.target.value,
+                                designation_id: "",
+                              })}
+                              className="text-sm px-2 py-1 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100 w-full"
+                              disabled={!editUserData.company_id}
+                            >
+                              <option value="">Department</option>
+                              {availableDepartmentsForCompany(editUserData.company_id)
+                                .filter((department) => department.is_active)
+                                .map((department) => (
+                                  <option key={department.id} value={department.id}>{department.name}</option>
+                                ))}
+                            </select>
+                            <select
+                              value={editUserData.designation_id}
+                              onChange={(e) => setEditUserData({ ...editUserData, designation_id: e.target.value })}
+                              className="text-sm px-2 py-1 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100 w-full"
+                              disabled={!editUserData.department_id}
+                            >
+                              <option value="">Designation</option>
+                              {availableDesignationsForDepartment(editUserData.department_id)
+                                .filter((designation) => designation.is_active)
+                                .map((designation) => (
+                                  <option key={designation.id} value={designation.id}>{designation.name}</option>
+                                ))}
+                            </select>
+                            <input
+                              type="text"
+                              value={editUserData.department}
+                              onChange={(e) => setEditUserData({ ...editUserData, department: e.target.value })}
+                              className="text-sm px-2 py-1 rounded border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-100 w-full"
+                              placeholder="Department label"
+                            />
+                          </div>
                         ) : (
-                          <span className="text-surface-600 dark:text-surface-400">{u.department || "—"}</span>
+                          <div className="space-y-0.5">
+                            <div className="text-surface-700 dark:text-surface-300">{u.company_name || "—"}</div>
+                            <div className="text-xs text-surface-500 dark:text-surface-400">{u.department_name || u.department || "No department"}</div>
+                            <div className="text-xs text-surface-400">{u.designation_name || "No designation"}</div>
+                          </div>
                         )}
                       </td>
                       <td className="px-4 py-2">

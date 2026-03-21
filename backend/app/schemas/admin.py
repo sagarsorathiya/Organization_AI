@@ -181,6 +181,9 @@ class UserUpdateRequest(BaseModel):
     is_admin: bool | None = None
     is_active: bool | None = None
     password: str | None = Field(None, min_length=8, max_length=128)
+    company_id: str | None = None
+    department_id: str | None = None
+    designation_id: str | None = None
 
 
 class CreateUserRequest(BaseModel):
@@ -191,3 +194,6 @@ class CreateUserRequest(BaseModel):
     email: str | None = Field(None, max_length=256)
     department: str | None = Field(None, max_length=256)
     is_admin: bool = False
+    company_id: str | None = None
+    department_id: str | None = None
+    designation_id: str | None = None

@@ -58,6 +58,28 @@ from app.config import settings as app_settings
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
+
+def _user_response(u: User) -> UserResponse:
+    """Build a UserResponse with resolved org names."""
+    return UserResponse(
+        id=str(u.id),
+        username=u.username,
+        display_name=u.display_name,
+        email=u.email,
+        department=u.department,
+        is_admin=u.is_admin,
+        is_active=u.is_active,
+        is_local_account=u.is_local_account,
+        last_login=u.last_login,
+        created_at=u.created_at,
+        company_id=str(u.company_id) if u.company_id else None,
+        company_name=u.company.name if u.company_id and u.company else None,
+        department_id=str(u.department_id) if u.department_id else None,
+        department_name=u.department_obj.name if u.department_id and u.department_obj else None,
+        designation_id=str(u.designation_id) if u.designation_id else None,
+        designation_name=u.designation_obj.name if u.designation_id and u.designation_obj else None,
+    )
+
 # Track app start time
 _app_start_time = time.time()
 
@@ -308,7 +330,16 @@ async def update_user(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid user ID")
 
-    result = await db.execute(select(User).where(User.id == uid))
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(User)
+        .where(User.id == uid)
+        .options(
+            selectinload(User.company),
+            selectinload(User.department_obj),
+            selectinload(User.designation_obj),
+        )
+    )
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -333,22 +364,28 @@ async def update_user(
         from app.services.auth_service import _hash_password
         user.password_hash = _hash_password(body.password)
         changed = True
+    if body.company_id is not None:
+        new_cid = _uuid.UUID(body.company_id) if body.company_id else None
+        if user.company_id != new_cid:
+            user.company_id = new_cid
+            changed = True
+    if body.department_id is not None:
+        new_did = _uuid.UUID(body.department_id) if body.department_id else None
+        if user.department_id != new_did:
+            user.department_id = new_did
+            changed = True
+    if body.designation_id is not None:
+        new_desid = _uuid.UUID(body.designation_id) if body.designation_id else None
+        if user.designation_id != new_desid:
+            user.designation_id = new_desid
+            changed = True
 
     if changed:
         await db.flush()
+        # Re-load relationships after flush
+        await db.refresh(user, attribute_names=["company", "department_obj", "designation_obj"])
 
-    return UserResponse(
-        id=str(user.id),
-        username=user.username,
-        display_name=user.display_name,
-        email=user.email,
-        department=user.department,
-        is_admin=user.is_admin,
-        is_active=user.is_active,
-        is_local_account=user.is_local_account,
-        last_login=user.last_login,
-        created_at=user.created_at,
-    )
+    return _user_response(user)
 
 
 @router.get("/health", response_model=SystemHealthResponse)
@@ -415,21 +452,7 @@ async def list_users(
     """List all users (admin only)."""
     users, total = await user_service.list_users(db, offset, limit)
     return UserListResponse(
-        users=[
-            UserResponse(
-                id=str(u.id),
-                username=u.username,
-                display_name=u.display_name,
-                email=u.email,
-                department=u.department,
-                is_admin=u.is_admin,
-                is_active=u.is_active,
-                is_local_account=u.is_local_account,
-                last_login=u.last_login,
-                created_at=u.created_at,
-            )
-            for u in users
-        ],
+        users=[_user_response(u) for u in users],
         total=total,
     )
 
@@ -569,21 +592,26 @@ async def create_user(
             email=body.email,
             department=body.department,
             is_admin=body.is_admin,
+            company_id=body.company_id,
+            department_id=body.department_id,
+            designation_id=body.designation_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    return UserResponse(
-        id=str(user.id),
-        username=user.username,
-        display_name=user.display_name,
-        email=user.email,
-        department=user.department,
-        is_admin=user.is_admin,
-        is_active=user.is_active,
-        is_local_account=user.is_local_account,
-        last_login=user.last_login,
-        created_at=user.created_at,
+
+    # Eagerly load org relationships for the response
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(User)
+        .where(User.id == user.id)
+        .options(
+            selectinload(User.company),
+            selectinload(User.department_obj),
+            selectinload(User.designation_obj),
+        )
     )
+    user = result.scalar_one()
+    return _user_response(user)
 
 
 # ============================================================

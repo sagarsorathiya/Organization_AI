@@ -15,6 +15,12 @@ class UserResponse(BaseModel):
     is_local_account: bool = False
     last_login: datetime | None = None
     created_at: datetime
+    company_id: str | None = None
+    company_name: str | None = None
+    department_id: str | None = None
+    department_name: str | None = None
+    designation_id: str | None = None
+    designation_name: str | None = None
 
     model_config = {"from_attributes": True}
 

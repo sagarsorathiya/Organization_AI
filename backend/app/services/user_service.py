@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt as _bcrypt
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -52,6 +53,9 @@ class UserService:
         email: str | None = None,
         department: str | None = None,
         is_admin: bool = False,
+        company_id: str | None = None,
+        department_id: str | None = None,
+        designation_id: str | None = None,
     ) -> User:
         """Create a new local user account (admin function)."""
         # Check uniqueness
@@ -71,6 +75,9 @@ class UserService:
             is_admin=is_admin,
             is_local_account=True,
             password_hash=password_hash,
+            company_id=uuid.UUID(company_id) if company_id else None,
+            department_id=uuid.UUID(department_id) if department_id else None,
+            designation_id=uuid.UUID(designation_id) if designation_id else None,
         )
         db.add(user)
         await db.flush()
@@ -84,7 +91,17 @@ class UserService:
         count_q = select(func.count()).select_from(User)
         total = (await db.execute(count_q)).scalar() or 0
 
-        q = select(User).order_by(User.created_at.desc()).offset(offset).limit(limit)
+        q = (
+            select(User)
+            .options(
+                selectinload(User.company),
+                selectinload(User.department_obj),
+                selectinload(User.designation_obj),
+            )
+            .order_by(User.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
         result = await db.execute(q)
         users = list(result.scalars().all())
         return users, total

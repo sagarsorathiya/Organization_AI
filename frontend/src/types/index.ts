@@ -180,6 +180,12 @@ export interface AdminUser {
   is_local_account: boolean;
   last_login: string | null;
   created_at: string;
+  company_id: string | null;
+  company_name: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  designation_id: string | null;
+  designation_name: string | null;
 }
 
 export interface AdminSettings {
