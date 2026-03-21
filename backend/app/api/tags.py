@@ -107,8 +107,11 @@ async def link_tag(
     db: AsyncSession = Depends(get_db),
 ):
     """Link a tag to a conversation."""
-    conv_uuid = uuid.UUID(conversation_id)
-    tag_uuid = uuid.UUID(tag_id)
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+        tag_uuid = uuid.UUID(tag_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conversation_id or tag_id format")
 
     # Verify ownership
     conv = await db.execute(
@@ -145,8 +148,11 @@ async def unlink_tag(
     db: AsyncSession = Depends(get_db),
 ):
     """Remove a tag from a conversation."""
-    conv_uuid = uuid.UUID(conversation_id)
-    tag_uuid = uuid.UUID(tag_id)
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+        tag_uuid = uuid.UUID(tag_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conversation_id or tag_id format")
     await db.execute(
         delete(ConversationTagLink).where(
             ConversationTagLink.conversation_id == conv_uuid,

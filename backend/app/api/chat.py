@@ -64,9 +64,15 @@ async def send_message(
     db: AsyncSession = Depends(get_db),
 ):
     """Send a message and get a non-streaming LLM response."""
-    conv_id = uuid.UUID(body.conversation_id) if body.conversation_id else None
+    try:
+        conv_id = uuid.UUID(body.conversation_id) if body.conversation_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conversation_id format")
 
-    agent_id = uuid.UUID(body.agent_id) if body.agent_id else None
+    try:
+        agent_id = uuid.UUID(body.agent_id) if body.agent_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid agent_id format")
 
     try:
         user_msg, assistant_msg, conv = await chat_service.send_message(
@@ -115,8 +121,15 @@ async def send_message_stream(
     db: AsyncSession = Depends(get_db),
 ):
     """Send a message and stream the LLM response (SSE-like NDJSON)."""
-    conv_id = uuid.UUID(body.conversation_id) if body.conversation_id else None
-    agent_id = uuid.UUID(body.agent_id) if body.agent_id else None
+    try:
+        conv_id = uuid.UUID(body.conversation_id) if body.conversation_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conversation_id format")
+
+    try:
+        agent_id = uuid.UUID(body.agent_id) if body.agent_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid agent_id format")
 
     await audit_service.log(
         db,
@@ -533,7 +546,10 @@ async def regenerate_response(
     if not body.conversation_id:
         raise HTTPException(status_code=400, detail="conversation_id is required for regeneration")
 
-    conv_id = uuid.UUID(body.conversation_id)
+    try:
+        conv_id = uuid.UUID(body.conversation_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conversation_id format")
 
     await audit_service.log(
         db,

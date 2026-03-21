@@ -60,7 +60,13 @@ async def get_current_user_id(
     token: TokenPayload = Depends(get_current_user_token),
 ) -> uuid.UUID:
     """Return the current user's UUID."""
-    return uuid.UUID(token.sub)
+    try:
+        return uuid.UUID(token.sub)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token subject",
+        )
 
 
 async def require_admin(

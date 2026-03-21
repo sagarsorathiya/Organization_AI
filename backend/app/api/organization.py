@@ -153,7 +153,10 @@ async def list_active_departments(
     db: AsyncSession = Depends(get_db),
 ):
     """List active departments, optionally filtered by company."""
-    cid = uuid.UUID(company_id) if company_id else None
+    try:
+        cid = uuid.UUID(company_id) if company_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid company_id format")
     departments = await org_service.list_departments(db, active_only=True, company_id=cid)
     return {"departments": [_serialize_department(d) for d in departments]}
 
@@ -165,7 +168,10 @@ async def list_active_designations(
     db: AsyncSession = Depends(get_db),
 ):
     """List active designations, optionally filtered by department."""
-    did = uuid.UUID(department_id) if department_id else None
+    try:
+        did = uuid.UUID(department_id) if department_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid department_id format")
     designations = await org_service.list_designations(db, active_only=True, department_id=did)
     return {"designations": [_serialize_designation(d) for d in designations]}
 
@@ -181,9 +187,12 @@ async def setup_profile(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.company_id = uuid.UUID(body.company_id)
-    user.department_id = uuid.UUID(body.department_id)
-    user.designation_id = uuid.UUID(body.designation_id)
+    try:
+        user.company_id = uuid.UUID(body.company_id)
+        user.department_id = uuid.UUID(body.department_id)
+        user.designation_id = uuid.UUID(body.designation_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid company/department/designation ID format")
     user.needs_profile_setup = False
     await db.flush()
 
@@ -201,9 +210,12 @@ async def update_profile_org(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.company_id = uuid.UUID(body.company_id)
-    user.department_id = uuid.UUID(body.department_id)
-    user.designation_id = uuid.UUID(body.designation_id)
+    try:
+        user.company_id = uuid.UUID(body.company_id)
+        user.department_id = uuid.UUID(body.department_id)
+        user.designation_id = uuid.UUID(body.designation_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid company/department/designation ID format")
     await db.flush()
 
     return {"status": "ok", "message": "Organization profile updated"}
@@ -259,7 +271,10 @@ async def admin_set_company_departments(
     body: MappingUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    dept_ids = [uuid.UUID(i) for i in body.ids]
+    try:
+        dept_ids = [uuid.UUID(i) for i in body.ids]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid department ID format")
     company = await org_service.set_company_departments(company_id, dept_ids, db)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -273,7 +288,10 @@ async def admin_list_departments(
     company_id: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    cid = uuid.UUID(company_id) if company_id else None
+    try:
+        cid = uuid.UUID(company_id) if company_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid company_id format")
     departments = await org_service.list_departments(db, company_id=cid)
     return {"departments": [_serialize_department(d) for d in departments]}
 
@@ -322,7 +340,10 @@ async def admin_set_department_designations(
     body: MappingUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    desig_ids = [uuid.UUID(i) for i in body.ids]
+    try:
+        desig_ids = [uuid.UUID(i) for i in body.ids]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid designation ID format")
     dept = await org_service.set_department_designations(dept_id, desig_ids, db)
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
@@ -336,7 +357,10 @@ async def admin_list_designations(
     department_id: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    did = uuid.UUID(department_id) if department_id else None
+    try:
+        did = uuid.UUID(department_id) if department_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid department_id format")
     designations = await org_service.list_designations(db, department_id=did)
     return {"designations": [_serialize_designation(d) for d in designations]}
 

@@ -93,7 +93,10 @@ async def list_skills(
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    aid = uuid.UUID(agent_id) if agent_id else None
+    try:
+        aid = uuid.UUID(agent_id) if agent_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid agent_id format")
     skills = await skill_service.list_skills(db, agent_id=aid)
     return {"skills": [_serialize_skill(s) for s in skills]}
 
@@ -105,7 +108,10 @@ async def list_executions(
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    sid = uuid.UUID(skill_id) if skill_id else None
+    try:
+        sid = uuid.UUID(skill_id) if skill_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid skill_id format")
     executions = await skill_service.get_executions(user_id, db, skill_id=sid, limit=limit)
     return {"executions": [_serialize_execution(e) for e in executions]}
 
@@ -149,7 +155,10 @@ async def create_skill(
 ):
     data = body.model_dump(exclude_none=True)
     if body.agent_id:
-        data["agent_id"] = uuid.UUID(body.agent_id)
+        try:
+            data["agent_id"] = uuid.UUID(body.agent_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid agent_id format")
     else:
         data.pop("agent_id", None)
     data["created_by"] = user_id

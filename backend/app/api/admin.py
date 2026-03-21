@@ -377,17 +377,26 @@ async def update_user(
         user.password_hash = _hash_password(body.password)
         changed = True
     if body.company_id is not None:
-        new_cid = _uuid.UUID(body.company_id) if body.company_id else None
+        try:
+            new_cid = _uuid.UUID(body.company_id) if body.company_id else None
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid company ID")
         if user.company_id != new_cid:
             user.company_id = new_cid
             changed = True
     if body.department_id is not None:
-        new_did = _uuid.UUID(body.department_id) if body.department_id else None
+        try:
+            new_did = _uuid.UUID(body.department_id) if body.department_id else None
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid department ID")
         if user.department_id != new_did:
             user.department_id = new_did
             changed = True
     if body.designation_id is not None:
-        new_desid = _uuid.UUID(body.designation_id) if body.designation_id else None
+        try:
+            new_desid = _uuid.UUID(body.designation_id) if body.designation_id else None
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid designation ID")
         if user.designation_id != new_desid:
             user.designation_id = new_desid
             changed = True

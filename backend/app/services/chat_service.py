@@ -459,13 +459,13 @@ class ChatService:
                 department = user_result.scalar_one_or_none()
 
                 memories = await memory_service.get_relevant_memories(
-                    user_id=user_id, department=department, limit=10, db=db
+                    user_id=user_id, user_department=department, limit=10, db=db
                 )
                 if memories:
                     memory_lines = [f"- {m.key}: {m.content}" for m in memories]
                     memory_context = "\n\n[Remembered Context]\n" + "\n".join(memory_lines)
-            except Exception:
-                logger.warning("Failed to load memories for user %s", user_id)
+            except Exception as e:
+                logger.warning("Failed to load memories for user %s: %s", user_id, e)
 
         # V2: Inject RAG context if agent has a knowledge base
         rag_context = ""
@@ -490,7 +490,7 @@ class ChatService:
             except Exception:
                 logger.warning("Failed to load RAG context for agent %s", agent_id)
 
-        # Fetch recent messages
+        # Fetch recent messages (newest first)
         q = (
             select(Message)
             .where(Message.conversation_id == conversation_id)
@@ -498,7 +498,7 @@ class ChatService:
             .limit(MAX_CONTEXT_MESSAGES)
         )
         result = await db.execute(q)
-        messages = list(reversed(result.scalars().all()))
+        messages_desc = result.scalars().all()
 
         history = []
         if system_prompt:
@@ -512,13 +512,33 @@ class ChatService:
             # No system prompt but we have memory/RAG context
             history.append({"role": "system", "content": (memory_context + rag_context).strip()})
 
-        # P5: Truncate history to MAX_CONTEXT_CHARS to prevent unbounded token usage
+        # P5: Truncate history to MAX_CONTEXT_CHARS while always keeping the newest message.
+        # This avoids dropping the user's latest instruction when attachments are large.
+        selected_desc: list[dict] = []
         total_chars = 0
-        for m in messages:
-            total_chars += len(m.content)
-            if total_chars > MAX_CONTEXT_CHARS:
+        for m in messages_desc:
+            content = m.content or ""
+            remaining = MAX_CONTEXT_CHARS - total_chars
+            if remaining <= 0:
                 break
-            history.append({"role": m.role, "content": m.content})
+
+            if len(content) <= remaining:
+                selected_desc.append({"role": m.role, "content": content})
+                total_chars += len(content)
+                continue
+
+            # Message does not fit fully: keep the tail of the newest message so the
+            # most recent user intent (typically at the end) is still available.
+            if not selected_desc:
+                kept_tail = content[-remaining:] if remaining > 0 else ""
+                if kept_tail:
+                    selected_desc.append({
+                        "role": m.role,
+                        "content": "[Earlier content truncated due to context limit]\n" + kept_tail,
+                    })
+            break
+
+        history.extend(reversed(selected_desc))
         return history
 
 

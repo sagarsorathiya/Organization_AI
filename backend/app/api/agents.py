@@ -143,7 +143,10 @@ async def create_agent(
 ):
     data = body.model_dump(exclude_none=True)
     if body.knowledge_base_id:
-        data["knowledge_base_id"] = uuid.UUID(body.knowledge_base_id)
+        try:
+            data["knowledge_base_id"] = uuid.UUID(body.knowledge_base_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid knowledge_base_id format")
     else:
         data.pop("knowledge_base_id", None)
     data["created_by"] = user_id
@@ -159,7 +162,10 @@ async def update_agent(
 ):
     data = body.model_dump(exclude_none=True)
     if "knowledge_base_id" in data and data["knowledge_base_id"]:
-        data["knowledge_base_id"] = uuid.UUID(data["knowledge_base_id"])
+        try:
+            data["knowledge_base_id"] = uuid.UUID(data["knowledge_base_id"])
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid knowledge_base_id format")
     agent = await agent_service.update_agent(agent_id, data, db)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")

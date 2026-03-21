@@ -164,7 +164,12 @@ async def get_current_user(
     from app.services.user_service import user_service
     import uuid
 
-    user = await user_service.get_user_by_id(uuid.UUID(token.sub), db)
+    try:
+        user_uuid = uuid.UUID(token.sub)
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid token subject")
+
+    user = await user_service.get_user_by_id(user_uuid, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 

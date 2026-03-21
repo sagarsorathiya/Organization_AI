@@ -156,7 +156,10 @@ async def create_task(
 ):
     data = body.model_dump(exclude_none=True)
     if body.agent_id:
-        data["agent_id"] = uuid.UUID(body.agent_id)
+        try:
+            data["agent_id"] = uuid.UUID(body.agent_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid agent_id format")
     else:
         data.pop("agent_id", None)
     data["created_by"] = user_id
