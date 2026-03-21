@@ -164,30 +164,16 @@ class ChatService:
 
     async def export_conversation(
         self, conversation_id: uuid.UUID, user_id: uuid.UUID, fmt: str, db: AsyncSession
-    ) -> str:
-        """Export a conversation as markdown or JSON."""
+    ) -> str | bytes:
+        """Export a conversation as markdown or PDF."""
         conv = await self.get_conversation(conversation_id, user_id, db)
         if not conv:
             raise PermissionError("Conversation not found or access denied")
 
         messages = sorted(conv.messages, key=lambda m: m.created_at)
 
-        if fmt == "json":
-            import orjson
-            data = {
-                "title": conv.title,
-                "created_at": conv.created_at.isoformat(),
-                "messages": [
-                    {
-                        "role": m.role,
-                        "content": m.content,
-                        "model": m.model,
-                        "created_at": m.created_at.isoformat(),
-                    }
-                    for m in messages
-                ],
-            }
-            return orjson.dumps(data, option=orjson.OPT_INDENT_2).decode()
+        if fmt == "pdf":
+            return self._export_pdf(conv.title, messages)
         else:
             # Markdown
             lines = [f"# {conv.title}\n"]
@@ -196,6 +182,46 @@ class ChatService:
                 role = "**You**" if m.role == "user" else f"**Assistant** ({m.model or 'unknown'})"
                 lines.append(f"### {role} — {ts}\n\n{m.content}\n\n---\n")
             return "\n".join(lines)
+
+    def _export_pdf(self, title: str, messages: list) -> bytes:
+        """Generate a PDF export of the conversation."""
+        from fpdf import FPDF
+
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=20)
+        pdf.add_page()
+
+        # Title
+        pdf.set_font("Helvetica", "B", 18)
+        pdf.cell(0, 12, title, new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+
+        for m in messages:
+            ts = m.created_at.strftime("%Y-%m-%d %H:%M")
+            role_label = "You" if m.role == "user" else f"Assistant ({m.model or 'unknown'})"
+
+            # Role header
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.set_text_color(33, 99, 186) if m.role == "assistant" else pdf.set_text_color(60, 60, 60)
+            pdf.cell(0, 7, f"{role_label}  -  {ts}", new_x="LMARGIN", new_y="NEXT")
+
+            # Message body
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 30, 30)
+            # multi_cell handles long text and wrapping
+            content = m.content or ""
+            # fpdf2 handles UTF-8 with standard fonts via latin-1 fallback;
+            # replace chars that can't be encoded to avoid errors
+            safe_content = content.encode("latin-1", errors="replace").decode("latin-1")
+            pdf.multi_cell(0, 5.5, safe_content)
+            pdf.ln(3)
+
+            # Separator line
+            pdf.set_draw_color(200, 200, 200)
+            pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+            pdf.ln(4)
+
+        return pdf.output()
 
     async def send_message(
         self,

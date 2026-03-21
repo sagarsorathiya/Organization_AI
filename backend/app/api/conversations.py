@@ -239,18 +239,24 @@ async def archive_conversation(
 @router.get("/{conversation_id}/export")
 async def export_conversation(
     conversation_id: uuid.UUID,
-    fmt: str = Query(default="markdown", pattern="^(markdown|json)$"),
+    fmt: str = Query(default="markdown", pattern="^(markdown|pdf)$"),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Export a conversation as markdown or JSON."""
+    """Export a conversation as markdown or PDF."""
     try:
         content = await chat_service.export_conversation(conversation_id, user_id, fmt, db)
     except PermissionError:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    media_type = "application/json" if fmt == "json" else "text/markdown"
-    return PlainTextResponse(content=content, media_type=media_type)
+    if fmt == "pdf":
+        from fastapi.responses import Response
+        return Response(
+            content=content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=chat-export.pdf"},
+        )
+    return PlainTextResponse(content=content, media_type="text/markdown")
 
 
 

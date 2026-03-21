@@ -136,7 +136,7 @@ export function ChatWindow() {
     }
   }, [messages, streamingContent]);
 
-  const handleExport = async (fmt: "markdown" | "json") => {
+  const handleExport = async (fmt: "markdown" | "pdf") => {
     if (!activeConversationId) return;
     try {
       const res = await fetch(
@@ -149,14 +149,13 @@ export function ChatWindow() {
         }
       );
       if (!res.ok) return;
-      const text = await res.text();
-      const blob = new Blob([text], {
-        type: fmt === "json" ? "application/json" : "text/markdown",
-      });
+      const blob = fmt === "pdf"
+        ? await res.blob()
+        : new Blob([await res.text()], { type: "text/markdown" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `chat-export.${fmt === "json" ? "json" : "md"}`;
+      a.download = `chat-export.${fmt === "pdf" ? "pdf" : "md"}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -286,11 +285,11 @@ export function ChatWindow() {
             <Download size={12} /> .md
           </button>
           <button
-            onClick={() => handleExport("json")}
+            onClick={() => handleExport("pdf")}
             className="flex items-center gap-1 text-xs text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 px-2 py-1 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800"
-            aria-label="Export as JSON"
+            aria-label="Export as PDF"
           >
-            <Download size={12} /> .json
+            <Download size={12} /> .pdf
           </button>
         </div>
       )}

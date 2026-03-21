@@ -57,6 +57,7 @@ import { AgentsAdmin } from "@/components/Admin/AgentsAdmin";
 import { KnowledgeBaseAdmin } from "@/components/Admin/KnowledgeBaseAdmin";
 import { TasksAdmin } from "@/components/Admin/TasksAdmin";
 import { SkillsPanel } from "@/components/Skills/SkillsPanel";
+import { AdminHelpButton } from "@/components/Admin/AdminHelpButton";
 
 type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks";
 
@@ -2161,6 +2162,7 @@ export function AdminPage() {
           </div>
         )}
       </div>
+      <AdminHelpButton activeTab={tab} />
     </div>
   );
 }
