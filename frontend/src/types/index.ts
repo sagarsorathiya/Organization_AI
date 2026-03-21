@@ -78,7 +78,12 @@ export interface StreamDone {
   message_id: string;
 }
 
-export type StreamChunk = StreamMeta | StreamToken | StreamDone;
+export interface StreamError {
+  type: "error";
+  content: string;
+}
+
+export type StreamChunk = StreamMeta | StreamToken | StreamDone | StreamError;
 
 export interface UserSettings {
   theme: "light" | "dark" | "system";

@@ -64,10 +64,13 @@ export const StreamingMessage = memo(function StreamingMessage({ content }: Prop
               </ReactMarkdown>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-surface-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-              <span className="w-2 h-2 bg-surface-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-              <span className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" />
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-surface-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-2 h-2 bg-surface-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" />
+              </div>
+              <span className="text-sm text-surface-400 italic">Thinking...</span>
             </div>
           )}
         </div>

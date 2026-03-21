@@ -259,6 +259,44 @@ export const useChatStore = create<ChatState>((set, getState) => ({
           if (!state.activeConversationId) {
             await getState().loadConversations();
           }
+          return; // stream complete
+        } else if (chunk.type === "error") {
+          set({
+            isStreaming: false,
+            streamingContent: "",
+            _abortController: null,
+            error: chunk.content || "An error occurred while generating the response.",
+          });
+          return;
+        }
+      }
+
+      // Safety: if stream ended without a "done" or "error" chunk, clean up
+      if (getState().isStreaming) {
+        const partial = getState().streamingContent;
+        if (partial) {
+          const partialMsg: Message = {
+            id: `partial-${Date.now()}`,
+            conversation_id: convId || state.activeConversationId || "",
+            role: "assistant",
+            content: partial,
+            model: model || null,
+            token_count: null,
+            created_at: new Date().toISOString(),
+          };
+          set((s) => ({
+            messages: [...s.messages, partialMsg],
+            isStreaming: false,
+            streamingContent: "",
+            _abortController: null,
+          }));
+        } else {
+          set({
+            isStreaming: false,
+            streamingContent: "",
+            _abortController: null,
+            error: "Stream ended unexpectedly. Please try again.",
+          });
         }
       }
     } catch (e: unknown) {
