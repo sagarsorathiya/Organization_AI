@@ -151,7 +151,7 @@ async def create_agent(
     return _serialize_agent(agent)
 
 
-@admin_router.put("/{agent_id}")
+@admin_router.patch("/{agent_id}")
 async def update_agent(
     agent_id: uuid.UUID,
     body: AgentUpdate,
@@ -197,3 +197,10 @@ async def toggle_agent_active(
 @admin_router.get("/stats")
 async def agent_stats(db: AsyncSession = Depends(get_db)):
     return await agent_service.get_stats(db)
+
+
+@admin_router.get("")
+async def admin_list_agents(db: AsyncSession = Depends(get_db)):
+    """List all agents for admin management (including inactive)."""
+    agents = await agent_service.list_agents(db, is_admin=True, active_only=False)
+    return {"agents": [_serialize_agent(a) for a in agents]}

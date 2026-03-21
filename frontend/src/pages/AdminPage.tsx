@@ -758,7 +758,7 @@ export function AdminPage() {
         </div>
 
         {/* Tabs — grouped & scrollable */}
-        <div className="-mx-4 sm:-mx-6 px-4 sm:px-6 overflow-x-auto scrollbar-hide">
+        <div className="-mx-4 sm:-mx-6 px-4 sm:px-6 overflow-x-auto">
           <div className="flex items-center gap-0.5 mb-6 border-b border-surface-200 dark:border-surface-700 min-w-max">
             {tabGroups.map((group, gi) => (
               <div key={group.label} className="flex items-center">

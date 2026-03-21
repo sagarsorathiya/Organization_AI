@@ -20,7 +20,7 @@ export function AgentsAdmin() {
   const loadAgents = async () => {
     setIsLoading(true);
     try {
-      const data = await get<{ agents: Agent[] }>("/admin/agents/stats");
+      const data = await get<{ agents: Agent[] }>("/admin/agents");
       setAgents(data.agents || []);
     } catch {
       // Fallback to user endpoint
