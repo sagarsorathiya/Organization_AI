@@ -6,6 +6,8 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import inspect
+from sqlalchemy.orm.attributes import NO_VALUE
 
 from app.database import get_db
 from app.api.deps import get_current_user_id, get_current_user_token
@@ -85,31 +87,39 @@ class ProfileSetupRequest(BaseModel):
 # ─── Serializers ───
 
 def _serialize_company(c) -> dict:
+    departments_value = inspect(c).attrs.departments.loaded_value
+    department_ids = [str(d.id) for d in departments_value] if departments_value is not NO_VALUE else []
     return {
         "id": str(c.id),
         "name": c.name,
         "code": c.code,
         "description": c.description,
         "is_active": c.is_active,
-        "department_ids": [str(d.id) for d in c.departments] if c.departments else [],
+        "department_ids": department_ids,
         "created_at": c.created_at.isoformat() if c.created_at else None,
     }
 
 
 def _serialize_department(d) -> dict:
+    companies_value = inspect(d).attrs.companies.loaded_value
+    designations_value = inspect(d).attrs.designations.loaded_value
+    company_ids = [str(c.id) for c in companies_value] if companies_value is not NO_VALUE else []
+    designation_ids = [str(des.id) for des in designations_value] if designations_value is not NO_VALUE else []
     return {
         "id": str(d.id),
         "name": d.name,
         "code": d.code,
         "description": d.description,
         "is_active": d.is_active,
-        "company_ids": [str(c.id) for c in d.companies] if d.companies else [],
-        "designation_ids": [str(des.id) for des in d.designations] if d.designations else [],
+        "company_ids": company_ids,
+        "designation_ids": designation_ids,
         "created_at": d.created_at.isoformat() if d.created_at else None,
     }
 
 
 def _serialize_designation(d) -> dict:
+    departments_value = inspect(d).attrs.departments.loaded_value
+    department_ids = [str(dep.id) for dep in departments_value] if departments_value is not NO_VALUE else []
     return {
         "id": str(d.id),
         "name": d.name,
@@ -117,7 +127,7 @@ def _serialize_designation(d) -> dict:
         "description": d.description,
         "level": d.level,
         "is_active": d.is_active,
-        "department_ids": [str(dep.id) for dep in d.departments] if d.departments else [],
+        "department_ids": department_ids,
         "created_at": d.created_at.isoformat() if d.created_at else None,
     }
 
