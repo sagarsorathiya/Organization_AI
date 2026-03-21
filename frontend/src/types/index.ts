@@ -39,6 +39,7 @@ export interface Message {
   model: string | null;
   token_count: number | null;
   created_at: string;
+  imageUrls?: { name: string; url: string }[];
 }
 
 export interface ChatRequest {

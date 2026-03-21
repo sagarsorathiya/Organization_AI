@@ -149,21 +149,12 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
                 </div>
               </div>
             ) : (
-              message.content.includes("![") && message.content.includes("data:image/") ? (
+              message.imageUrls && message.imageUrls.length > 0 ? (
                 <div className="whitespace-pre-wrap break-words">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      img({ src, alt }) {
-                        return <img src={src} alt={alt || "attached image"} className="max-w-xs max-h-64 rounded-lg mt-1 mb-1 border border-white/20" />;
-                      },
-                      p({ children }) {
-                        return <p className="whitespace-pre-wrap break-words mb-1">{children}</p>;
-                      },
-                    }}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
+                  {message.imageUrls.map((img, idx) => (
+                    <img key={idx} src={img.url} alt={img.name} className="max-w-xs max-h-64 rounded-lg mt-1 mb-1 border border-white/20" />
+                  ))}
+                  <p className="whitespace-pre-wrap break-words mt-1">{message.content}</p>
                 </div>
               ) : (
                 <p className="whitespace-pre-wrap break-words">{message.content}</p>

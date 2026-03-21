@@ -28,7 +28,7 @@ interface ChatState {
   pinConversation: (id: string, pinned: boolean) => Promise<void>;
   archiveConversation: (id: string) => Promise<void>;
   sendMessage: (content: string, model?: string) => Promise<void>;
-  sendMessageStream: (content: string, model?: string) => Promise<void>;
+  sendMessageStream: (content: string, model?: string, imageUrls?: { name: string; url: string }[]) => Promise<void>;
   editAndResend: (messageId: string, newContent: string) => Promise<void>;
   stopStreaming: () => void;
   clearChat: () => void;
@@ -195,7 +195,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
     set({ _abortController: null, isStreaming: false, streamingContent: "" });
   },
 
-  sendMessageStream: async (content: string, model?: string) => {
+  sendMessageStream: async (content: string, model?: string, imageUrls?: { name: string; url: string }[]) => {
     const state = getState();
     if (state.isStreaming) return; // F11: prevent race condition
     const abortController = new AbortController();
@@ -210,6 +210,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
       model: null,
       token_count: null,
       created_at: new Date().toISOString(),
+      imageUrls,
     };
     set((s) => ({ messages: [...s.messages, tempUserMsg] }));
 

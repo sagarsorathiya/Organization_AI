@@ -83,10 +83,12 @@ export function ChatInput() {
     if (!trimmed || isStreaming) return;
 
     let messageContent = trimmed;
+    const imageUrls: { name: string; url: string }[] = [];
     if (attachedFile.length > 0) {
       const fileParts = attachedFile.map((f) => {
         if (f.image_url) {
-          return `[Attached image: ${f.name}]\n\n![${f.name}](${f.image_url})`;
+          imageUrls.push({ name: f.name, url: f.image_url });
+          return `[Attached image: ${f.name}]`;
         }
         return `[Attached file: ${f.name}]\n\n--- File Content ---\n${f.text}\n--- End of File ---`;
       });
@@ -95,7 +97,7 @@ export function ChatInput() {
     }
 
     setInput("");
-    await sendMessageStream(messageContent, selectedModel || undefined);
+    await sendMessageStream(messageContent, selectedModel || undefined, imageUrls.length > 0 ? imageUrls : undefined);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
