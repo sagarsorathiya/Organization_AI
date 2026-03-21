@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useChatStore } from "@/store/chatStore";
-import { Send, StopCircle, ChevronDown, Paperclip, X, FileText, Image, Loader2 } from "lucide-react";
+import { Send, StopCircle, ChevronDown, Paperclip, X, FileText, Loader2 } from "lucide-react";
 import { uploadFile } from "@/api/client";
 import { toast } from "sonner";
 import { TemplateSelector } from "./TemplateSelector";
