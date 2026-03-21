@@ -26,6 +26,13 @@ from app.models.message_bookmark import MessageBookmark
 from app.models.message_feedback import MessageFeedback
 from app.models.prompt_template import PromptTemplate
 from app.models.shared_conversation import SharedConversation
+from app.models.token_blacklist import TokenBlacklist
+from app.models.knowledge_base import KnowledgeBase, KnowledgeDocument, DocumentChunk
+from app.models.agent import Agent
+from app.models.ai_memory import AIMemory
+from app.models.agent_skill import AgentSkill, SkillExecution
+from app.models.scheduled_task import ScheduledTask, TaskExecution
+from app.models.notification import Notification
 from app.schemas.admin import (
     AuditLogEntry,
     AuditLogListResponse,
@@ -581,10 +588,11 @@ async def create_user(
 # ============================================================
 
 _TABLE_MODELS = {
+    # Core tables
     "users": User,
+    "user_settings": UserSettings,
     "conversations": Conversation,
     "messages": Message,
-    "user_settings": UserSettings,
     "audit_logs": AuditLog,
     "file_uploads": FileUpload,
     "announcements": Announcement,
@@ -594,6 +602,18 @@ _TABLE_MODELS = {
     "message_feedback": MessageFeedback,
     "prompt_templates": PromptTemplate,
     "shared_conversations": SharedConversation,
+    "token_blacklist": TokenBlacklist,
+    # V2 tables
+    "knowledge_bases": KnowledgeBase,
+    "knowledge_documents": KnowledgeDocument,
+    "document_chunks": DocumentChunk,
+    "agents": Agent,
+    "ai_memories": AIMemory,
+    "agent_skills": AgentSkill,
+    "skill_executions": SkillExecution,
+    "scheduled_tasks": ScheduledTask,
+    "task_executions": TaskExecution,
+    "notifications": Notification,
 }
 
 
@@ -711,7 +731,22 @@ async def database_import(
         raise HTTPException(status_code=400, detail="Invalid backup format: missing 'tables' key")
 
     imported_counts: dict[str, int] = {}
-    import_order = ["users", "user_settings", "conversations", "messages", "audit_logs"]
+    import_order = [
+        # Phase 1 — no FK dependencies
+        "users", "user_settings", "token_blacklist", "announcements",
+        "prompt_templates", "audit_logs",
+        # Phase 2 — depend on users
+        "conversations", "knowledge_bases", "ai_memories", "notifications",
+        # Phase 3 — depend on conversations / knowledge_bases
+        "messages", "file_uploads", "conversation_tags",
+        "conversation_tag_links", "shared_conversations",
+        "message_bookmarks", "message_feedback",
+        "knowledge_documents", "agents",
+        # Phase 4 — depend on agents / knowledge_documents
+        "document_chunks", "agent_skills", "scheduled_tasks",
+        # Phase 5 — depend on skills / tasks
+        "skill_executions", "task_executions",
+    ]
 
     for table_name in import_order:
         rows = data["tables"].get(table_name, [])
@@ -749,7 +784,7 @@ async def database_import(
                         clean[k] = _uuid.UUID(v) if v else None
                     except (ValueError, AttributeError):
                         clean[k] = None
-                elif k in ("created_at", "updated_at", "last_login", "archived_at", "timestamp"):
+                elif k.endswith("_at") or k in ("timestamp", "review_date"):
                     try:
                         clean[k] = datetime.fromisoformat(v) if v else None
                     except (ValueError, TypeError):
