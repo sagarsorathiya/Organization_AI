@@ -260,7 +260,12 @@ class ChatService:
         await db.flush()
 
         # Build message history for context
-        history = await self._build_message_history(conv.id, user_id, db, agent_id=agent_id)
+        history = await self._build_message_history(
+            conv.id,
+            user_id,
+            db,
+            agent_id=effective_agent_id,
+        )
 
         # Get LLM response
         response_content = await llm_service.generate(history, model=model)
