@@ -59,27 +59,27 @@ export function ProfileSetupDialog() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-5 animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="card w-full max-w-md p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
         <div className="text-center">
           <div className="w-14 h-14 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mx-auto mb-3">
             <Building2 size={28} className="text-primary-600 dark:text-primary-400" />
           </div>
-          <h2 className="text-lg font-bold text-surface-800 dark:text-surface-100">
+          <h2 className="text-lg font-semibold text-surface-800 dark:text-surface-100">
             Welcome, {user?.display_name}!
           </h2>
-          <p className="text-sm text-surface-500 mt-1">
+          <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">
             Please set up your organization profile to continue.
           </p>
         </div>
 
         {/* Company */}
         <div>
-          <label className="flex items-center gap-1.5 text-sm font-medium text-surface-600 dark:text-surface-300 mb-1.5">
-            <Building2 size={14} /> Company
+          <label className="flex items-center gap-1.5 text-xs font-medium text-surface-500 mb-1">
+            <Building2 size={12} /> Company
           </label>
           <select
-            className="input w-full"
+            className="input-field text-sm"
             value={companyId}
             onChange={(e) => setCompanyId(e.target.value)}
           >
@@ -92,11 +92,11 @@ export function ProfileSetupDialog() {
 
         {/* Department */}
         <div>
-          <label className="flex items-center gap-1.5 text-sm font-medium text-surface-600 dark:text-surface-300 mb-1.5">
-            <Network size={14} /> Department
+          <label className="flex items-center gap-1.5 text-xs font-medium text-surface-500 mb-1">
+            <Network size={12} /> Department
           </label>
           <select
-            className="input w-full"
+            className="input-field text-sm"
             value={deptId}
             onChange={(e) => setDeptId(e.target.value)}
             disabled={!companyId}
@@ -110,11 +110,11 @@ export function ProfileSetupDialog() {
 
         {/* Designation */}
         <div>
-          <label className="flex items-center gap-1.5 text-sm font-medium text-surface-600 dark:text-surface-300 mb-1.5">
-            <Award size={14} /> Designation
+          <label className="flex items-center gap-1.5 text-xs font-medium text-surface-500 mb-1">
+            <Award size={12} /> Designation
           </label>
           <select
-            className="input w-full"
+            className="input-field text-sm"
             value={desigId}
             onChange={(e) => setDesigId(e.target.value)}
             disabled={!deptId}
@@ -129,7 +129,7 @@ export function ProfileSetupDialog() {
         <button
           onClick={handleSubmit}
           disabled={!companyId || !deptId || !desigId || saving}
-          className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium disabled:opacity-50"
+          className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
         >
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
           {saving ? "Saving..." : "Complete Setup"}
