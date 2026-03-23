@@ -100,10 +100,11 @@ export function KnowledgeBaseAdmin() {
 
       const payload = await res.json().catch(() => ({ documents: [] as unknown[] }));
       const uploaded = Array.isArray(payload?.documents) ? payload.documents : [];
-      const failed = uploaded.filter((d: unknown) => {
-        const item = d as { error?: string; status?: string };
+      const failedItems = uploaded.filter((d: unknown) => {
+        const item = d as { error?: string; status?: string; error_message?: string };
         return Boolean(item.error) || item.status === "failed";
-      }).length;
+      });
+      const failed = failedItems.length;
       const succeeded = Math.max(uploaded.length - failed, 0);
 
       if (failed === 0) {
@@ -111,7 +112,14 @@ export function KnowledgeBaseAdmin() {
       } else if (succeeded > 0) {
         toast.warning(`Uploaded ${succeeded}, failed ${failed}. Check document statuses.`);
       } else {
-        toast.error("Upload failed for all selected files");
+        const reasons = failedItems
+          .slice(0, 2)
+          .map((d: unknown) => {
+            const item = d as { error?: string; error_message?: string };
+            return item.error || item.error_message || "Unknown error";
+          })
+          .join(" | ");
+        toast.error(reasons ? `Upload failed: ${reasons}` : "Upload failed for all selected files");
       }
 
       await loadDocs(selectedKb.id);

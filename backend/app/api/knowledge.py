@@ -153,6 +153,31 @@ async def upload_document(
     max_bytes = settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
 
     results = []
+
+    async def _record_failed_document(
+        safe_name: str,
+        ext: str,
+        file_size: int,
+        file_hash: str,
+        error_message: str,
+    ) -> None:
+        async with db.begin_nested():
+            failed_doc = KnowledgeDocument(
+                knowledge_base_id=kb_id,
+                title=os.path.splitext(safe_name)[0],
+                file_name=safe_name,
+                file_type=ext.lstrip(".") if ext else "unknown",
+                file_size=file_size,
+                file_hash=file_hash,
+                uploaded_by=user_id,
+                status="failed",
+                error_message=error_message[:500],
+                chunk_count=0,
+            )
+            db.add(failed_doc)
+            await db.flush()
+            results.append(_serialize_doc(failed_doc))
+
     for file in files:
         doc_name = file.filename or "unknown"
         try:
@@ -163,21 +188,38 @@ async def upload_document(
             # Validate extension
             ext = os.path.splitext(safe_name)[1].lower()
             if ext not in ALLOWED_DOC_EXTENSIONS:
-                results.append({"file": safe_name, "error": f"File type {ext} not supported"})
+                await _record_failed_document(
+                    safe_name=safe_name,
+                    ext=ext,
+                    file_size=0,
+                    file_hash="",
+                    error_message=f"File type {ext} not supported",
+                )
                 continue
 
             # Read content with size limit
             content_bytes = await file.read()
-            if len(content_bytes) > max_bytes:
-                results.append({"file": safe_name, "error": f"File exceeds {settings.ATTACHMENTS_MAX_SIZE_MB}MB limit"})
-                continue
-
             file_hash = hashlib.sha256(content_bytes).hexdigest()
+            if len(content_bytes) > max_bytes:
+                await _record_failed_document(
+                    safe_name=safe_name,
+                    ext=ext,
+                    file_size=len(content_bytes),
+                    file_hash=file_hash,
+                    error_message=f"File exceeds {settings.ATTACHMENTS_MAX_SIZE_MB}MB limit",
+                )
+                continue
 
             # Extract text
             text = await _extract_text(content_bytes, ext)
             if not text:
-                results.append({"file": safe_name, "error": "Could not extract text from file"})
+                await _record_failed_document(
+                    safe_name=safe_name,
+                    ext=ext,
+                    file_size=len(content_bytes),
+                    file_hash=file_hash,
+                    error_message="Could not extract text from file (possibly scanned/image-only or encrypted)",
+                )
                 continue
 
             # Isolate each file write so one failure does not roll back all files.
@@ -334,6 +376,48 @@ async def _extract_text(content: bytes, ext: str) -> str:
     return await asyncio.to_thread(_extract_text_sync, content, ext)
 
 
+def _normalize_text(text: str) -> str:
+    """Normalize extracted text to better detect meaningful content."""
+    return " ".join((text or "").split())
+
+
+def _ocr_pdf_bytes(content: bytes) -> str:
+    """OCR fallback for scanned/image-only PDFs."""
+    if not settings.OCR_ENABLED:
+        return ""
+
+    try:
+        import io
+        import os
+        import shutil
+        import pypdfium2 as pdfium
+        import pytesseract
+
+        if settings.OCR_TESSERACT_CMD:
+            pytesseract.pytesseract.tesseract_cmd = settings.OCR_TESSERACT_CMD
+        elif not shutil.which("tesseract") and os.name == "nt":
+            win_default = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+            if os.path.exists(win_default):
+                pytesseract.pytesseract.tesseract_cmd = win_default
+
+        pdf = pdfium.PdfDocument(io.BytesIO(content))
+        pages = min(len(pdf), settings.OCR_MAX_PAGES)
+        ocr_parts: list[str] = []
+
+        for i in range(pages):
+            page = pdf[i]
+            bitmap = page.render(scale=settings.OCR_PDF_RENDER_SCALE)
+            image = bitmap.to_pil()
+            ocr_text = pytesseract.image_to_string(image, lang=settings.OCR_LANGUAGE)
+            if ocr_text and ocr_text.strip():
+                ocr_parts.append(ocr_text)
+
+        return "\n".join(ocr_parts)
+    except Exception as e:
+        logger.warning("OCR fallback failed: %s", str(e))
+        return ""
+
+
 def _extract_text_sync(content: bytes, ext: str) -> str:
     """Synchronous text extraction from various document formats."""
     import io
@@ -343,14 +427,25 @@ def _extract_text_sync(content: bytes, ext: str) -> str:
             return content.decode("utf-8", errors="replace")
 
         if ext == ".pdf":
+            extracted = ""
             try:
                 import pdfplumber
                 with pdfplumber.open(io.BytesIO(content)) as pdf:
-                    return "\n".join(page.extract_text() or "" for page in pdf.pages)
+                    extracted = "\n".join(page.extract_text() or "" for page in pdf.pages)
             except ImportError:
                 from PyPDF2 import PdfReader
                 reader = PdfReader(io.BytesIO(content))
-                return "\n".join(page.extract_text() or "" for page in reader.pages)
+                extracted = "\n".join(page.extract_text() or "" for page in reader.pages)
+
+            if _normalize_text(extracted):
+                return extracted
+
+            ocr_text = _ocr_pdf_bytes(content)
+            if _normalize_text(ocr_text):
+                logger.info("OCR fallback extracted text from scanned PDF")
+                return ocr_text
+
+            return ""
 
         if ext in (".docx", ".doc"):
             from docx import Document

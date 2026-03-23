@@ -101,6 +101,13 @@ class Settings(BaseSettings):
     RAG_TOP_K: int = 5
     MAX_KB_DOCUMENTS: int = 1000
 
+    # OCR (for scanned/image-only documents)
+    OCR_ENABLED: bool = True
+    OCR_LANGUAGE: str = "eng"
+    OCR_PDF_RENDER_SCALE: float = 2.0
+    OCR_MAX_PAGES: int = 50
+    OCR_TESSERACT_CMD: str = ""
+
     # V2 Scheduler
     SCHEDULER_TIMEZONE: str = "UTC"
 

@@ -478,6 +478,10 @@ Admins can:
 
 ✅ File size limit enforcement and filename sanitization
 
+✅ OCR fallback for scanned/image-only PDFs (backend converts image PDFs to text)
+
+✅ OCR is configurable (enable/disable, language, render scale, max pages, tesseract path)
+
 ⏱️ Background Tasks / Scheduler (V2) ✅
 
 ✅ Cron-based scheduling via APScheduler
@@ -585,6 +589,16 @@ Must support:
 ✅ Single server MVP
 
 Multi-node scalable architecture later (planned)
+
+New deployment requirements for OCR-enabled document ingestion:
+
+✅ Install Tesseract OCR on backend hosts (recommended 5.x)
+
+✅ Ensure `tesseract` is available in PATH, or set explicit OCR binary path in backend config
+
+✅ Keep OCR Python dependencies installed from backend requirements (`pypdfium2`, `pytesseract`, `Pillow`)
+
+✅ For air-gapped environments, package Tesseract installer in the deployment bundle
 
 🎨 UI / UX Expectations ✅
 
