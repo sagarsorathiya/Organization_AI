@@ -248,6 +248,8 @@ class ChatService:
             if agent_id:
                 conv.agent_id = agent_id
 
+        effective_agent_id = agent_id or conv.agent_id
+
         # Save user message
         user_msg = Message(
             conversation_id=conv.id,
@@ -305,6 +307,8 @@ class ChatService:
                     if agent_id:
                         conv.agent_id = agent_id
 
+                effective_agent_id = agent_id or conv.agent_id
+
                 # Save user message
                 user_msg = Message(conversation_id=conv.id, role="user", content=content)
                 db.add(user_msg)
@@ -318,7 +322,12 @@ class ChatService:
                 }).decode() + "\n"
 
                 # Build history and stream
-                history = await self._build_message_history(conv.id, user_id, db, agent_id=agent_id)
+                history = await self._build_message_history(
+                    conv.id,
+                    user_id,
+                    db,
+                    agent_id=effective_agent_id,
+                )
                 full_response = []
                 token_buffer = []
 
@@ -469,7 +478,7 @@ class ChatService:
 
         # V2: Inject RAG context if agent has a knowledge base
         rag_context = ""
-        if agent and agent.knowledge_base_id and app_settings.ENABLE_RAG:
+        if agent and app_settings.ENABLE_RAG:
             try:
                 from app.services.rag_service import rag_service
                 # Get the last user message for RAG query
@@ -482,11 +491,27 @@ class ChatService:
                 last_msg_result = await db.execute(last_msg_q)
                 query_text = last_msg_result.scalar_one_or_none()
                 if query_text:
-                    rag_context = await rag_service.augmented_context(
-                        knowledge_base_id=agent.knowledge_base_id,
-                        query=query_text,
-                        db=db,
-                    )
+                    kb_ids: list[uuid.UUID] = []
+                    if getattr(agent, "knowledge_base_ids", None):
+                        for kb_id in agent.knowledge_base_ids:
+                            try:
+                                kb_ids.append(uuid.UUID(str(kb_id)))
+                            except ValueError:
+                                continue
+                    elif agent.knowledge_base_id:
+                        kb_ids.append(agent.knowledge_base_id)
+
+                    contexts: list[str] = []
+                    for kb_id in kb_ids:
+                        ctx = await rag_service.augmented_context(
+                            knowledge_base_id=kb_id,
+                            query=query_text,
+                            db=db,
+                        )
+                        if ctx:
+                            contexts.append(ctx)
+                    if contexts:
+                        rag_context = "\n\n".join(contexts)
             except Exception:
                 logger.warning("Failed to load RAG context for agent %s", agent_id)
 

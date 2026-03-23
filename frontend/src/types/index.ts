@@ -323,6 +323,7 @@ export interface Agent {
   allowed_roles: string[] | null;
   allowed_departments: string[] | null;
   knowledge_base_id: string | null;
+  knowledge_base_ids: string[] | null;
   usage_count: number;
   created_at: string;
 }

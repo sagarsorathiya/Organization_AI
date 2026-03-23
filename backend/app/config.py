@@ -96,6 +96,8 @@ class Settings(BaseSettings):
 
     # V2 RAG / Embeddings
     EMBEDDING_MODEL: str = "nomic-embed-text"
+    EMBEDDING_LOCAL_FALLBACK_ENABLED: bool = True
+    EMBEDDING_LOCAL_FALLBACK_DIM: int = 384
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
     RAG_TOP_K: int = 5

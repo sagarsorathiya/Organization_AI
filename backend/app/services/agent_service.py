@@ -100,6 +100,7 @@ class AgentService:
             allowed_roles=original.allowed_roles,
             allowed_departments=original.allowed_departments,
             knowledge_base_id=original.knowledge_base_id,
+            knowledge_base_ids=original.knowledge_base_ids,
         )
         db.add(clone)
         await db.flush()

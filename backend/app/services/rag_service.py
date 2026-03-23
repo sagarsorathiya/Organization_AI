@@ -23,11 +23,34 @@ class RAGService:
         self._embedding_api_unavailable = False
         self._embedding_api_unavailable_logged = False
 
+    def _local_hash_embedding(self, text: str) -> list[float]:
+        """Deterministic local embedding fallback when remote API is unavailable."""
+        dim = max(32, settings.EMBEDDING_LOCAL_FALLBACK_DIM)
+        if not text:
+            return []
+
+        vector = [0.0] * dim
+        for token in text.lower().split():
+            if not token:
+                continue
+            digest = hashlib.blake2b(token.encode("utf-8", errors="ignore"), digest_size=8).digest()
+            bucket = int.from_bytes(digest[:4], byteorder="big", signed=False) % dim
+            sign = 1.0 if (digest[4] & 1) == 0 else -1.0
+            weight = 1.0 + min(len(token), 20) / 20.0
+            vector[bucket] += sign * weight
+
+        norm = math.sqrt(sum(v * v for v in vector))
+        if norm == 0:
+            return []
+        return [v / norm for v in vector]
+
     async def embed_text(self, text: str) -> list[float]:
         """Generate embedding using Ollama locally."""
         import httpx
 
         if self._embedding_api_unavailable:
+            if settings.EMBEDDING_LOCAL_FALLBACK_ENABLED:
+                return self._local_hash_embedding(text)
             return []
 
         try:
@@ -51,11 +74,19 @@ class RAGService:
                 if response is None:
                     self._embedding_api_unavailable = True
                     if not self._embedding_api_unavailable_logged:
-                        logger.error(
-                            "Embedding API unavailable at %s. Expected one of: /api/embeddings, /api/embed, /v1/embeddings, /embeddings.",
-                            settings.LLM_BASE_URL,
-                        )
+                        if settings.EMBEDDING_LOCAL_FALLBACK_ENABLED:
+                            logger.warning(
+                                "Embedding API unavailable at %s. Falling back to local hash embeddings.",
+                                settings.LLM_BASE_URL,
+                            )
+                        else:
+                            logger.error(
+                                "Embedding API unavailable at %s. Expected one of: /api/embeddings, /api/embed, /v1/embeddings, /embeddings.",
+                                settings.LLM_BASE_URL,
+                            )
                         self._embedding_api_unavailable_logged = True
+                    if settings.EMBEDDING_LOCAL_FALLBACK_ENABLED:
+                        return self._local_hash_embedding(text)
                     return []
 
                 response.raise_for_status()
@@ -79,9 +110,13 @@ class RAGService:
                         if isinstance(openai_embedding, list):
                             return openai_embedding
 
+                if settings.EMBEDDING_LOCAL_FALLBACK_ENABLED:
+                    return self._local_hash_embedding(text)
                 return []
         except Exception as e:
             logger.error("Embedding generation failed: %s", str(e))
+            if settings.EMBEDDING_LOCAL_FALLBACK_ENABLED:
+                return self._local_hash_embedding(text)
             return []
 
     def chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:

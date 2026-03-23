@@ -39,6 +39,7 @@ class Agent(Base):
     knowledge_base_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("knowledge_bases.id", ondelete="SET NULL"), nullable=True
     )
+    knowledge_base_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
     # Metadata
     usage_count: Mapped[int] = mapped_column(Integer, default=0)

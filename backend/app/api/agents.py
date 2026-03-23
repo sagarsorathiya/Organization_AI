@@ -37,6 +37,7 @@ class AgentResponse(BaseModel):
     allowed_roles: list | None
     allowed_departments: list | None
     knowledge_base_id: str | None
+    knowledge_base_ids: list[str] | None
     usage_count: int
     created_at: str
 
@@ -58,6 +59,7 @@ class AgentCreate(BaseModel):
     allowed_roles: list | None = None
     allowed_departments: list | None = None
     knowledge_base_id: str | None = None
+    knowledge_base_ids: list[str] | None = None
 
 
 class AgentUpdate(BaseModel):
@@ -74,9 +76,14 @@ class AgentUpdate(BaseModel):
     allowed_roles: list | None = None
     allowed_departments: list | None = None
     knowledge_base_id: str | None = None
+    knowledge_base_ids: list[str] | None = None
 
 
 def _serialize_agent(agent) -> dict:
+    kb_ids = agent.knowledge_base_ids
+    if (not kb_ids) and agent.knowledge_base_id:
+        kb_ids = [str(agent.knowledge_base_id)]
+
     return {
         "id": str(agent.id),
         "name": agent.name,
@@ -94,6 +101,7 @@ def _serialize_agent(agent) -> dict:
         "allowed_roles": agent.allowed_roles,
         "allowed_departments": agent.allowed_departments,
         "knowledge_base_id": str(agent.knowledge_base_id) if agent.knowledge_base_id else None,
+        "knowledge_base_ids": kb_ids,
         "usage_count": agent.usage_count,
         "created_at": agent.created_at.isoformat() if agent.created_at else None,
     }
@@ -142,11 +150,23 @@ async def create_agent(
     db: AsyncSession = Depends(get_db),
 ):
     data = body.model_dump(exclude_none=True)
+    if body.knowledge_base_ids is not None:
+        normalized: list[str] = []
+        for kb_id in body.knowledge_base_ids:
+            try:
+                normalized.append(str(uuid.UUID(kb_id)))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid knowledge_base_ids format")
+        data["knowledge_base_ids"] = normalized
+        if normalized:
+            data["knowledge_base_id"] = uuid.UUID(normalized[0])
+
     if body.knowledge_base_id:
         try:
             data["knowledge_base_id"] = uuid.UUID(body.knowledge_base_id)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid knowledge_base_id format")
+        data.setdefault("knowledge_base_ids", [str(data["knowledge_base_id"])])
     else:
         data.pop("knowledge_base_id", None)
     data["created_by"] = user_id
@@ -161,11 +181,25 @@ async def update_agent(
     db: AsyncSession = Depends(get_db),
 ):
     data = body.model_dump(exclude_none=True)
+    if "knowledge_base_ids" in data and data["knowledge_base_ids"] is not None:
+        normalized: list[str] = []
+        for kb_id in data["knowledge_base_ids"]:
+            try:
+                normalized.append(str(uuid.UUID(kb_id)))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid knowledge_base_ids format")
+        data["knowledge_base_ids"] = normalized
+        data["knowledge_base_id"] = uuid.UUID(normalized[0]) if normalized else None
+
     if "knowledge_base_id" in data and data["knowledge_base_id"]:
         try:
             data["knowledge_base_id"] = uuid.UUID(data["knowledge_base_id"])
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid knowledge_base_id format")
+        data.setdefault("knowledge_base_ids", [str(data["knowledge_base_id"])])
+    elif "knowledge_base_id" in data and data["knowledge_base_id"] is None:
+        data["knowledge_base_ids"] = []
+
     agent = await agent_service.update_agent(agent_id, data, db)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")

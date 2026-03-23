@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { get, post, patch, del } from "@/api/client";
-import type { Agent } from "@/types";
+import type { Agent, KnowledgeBase } from "@/types";
 import {
   Bot, Plus, Trash2, Edit3, Save, X, Loader2, Copy,
   ToggleLeft, ToggleRight,
@@ -9,12 +9,14 @@ import { toast } from "sonner";
 
 export function AgentsAdmin() {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingAgent, setEditingAgent] = useState<Partial<Agent> | null>(null);
   const [isNew, setIsNew] = useState(false);
 
   useEffect(() => {
     loadAgents();
+    loadKnowledgeBases();
   }, []);
 
   const loadAgents = async () => {
@@ -32,6 +34,15 @@ export function AgentsAdmin() {
       }
     }
     setIsLoading(false);
+  };
+
+  const loadKnowledgeBases = async () => {
+    try {
+      const data = await get<{ knowledge_bases?: KnowledgeBase[]; items?: KnowledgeBase[] }>("/admin/knowledge-bases");
+      setKnowledgeBases(data.knowledge_bases || data.items || []);
+    } catch {
+      setKnowledgeBases([]);
+    }
   };
 
   const handleSave = async () => {
@@ -165,6 +176,38 @@ export function AgentsAdmin() {
                 placeholder="(uses default)"
               />
             </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-medium mb-1 block text-surface-600 dark:text-surface-300">Knowledge Base</label>
+              <div className="rounded-lg border border-surface-200 dark:border-surface-700 p-2 max-h-40 overflow-auto space-y-2">
+                {knowledgeBases.length === 0 ? (
+                  <p className="text-xs text-surface-500">No knowledge bases available</p>
+                ) : (
+                  knowledgeBases.map((kb) => {
+                    const selected = (editingAgent.knowledge_base_ids || []).includes(kb.id);
+                    return (
+                      <label key={kb.id} className="flex items-center gap-2 text-sm text-surface-700 dark:text-surface-200">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(e) => {
+                            const current = editingAgent.knowledge_base_ids || [];
+                            const next = e.target.checked
+                              ? [...current, kb.id]
+                              : current.filter((id) => id !== kb.id);
+                            setEditingAgent({
+                              ...editingAgent,
+                              knowledge_base_ids: next,
+                              knowledge_base_id: next.length > 0 ? next[0] : null,
+                            });
+                          }}
+                        />
+                        <span>{kb.name} ({kb.document_count} docs)</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -215,6 +258,8 @@ export function AgentsAdmin() {
               category: "",
               system_prompt: "",
               temperature: 0.7,
+              knowledge_base_id: null,
+              knowledge_base_ids: [],
             });
             setIsNew(true);
           }}
@@ -262,6 +307,11 @@ export function AgentsAdmin() {
                 <p className="text-xs text-surface-400 mt-0.5">
                   {agent.category}{agent.category ? " · " : ""}{agent.usage_count} uses
                 </p>
+                {(agent.knowledge_base_id || (agent.knowledge_base_ids && agent.knowledge_base_ids.length > 0)) && (
+                  <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-1">
+                    KB linked ({(agent.knowledge_base_ids || (agent.knowledge_base_id ? [agent.knowledge_base_id] : [])).length})
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
@@ -272,7 +322,11 @@ export function AgentsAdmin() {
                   {agent.is_active ? <ToggleRight size={16} className="text-green-500" /> : <ToggleLeft size={16} />}
                 </button>
                 <button
-                  onClick={() => { setEditingAgent(agent); setIsNew(false); }}
+                  onClick={() => {
+                    const normalizedKbIds = agent.knowledge_base_ids || (agent.knowledge_base_id ? [agent.knowledge_base_id] : []);
+                    setEditingAgent({ ...agent, knowledge_base_ids: normalizedKbIds });
+                    setIsNew(false);
+                  }}
                   className="btn-ghost p-1.5 rounded-md"
                   title="Edit"
                 >
