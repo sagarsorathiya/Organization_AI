@@ -7,7 +7,7 @@
     <meta name="description" content="A 100% on-premises, enterprise-grade AI portal with AI Agents, RAG Knowledge Base, Skills Engine, Scheduler, and 40+ features. Active Directory SSO, zero cloud dependency, and your data never leaves your network.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         :root{
@@ -19,11 +19,12 @@
             --orange:#fb923c;--red:#f87171;--purple:#a78bfa;--pink:#f472b6;
             --text:#f1f5f9;--text-secondary:#cbd5e1;--text-muted:#64748b;
             --radius:16px;--radius-sm:10px;
-            --font:'Inter',system-ui,-apple-system,sans-serif;
-            --mono:'JetBrains Mono','Cascadia Code','Fira Code',monospace;
+            --font:'Syne',system-ui,-apple-system,sans-serif;
+            --mono:'DM Mono','JetBrains Mono','Cascadia Code',monospace;
         }
         html{scroll-behavior:smooth}
         body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;position:relative}
+        body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(99,102,241,.04) 3px,rgba(99,102,241,.04) 4px);pointer-events:none;z-index:1;opacity:.35}
         a{color:var(--accent-light);text-decoration:none;transition:color .3s}a:hover{color:var(--cyan)}
         code{font-family:var(--mono);background:rgba(99,102,241,.1);padding:2px 8px;border-radius:6px;font-size:.85em;border:1px solid rgba(99,102,241,.15)}
         ::selection{background:var(--accent);color:#fff}
@@ -45,28 +46,28 @@
         .glass{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:var(--radius)}
 
         /* NAV */
-        nav{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:100;width:calc(100% - 48px);max-width:1200px;background:rgba(6,7,13,.6);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.06);border-radius:16px;transition:all .4s cubic-bezier(.4,0,.2,1)}
-        nav.scrolled{background:rgba(6,7,13,.85);box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05)}
+        nav{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:100;width:calc(100% - 48px);max-width:1200px;background:rgba(6,7,13,.62);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(99,102,241,.22);border-radius:14px;transition:all .4s cubic-bezier(.4,0,.2,1)}
+        nav.scrolled{background:rgba(6,7,13,.9);box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(99,102,241,.25)}
         .nav-inner{padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px}
         .nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.1rem;color:var(--text);letter-spacing:-.02em}
         .nav-logo .shield{font-size:1.4rem;filter:drop-shadow(0 0 8px var(--accent-glow))}
         .nav-links{display:flex;gap:4px;list-style:none}
-        .nav-links a{color:var(--text-muted);font-size:.85rem;font-weight:500;padding:6px 14px;border-radius:8px;transition:all .3s}
-        .nav-links a:hover{color:var(--text);background:rgba(255,255,255,.05)}
-        .nav-cta{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff !important;padding:8px 20px;border-radius:10px;font-weight:600;font-size:.85rem;transition:all .3s;border:none;box-shadow:0 2px 12px var(--accent-glow)}
+        .nav-links a{color:var(--text-muted);font-size:.78rem;font-weight:700;padding:7px 14px;border-radius:6px;transition:all .3s;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase}
+        .nav-links a:hover{color:var(--text);background:rgba(99,102,241,.1)}
+        .nav-cta{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff !important;padding:8px 20px;border-radius:8px;font-weight:700;font-size:.78rem;transition:all .3s;border:1px solid rgba(129,140,248,.35);box-shadow:0 2px 12px var(--accent-glow);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
         .nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 24px var(--accent-glow);filter:brightness(1.1)}
         .hamburger{display:none;background:none;border:none;color:var(--text);cursor:pointer;font-size:1.5rem}
 
         /* HERO */
         .hero{padding:180px 0 80px;text-align:center;position:relative;z-index:2}
-        .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);padding:8px 20px;border-radius:50px;font-size:.82rem;color:var(--accent-light);margin-bottom:32px;font-weight:600;backdrop-filter:blur(10px);letter-spacing:.02em}
+        .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);padding:8px 16px;border-radius:6px;font-size:.72rem;color:var(--accent-light);margin-bottom:32px;font-weight:700;backdrop-filter:blur(10px);letter-spacing:.16em;text-transform:uppercase;font-family:var(--mono)}
         .hero-badge .dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse-dot 2s infinite;box-shadow:0 0 8px rgba(52,211,153,.5)}
         @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
         .hero h1{font-size:clamp(2.8rem,6.5vw,4.5rem);font-weight:900;line-height:1.1;letter-spacing:-.04em;margin-bottom:24px}
         .hero h1 .gradient{background:linear-gradient(135deg,var(--accent-light) 0%,var(--cyan) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .hero p{font-size:1.15rem;color:var(--text-secondary);max-width:620px;margin:0 auto 48px;line-height:1.8}
         .hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-        .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:12px;font-weight:600;font-size:.95rem;transition:all .3s;cursor:pointer;text-decoration:none;border:none;font-family:var(--font)}
+        .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:8px;font-weight:700;font-size:.82rem;transition:all .3s;cursor:pointer;text-decoration:none;border:none;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
         .btn-primary{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;box-shadow:0 4px 24px var(--accent-glow),0 0 0 1px rgba(99,102,241,.3)}
         .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 40px var(--accent-glow),0 0 0 1px rgba(99,102,241,.5);filter:brightness(1.1);color:#fff}
         .btn-outline{background:transparent;color:var(--text);border:1px solid var(--glass-border);backdrop-filter:blur(10px)}
@@ -93,7 +94,7 @@
         .glow-line{border:none;height:1px;background:linear-gradient(90deg,transparent,var(--accent-glow),var(--cyan-glow),transparent);margin:0}
 
         /* SECTION HEADERS */
-        .section-label{display:inline-block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--accent-light);margin-bottom:16px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);padding:6px 16px;border-radius:50px}
+        .section-label{display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--accent-light);margin-bottom:16px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);padding:6px 14px;border-radius:6px;font-family:var(--mono)}
         .section-title{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.03em;margin-bottom:16px;line-height:1.2}
         .section-subtitle{color:var(--text-secondary);font-size:1.05rem;max-width:640px;line-height:1.7;margin-bottom:48px}
         .centered{text-align:center}
