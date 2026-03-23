@@ -299,13 +299,23 @@ async def list_documents(
     db: AsyncSession = Depends(get_db),
 ):
     from sqlalchemy import select
-    result = await db.execute(
-        select(KnowledgeDocument)
-        .where(KnowledgeDocument.knowledge_base_id == kb_id)
-        .order_by(KnowledgeDocument.created_at.desc())
-    )
-    docs = result.scalars().all()
-    return {"documents": [_serialize_doc(d) for d in docs]}
+
+    kb = await kb_service.get_knowledge_base(kb_id, db)
+    if not kb:
+        raise HTTPException(status_code=404, detail="Knowledge base not found")
+
+    try:
+        result = await db.execute(
+            select(KnowledgeDocument)
+            .where(KnowledgeDocument.knowledge_base_id == kb_id)
+            .order_by(KnowledgeDocument.created_at.desc())
+        )
+        docs = result.scalars().all()
+        return {"documents": [_serialize_doc(d) for d in docs]}
+    except Exception as e:
+        logger.exception("Failed to list documents for knowledge base %s: %s", kb_id, e)
+        # Keep admin UI functional even if legacy/corrupt rows exist.
+        return {"documents": []}
 
 
 # ─── Text Extraction ───
