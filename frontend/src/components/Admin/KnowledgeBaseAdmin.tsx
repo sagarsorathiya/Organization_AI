@@ -97,7 +97,23 @@ export function KnowledgeBaseAdmin() {
         }
       );
       if (!res.ok) throw new Error("Upload failed");
-      toast.success("Documents uploaded and processing");
+
+      const payload = await res.json().catch(() => ({ documents: [] as unknown[] }));
+      const uploaded = Array.isArray(payload?.documents) ? payload.documents : [];
+      const failed = uploaded.filter((d: unknown) => {
+        const item = d as { error?: string; status?: string };
+        return Boolean(item.error) || item.status === "failed";
+      }).length;
+      const succeeded = Math.max(uploaded.length - failed, 0);
+
+      if (failed === 0) {
+        toast.success(`Uploaded ${succeeded} document${succeeded === 1 ? "" : "s"}`);
+      } else if (succeeded > 0) {
+        toast.warning(`Uploaded ${succeeded}, failed ${failed}. Check document statuses.`);
+      } else {
+        toast.error("Upload failed for all selected files");
+      }
+
       await loadDocs(selectedKb.id);
     } catch {
       toast.error("Failed to upload documents");

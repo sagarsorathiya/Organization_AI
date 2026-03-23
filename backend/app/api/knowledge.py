@@ -154,52 +154,60 @@ async def upload_document(
 
     results = []
     for file in files:
-        # Sanitize filename
-        import re
-        safe_name = re.sub(r'[^\w\s\-.]', '_', os.path.basename(file.filename or "unknown"))
-
-        # Validate extension
-        ext = os.path.splitext(safe_name)[1].lower()
-        if ext not in ALLOWED_DOC_EXTENSIONS:
-            results.append({"file": safe_name, "error": f"File type {ext} not supported"})
-            continue
-
-        # Read content with size limit
-        content_bytes = await file.read()
-        if len(content_bytes) > max_bytes:
-            results.append({"file": safe_name, "error": f"File exceeds {settings.ATTACHMENTS_MAX_SIZE_MB}MB limit"})
-            continue
-
-        file_hash = hashlib.sha256(content_bytes).hexdigest()
-
-        # Extract text
-        text = await _extract_text(content_bytes, ext)
-        if not text:
-            results.append({"file": safe_name, "error": "Could not extract text from file"})
-            continue
-
-        # Create document record
-        doc = KnowledgeDocument(
-            knowledge_base_id=kb_id,
-            title=os.path.splitext(safe_name)[0],
-            file_name=safe_name,
-            file_type=ext.lstrip("."),
-            file_size=len(content_bytes),
-            file_hash=file_hash,
-            uploaded_by=user_id,
-        )
-        db.add(doc)
-        await db.flush()
-
-        # Ingest: chunk + embed
+        doc_name = file.filename or "unknown"
         try:
-            await rag_service.ingest_document(doc, text, db)
-        except Exception as e:
-            doc.status = "failed"
-            doc.error_message = str(e)[:500]
-            logger.error("Document ingestion failed: %s", str(e))
+            # Sanitize filename
+            import re
+            safe_name = re.sub(r'[^\w\s\-.]', '_', os.path.basename(doc_name))
 
-        results.append(_serialize_doc(doc))
+            # Validate extension
+            ext = os.path.splitext(safe_name)[1].lower()
+            if ext not in ALLOWED_DOC_EXTENSIONS:
+                results.append({"file": safe_name, "error": f"File type {ext} not supported"})
+                continue
+
+            # Read content with size limit
+            content_bytes = await file.read()
+            if len(content_bytes) > max_bytes:
+                results.append({"file": safe_name, "error": f"File exceeds {settings.ATTACHMENTS_MAX_SIZE_MB}MB limit"})
+                continue
+
+            file_hash = hashlib.sha256(content_bytes).hexdigest()
+
+            # Extract text
+            text = await _extract_text(content_bytes, ext)
+            if not text:
+                results.append({"file": safe_name, "error": "Could not extract text from file"})
+                continue
+
+            # Isolate each file write so one failure does not roll back all files.
+            async with db.begin_nested():
+                # Create document record
+                doc = KnowledgeDocument(
+                    knowledge_base_id=kb_id,
+                    title=os.path.splitext(safe_name)[0],
+                    file_name=safe_name,
+                    file_type=ext.lstrip("."),
+                    file_size=len(content_bytes),
+                    file_hash=file_hash,
+                    uploaded_by=user_id,
+                )
+                db.add(doc)
+                await db.flush()
+
+                # Ingest: chunk + embed
+                try:
+                    await rag_service.ingest_document(doc, text, db)
+                except Exception as e:
+                    doc.status = "failed"
+                    doc.error_message = str(e)[:500]
+                    logger.error("Document ingestion failed: %s", str(e))
+
+                await db.flush()
+                results.append(_serialize_doc(doc))
+        except Exception as e:
+            logger.exception("Knowledge document upload failed for %s in KB %s", doc_name, kb_id)
+            results.append({"file": doc_name, "error": f"Upload failed: {str(e)[:200]}"})
 
     return {"documents": results}
 

@@ -48,15 +48,25 @@ export function AgentSelector() {
           <>
             <span>{selectedAgent.icon || "🤖"}</span>
             <span className="max-w-[100px] truncate">{selectedAgent.name}</span>
-            <button
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Clear selected agent"
               onClick={(e) => {
                 e.stopPropagation();
                 selectAgent(null);
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  selectAgent(null);
+                }
+              }}
               className="ml-1 p-0.5 rounded hover:bg-primary-200 dark:hover:bg-primary-800"
             >
               <X size={12} />
-            </button>
+            </span>
           </>
         ) : (
           <>
