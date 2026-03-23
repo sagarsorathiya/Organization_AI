@@ -19,17 +19,67 @@ logger = logging.getLogger(__name__)
 class RAGService:
     """Retrieval-Augmented Generation — 100% local via Ollama embeddings."""
 
+    def __init__(self):
+        self._embedding_api_unavailable = False
+        self._embedding_api_unavailable_logged = False
+
     async def embed_text(self, text: str) -> list[float]:
         """Generate embedding using Ollama locally."""
         import httpx
+
+        if self._embedding_api_unavailable:
+            return []
+
         try:
             async with httpx.AsyncClient(timeout=60) as client:
-                response = await client.post(
-                    f"{settings.LLM_BASE_URL}/api/embeddings",
-                    json={"model": settings.EMBEDDING_MODEL, "prompt": text},
-                )
+                # Compatibility: support classic Ollama endpoints and OpenAI-compatible endpoint.
+                endpoint_attempts: list[tuple[str, dict]] = [
+                    ("/api/embeddings", {"model": settings.EMBEDDING_MODEL, "prompt": text}),
+                    ("/api/embed", {"model": settings.EMBEDDING_MODEL, "input": text}),
+                    ("/v1/embeddings", {"model": settings.EMBEDDING_MODEL, "input": text}),
+                    ("/embeddings", {"model": settings.EMBEDDING_MODEL, "input": text}),
+                ]
+
+                response = None
+                for path, payload in endpoint_attempts:
+                    candidate = await client.post(f"{settings.LLM_BASE_URL}{path}", json=payload)
+                    if candidate.status_code == 404:
+                        continue
+                    response = candidate
+                    break
+
+                if response is None:
+                    self._embedding_api_unavailable = True
+                    if not self._embedding_api_unavailable_logged:
+                        logger.error(
+                            "Embedding API unavailable at %s. Expected one of: /api/embeddings, /api/embed, /v1/embeddings, /embeddings.",
+                            settings.LLM_BASE_URL,
+                        )
+                        self._embedding_api_unavailable_logged = True
+                    return []
+
                 response.raise_for_status()
-                return response.json().get("embedding", [])
+                payload = response.json()
+                embedding = payload.get("embedding")
+                if isinstance(embedding, list):
+                    return embedding
+
+                embeddings = payload.get("embeddings")
+                if isinstance(embeddings, list) and embeddings:
+                    first = embeddings[0]
+                    if isinstance(first, list):
+                        return first
+
+                # OpenAI-compatible shape: {"data":[{"embedding":[...]}], ...}
+                data_items = payload.get("data")
+                if isinstance(data_items, list) and data_items:
+                    first_item = data_items[0]
+                    if isinstance(first_item, dict):
+                        openai_embedding = first_item.get("embedding")
+                        if isinstance(openai_embedding, list):
+                            return openai_embedding
+
+                return []
         except Exception as e:
             logger.error("Embedding generation failed: %s", str(e))
             return []
@@ -65,19 +115,57 @@ class RAGService:
         doc.status = "processing"
         await db.flush()
 
-        for i, chunk_text in enumerate(chunks):
+        if not chunks:
+            doc.status = "failed"
+            doc.error_message = "No usable text chunks generated from document"
+            doc.chunk_count = 0
+            await db.flush()
+            return
+
+        first_embedding = await self.embed_text(chunks[0])
+        if not first_embedding:
+            doc.status = "failed"
+            doc.error_message = (
+                "Embedding generation unavailable. Ensure your LLM endpoint exposes /api/embeddings, /api/embed, /v1/embeddings, or /embeddings, "
+                f"and embedding model '{settings.EMBEDDING_MODEL}' is available (for example: ollama pull {settings.EMBEDDING_MODEL})."
+            )[:500]
+            doc.chunk_count = 0
+            await db.flush()
+            return
+
+        embedded_count = 0
+        db.add(DocumentChunk(
+            document_id=doc.id,
+            content=chunks[0],
+            chunk_index=0,
+            embedding=first_embedding,
+            metadata_={"chunk_index": 0, "total_chunks": len(chunks)},
+        ))
+        embedded_count += 1
+
+        for i, chunk_text in enumerate(chunks[1:], start=1):
             embedding = await self.embed_text(chunk_text)
+            if not embedding:
+                continue
             chunk = DocumentChunk(
                 document_id=doc.id,
                 content=chunk_text,
                 chunk_index=i,
-                embedding=embedding if embedding else None,
+                embedding=embedding,
                 metadata_={"chunk_index": i, "total_chunks": len(chunks)},
             )
             db.add(chunk)
+            embedded_count += 1
+
+        if embedded_count == 0:
+            doc.status = "failed"
+            doc.error_message = "No chunks could be embedded"
+            doc.chunk_count = 0
+            await db.flush()
+            return
 
         doc.status = "ready"
-        doc.chunk_count = len(chunks)
+        doc.chunk_count = embedded_count
 
         # Update KB counts
         if kb:
@@ -91,7 +179,7 @@ class RAGService:
                 .where(KnowledgeDocument.knowledge_base_id == kb.id)
             )).scalar() or 0
             kb.document_count = total_docs
-            kb.total_chunks = total_chunks + len(chunks)
+            kb.total_chunks = total_chunks
             kb.last_synced_at = datetime.now(timezone.utc)
 
         await db.flush()

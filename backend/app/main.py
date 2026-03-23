@@ -826,7 +826,7 @@ async def on_shutdown():
     if settings.ENABLE_SCHEDULER:
         try:
             from app.services.scheduler_service import scheduler_service
-            scheduler_service.stop()
+            await scheduler_service.stop()
         except Exception:
             logger.exception("Error stopping scheduler")
 
