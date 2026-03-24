@@ -100,6 +100,10 @@ class AuthService:
             user.department = ad_info.department
             user.ad_groups = json.dumps(ad_info.groups)
             user.is_admin = is_admin
+            # Domain users must complete org profile if any required org field is missing.
+            user.needs_profile_setup = not (
+                user.company_id and user.department_id and user.designation_id
+            )
             await db.flush()
 
         return user
