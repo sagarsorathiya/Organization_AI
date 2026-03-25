@@ -1,5 +1,5 @@
 import type { Message } from "@/types";
-import { Bot, Copy, Check, Pencil, Send, ThumbsUp, ThumbsDown, Bookmark, RefreshCw, FileText } from "lucide-react";
+import { Bot, Copy, Check, Pencil, Send, ThumbsUp, ThumbsDown, Bookmark, RefreshCw, FileText, Download } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -9,6 +9,7 @@ import clsx from "clsx";
 import { useAuthStore } from "@/store/authStore";
 import { useFeedbackStore } from "@/store/feedbackStore";
 import { useBookmarkStore } from "@/store/bookmarkStore";
+import { toast } from "sonner";
 
 function formatTime(dateStr: string): string {
   const d = new Date(dateStr);
@@ -36,6 +37,7 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const assistantContentRef = useRef<HTMLDivElement>(null);
   const { user } = useAuthStore();
   const { feedbackMap, submitFeedback } = useFeedbackStore();
   const { bookmarkedIds, toggleBookmark } = useBookmarkStore();
@@ -63,9 +65,40 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
   };
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      const renderedText = assistantContentRef.current?.innerText?.trim() || message.content;
+      const renderedHtml = assistantContentRef.current?.innerHTML;
+      const ClipboardItemCtor = (window as any).ClipboardItem;
+
+      if (
+        navigator.clipboard &&
+        window.isSecureContext &&
+        ClipboardItemCtor &&
+        renderedHtml
+      ) {
+        await navigator.clipboard.write([
+          new ClipboardItemCtor({
+            "text/html": new Blob([renderedHtml], { type: "text/html" }),
+            "text/plain": new Blob([renderedText], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = renderedText;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (!ok) throw new Error("Copy command failed");
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Copy failed. Please copy manually.");
+    }
   };
 
   const initials = user ? getInitials(user.display_name) : "U";
@@ -168,37 +201,64 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
               </div>
             )
           ) : (
-            <div className="markdown-content prose-sm max-w-none">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({ className, children, ...props }) {
-                    const match = /language-(\w+)/.exec(className || "");
-                    const codeString = String(children).replace(/\n$/, "");
+            <>
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {message.attachments.map((att, idx) =>
+                    att.type === "image" && att.url ? (
+                      <img key={idx} src={att.url} alt={att.name} className="max-w-xs max-h-64 rounded-lg border border-surface-200 dark:border-surface-700" />
+                    ) : att.url ? (
+                      <a
+                        key={idx}
+                        href={att.url}
+                        download={att.name}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-900 hover:bg-surface-50 dark:hover:bg-surface-800"
+                      >
+                        <FileText size={14} className="shrink-0 opacity-70" />
+                        <span className="truncate max-w-[220px]">{att.name}</span>
+                        <Download size={12} className="shrink-0 opacity-70" />
+                      </a>
+                    ) : (
+                      <div key={idx} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs border border-surface-300 dark:border-surface-600">
+                        <FileText size={14} className="shrink-0 opacity-70" />
+                        <span className="truncate max-w-[220px]">{att.name}</span>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+              <div ref={assistantContentRef} className="markdown-content prose-sm max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    code({ className, children, ...props }) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      const codeString = String(children).replace(/\n$/, "");
 
-                    if (match) {
+                      if (match) {
+                        return (
+                          <SyntaxHighlighter
+                            style={oneDark}
+                            language={match[1]}
+                            PreTag="div"
+                            className="rounded-lg !my-2"
+                          >
+                            {codeString}
+                          </SyntaxHighlighter>
+                        );
+                      }
                       return (
-                        <SyntaxHighlighter
-                          style={oneDark}
-                          language={match[1]}
-                          PreTag="div"
-                          className="rounded-lg !my-2"
-                        >
-                          {codeString}
-                        </SyntaxHighlighter>
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
                       );
-                    }
-                    return (
-                      <code className={className} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            </div>
+                    },
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            </>
           )}
         </div>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Share2, Copy, Check, Link2, X, Loader2 } from "lucide-react";
 import { post, del, get } from "@/api/client";
 import { toast } from "sonner";
@@ -16,13 +16,13 @@ export function ShareDialog({ conversationId, onClose }: Props) {
   const [checking, setChecking] = useState(true);
 
   // Check existing share status on mount
-  useState(() => {
+  useEffect(() => {
     get<{ shared: boolean; share_token?: string }>(`/share/status/${conversationId}`)
       .then((res) => {
         if (res.shared && res.share_token) setShareToken(res.share_token);
       })
       .finally(() => setChecking(false));
-  });
+  }, [conversationId]);
 
   const handleShare = async () => {
     setLoading(true);
@@ -53,9 +53,26 @@ export function ShareDialog({ conversationId, onClose }: Props) {
   const handleCopy = async () => {
     if (!shareToken) return;
     const url = `${window.location.origin}/shared/${shareToken}`;
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (!ok) throw new Error("Copy command failed");
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Copy failed. Please copy manually.");
+    }
   };
 
   return (

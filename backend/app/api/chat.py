@@ -7,9 +7,11 @@ import io
 import csv
 import logging
 import re
+from html import escape
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -17,6 +19,8 @@ from app.api.deps import get_current_user_id, get_current_user_token, get_client
 from app.schemas.message import (
     ChatRequest,
     ChatResponse,
+    GenerateFileResponse,
+    GenerateFileRequest,
     MessageResponse,
     SearchRequest,
     SearchResult,
@@ -25,6 +29,8 @@ from app.services.chat_service import chat_service
 from app.services.audit_service import audit_service
 from app.config import settings as app_settings
 from app.models.file_upload import FileUpload
+from app.models.generated_file import GeneratedFile
+from app.models.message import Message
 
 logger = logging.getLogger(__name__)
 
@@ -332,6 +338,180 @@ def _sanitize_filename(name: str) -> str:
     # Collapse consecutive dots (prevent path traversal like ..)
     sanitized = re.sub(r"\.{2,}", ".", sanitized)
     return sanitized.strip() or "unnamed"
+
+
+def _normalize_output_format(fmt: str) -> str:
+    normalized = (fmt or "").strip().lower()
+    if normalized == "doc":
+        return "docx"
+    if normalized == "excel":
+        return "xlsx"
+    return normalized
+
+
+def _markdown_to_text(content: str) -> str:
+    text = content or ""
+    text = re.sub(r"```([\s\S]*?)```", lambda m: m.group(1).strip(), text)
+    text = re.sub(r"`([^`]*)`", r"\1", text)
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"^\s{0,3}#{1,6}\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*>\s?", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*[-*+]\s+", "- ", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*\d+\.\s+", "- ", text, flags=re.MULTILINE)
+    return text.strip()
+
+
+def _build_html_document(content: str) -> str:
+    return (
+        "<!doctype html>"
+        "<html><head><meta charset=\"utf-8\"/>"
+        "<title>Generated Response</title>"
+        "<style>body{font-family:Segoe UI,Arial,sans-serif;padding:24px;line-height:1.5;}"
+        "pre{white-space:pre-wrap;word-break:break-word;background:#f7f7f7;padding:16px;border-radius:8px;}"
+        "</style></head><body>"
+        "<h1>Generated Response</h1>"
+        f"<pre>{escape(content or '')}</pre>"
+        "</body></html>"
+    )
+
+
+def _build_generated_file(content: str, output_format: str) -> tuple[bytes, str, str]:
+    plain = _markdown_to_text(content)
+
+    if output_format == "pdf":
+        from fpdf import FPDF
+
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Helvetica", "", 11)
+        safe_text = plain.encode("latin-1", errors="replace").decode("latin-1")
+        pdf.multi_cell(0, 6, safe_text or " ")
+        return bytes(pdf.output()), "application/pdf", "pdf"
+
+    if output_format == "docx":
+        from docx import Document
+
+        doc = Document()
+        for block in (plain or "").split("\n\n"):
+            doc.add_paragraph(block.strip() or " ")
+        buf = io.BytesIO()
+        doc.save(buf)
+        return (
+            buf.getvalue(),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "docx",
+        )
+
+    if output_format == "xlsx":
+        from openpyxl import Workbook
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Response"
+        lines = plain.splitlines() or [plain or ""]
+        for idx, line in enumerate(lines, start=1):
+            ws.cell(row=idx, column=1, value=line)
+        buf = io.BytesIO()
+        wb.save(buf)
+        return (
+            buf.getvalue(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "xlsx",
+        )
+
+    if output_format == "html":
+        html = _build_html_document(content)
+        return html.encode("utf-8"), "text/html; charset=utf-8", "html"
+
+    raise ValueError("Unsupported output format")
+
+
+@router.post("/generate-file")
+async def generate_file(
+    body: GenerateFileRequest,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    output_format = _normalize_output_format(body.format)
+    try:
+        conversation_id = uuid.UUID(body.conversation_id)
+        message_id = uuid.UUID(body.message_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid conversation_id or message_id") from exc
+
+    msg = (
+        await db.execute(
+            select(Message)
+            .where(
+                Message.id == message_id,
+                Message.conversation_id == conversation_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    conv = await chat_service.get_conversation(conversation_id, user_id, db)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    try:
+        file_bytes, media_type, extension = _build_generated_file(body.content, output_format)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to generate file")
+
+    raw_name = body.filename or f"assistant-output.{extension}"
+    safe_name = _sanitize_filename(raw_name)
+    if not safe_name.lower().endswith(f".{extension}"):
+        safe_name = f"{safe_name}.{extension}"
+
+    generated = GeneratedFile(
+        user_id=user_id,
+        conversation_id=conversation_id,
+        message_id=message_id,
+        filename=safe_name,
+        extension=f".{extension}",
+        mime_type=media_type.split(";")[0],
+        size_bytes=len(file_bytes),
+        content=file_bytes,
+    )
+    db.add(generated)
+    await db.flush()
+
+    return GenerateFileResponse(
+        id=str(generated.id),
+        name=safe_name,
+        type="document",
+        url=f"/api/chat/generated-files/{generated.id}/download",
+    )
+
+
+@router.get("/generated-files/{file_id}/download")
+async def download_generated_file(
+    file_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    file_record = (
+        await db.execute(
+            select(GeneratedFile).where(
+                GeneratedFile.id == file_id,
+                GeneratedFile.user_id == user_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not file_record:
+        raise HTTPException(status_code=404, detail="Generated file not found")
+
+    return Response(
+        content=file_record.content,
+        media_type=file_record.mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{file_record.filename}"'},
+    )
 
 
 @router.post("/upload")

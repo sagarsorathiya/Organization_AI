@@ -26,6 +26,7 @@ from app.services.chat_service import chat_service
 from app.services.audit_service import audit_service
 from app.models.conversation import Conversation
 from app.models.message import Message
+from app.models.generated_file import GeneratedFile
 
 router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
@@ -137,6 +138,29 @@ async def get_conversation(
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
+    message_ids = [m.id for m in conv.messages]
+    attachments_by_message: dict[uuid.UUID, list[dict]] = {}
+    if message_ids:
+        files = (
+            await db.execute(
+                select(GeneratedFile)
+                .where(
+                    GeneratedFile.user_id == user_id,
+                    GeneratedFile.conversation_id == conversation_id,
+                    GeneratedFile.message_id.in_(message_ids),
+                )
+                .order_by(GeneratedFile.created_at.asc())
+            )
+        ).scalars().all()
+        for gf in files:
+            attachments_by_message.setdefault(gf.message_id, []).append(
+                {
+                    "name": gf.filename,
+                    "type": "document",
+                    "url": f"/api/chat/generated-files/{gf.id}/download",
+                }
+            )
+
     return ConversationMessages(
         conversation_id=str(conv.id),
         title=conv.title,
@@ -148,6 +172,7 @@ async def get_conversation(
                 content=m.content,
                 model=m.model,
                 token_count=m.token_count,
+                attachments=attachments_by_message.get(m.id, []),
                 created_at=m.created_at,
             )
             for m in conv.messages

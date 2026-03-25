@@ -4,6 +4,7 @@ from app.models.message import Message
 from app.models.audit_log import AuditLog
 from app.models.user_settings import UserSettings
 from app.models.file_upload import FileUpload
+from app.models.generated_file import GeneratedFile
 from app.models.message_feedback import MessageFeedback
 from app.models.prompt_template import PromptTemplate
 from app.models.conversation_tag import ConversationTag, ConversationTagLink
@@ -26,7 +27,7 @@ from app.models.department import Department
 from app.models.designation import Designation
 
 __all__ = [
-    "User", "Conversation", "Message", "AuditLog", "UserSettings", "FileUpload",
+    "User", "Conversation", "Message", "AuditLog", "UserSettings", "FileUpload", "GeneratedFile",
     "MessageFeedback", "PromptTemplate", "ConversationTag", "ConversationTagLink",
     "Announcement", "SharedConversation", "MessageBookmark", "TokenBlacklist",
     # V2

@@ -11,6 +11,27 @@ class ChatRequest(BaseModel):
     agent_id: str | None = None
 
 
+class GenerateFileRequest(BaseModel):
+    content: str = Field(..., min_length=1, max_length=20_000_000)
+    format: str = Field(..., pattern="^(pdf|doc|docx|excel|xlsx|html)$")
+    conversation_id: str
+    message_id: str
+    filename: str | None = None
+
+
+class AttachmentMeta(BaseModel):
+    name: str
+    type: str = "document"
+    url: str
+
+
+class GenerateFileResponse(BaseModel):
+    id: str
+    name: str
+    type: str = "document"
+    url: str
+
+
 class MessageResponse(BaseModel):
     id: str
     conversation_id: str
@@ -18,6 +39,7 @@ class MessageResponse(BaseModel):
     content: str
     model: str | None = None
     token_count: int | None = None
+    attachments: list[AttachmentMeta] = []
     created_at: datetime
 
     model_config = {"from_attributes": True}

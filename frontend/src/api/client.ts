@@ -66,6 +66,28 @@ export async function post<T>(path: string, body?: unknown): Promise<T> {
   return handleResponse<T>(res);
 }
 
+export async function postBlob(path: string, body?: unknown): Promise<Blob> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: authHeaders(),
+    credentials: "include",
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (res.status === 401) {
+    localStorage.removeItem("auth_token");
+    window.location.href = "/login";
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({ detail: "Request failed" }));
+    throw new ApiError(res.status, payload.detail || "Request failed");
+  }
+
+  return res.blob();
+}
+
 export async function patch<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "PATCH",

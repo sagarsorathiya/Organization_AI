@@ -187,6 +187,7 @@ async def on_startup():
         from app.database import engine, Base
         from app.models import (
             User, Conversation, Message, AuditLog, UserSettings,
+            GeneratedFile,
             MessageFeedback, PromptTemplate, ConversationTag, ConversationTagLink,
             Announcement, SharedConversation, MessageBookmark,
             KnowledgeBase, KnowledgeDocument, DocumentChunk,

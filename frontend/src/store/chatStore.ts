@@ -3,6 +3,61 @@ import type { Conversation, Message, MessageAttachment, StreamChunk, ModelsRespo
 import { get, post, patch, del, postStream } from "@/api/client";
 import { useAgentStore } from "@/store/agentStore";
 
+type GeneratedFormat = "pdf" | "docx" | "xlsx" | "html";
+
+function inferRequestedFormats(prompt: string): GeneratedFormat[] {
+  const text = (prompt || "").toLowerCase();
+  const wantsCreate = /(create|generate|make|build|produce|export|prepare)/i.test(text);
+  if (!wantsCreate) return [];
+
+  const formats = new Set<GeneratedFormat>();
+  if (/\bpdf\b|portable document/i.test(text)) formats.add("pdf");
+  if (/\bdoc\b|\bdocx\b|word document|microsoft word|ms word/i.test(text)) formats.add("docx");
+  if (/\bexcel\b|\bxlsx\b|spreadsheet/i.test(text)) formats.add("xlsx");
+  if (/\bhtml\b|web page|webpage/i.test(text)) formats.add("html");
+
+  return Array.from(formats);
+}
+
+function defaultFileName(format: GeneratedFormat): string {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  return `assistant-output-${ts}.${format}`;
+}
+
+interface GeneratedFileResponse {
+  id: string;
+  name: string;
+  type: "document";
+  url: string;
+}
+
+async function generateResponseFiles(
+  content: string,
+  formats: GeneratedFormat[],
+  conversationId: string,
+  messageId: string,
+): Promise<MessageAttachment[]> {
+  const attachments: MessageAttachment[] = [];
+
+  for (const format of formats) {
+    try {
+      const name = defaultFileName(format);
+      const file = await post<GeneratedFileResponse>("/chat/generate-file", {
+        content,
+        format,
+        conversation_id: conversationId,
+        message_id: messageId,
+        filename: name,
+      });
+      attachments.push({ name: file.name, type: "document", url: file.url });
+    } catch {
+      // Skip failed formats and keep the rest.
+    }
+  }
+
+  return attachments;
+}
+
 interface ChatState {
   conversations: Conversation[];
   activeConversationId: string | null;
@@ -254,6 +309,30 @@ export const useChatStore = create<ChatState>((set, getState) => ({
             streamingContent: "",
             _abortController: null,
           }));
+
+          // If the user's prompt asked for a file, generate downloadable outputs.
+          const latestUser = [...getState().messages]
+            .reverse()
+            .find((m) => m.role === "user");
+          const userPrompt = latestUser?.displayContent || latestUser?.content || "";
+          const requestedFormats = inferRequestedFormats(userPrompt);
+          if (requestedFormats.length > 0 && fullContent.trim().length > 0) {
+            const generated = await generateResponseFiles(
+              fullContent,
+              requestedFormats,
+              convId,
+              assistantMsg.id,
+            );
+            if (generated.length > 0) {
+              set((s) => ({
+                messages: s.messages.map((m) =>
+                  m.id === assistantMsg.id
+                    ? { ...m, attachments: [...(m.attachments || []), ...generated] }
+                    : m
+                ),
+              }));
+            }
+          }
 
           // Refresh conversations if new
           if (!state.activeConversationId) {
