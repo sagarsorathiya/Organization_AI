@@ -235,15 +235,18 @@ Go to: **http://localhost:3005**
 ### Test Admin Panel
 
 1. Click your profile / admin area
-2. Check all 8 tabs:
+2. Check the admin tabs (at minimum these key tabs):
    - **Overview** — shows system health (Database: connected, LLM: connected)
    - **Settings** — all configuration values (editable)
    - **Users** — user management
+   - **Organization** — companies/departments/designations management
    - **Audit Logs** — activity logs
+   - **Database** — export/import and maintenance operations
    - **Models** — available AI models
    - **Announcements** — create/toggle/delete banners for all users
    - **Templates** — create prompt templates with categories
    - **Feedback** — view satisfaction metrics and recent user feedback
+   - **Eval Dashboard** — summary metrics, trace timelines, and approval action queue
 
 ### Test Enterprise Features
 

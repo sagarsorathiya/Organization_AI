@@ -55,10 +55,30 @@ class Settings(BaseSettings):
     LLM_NUM_CTX: int = 4096           # Context window size (tokens) — lower = faster first-token
     LLM_NUM_GPU: int = -1             # GPU layers: -1=auto (all), 0=CPU-only, N=specific layers
     LLM_NUM_THREAD: int = 0           # CPU threads: 0=auto (all cores)
+    LLM_ENABLE_ROUTING: bool = True
+    LLM_SMALL_MODEL_CANDIDATES: List[str] = ["gemma4:e2b", "gemma4:e4b", "llama3.2:3b"]
+    LLM_COMPLEX_TASK_KEYWORDS: List[str] = [
+        "analyze", "architecture", "design", "plan", "proposal", "multi-step",
+        "report", "compliance", "security", "root cause", "strategy",
+    ]
+    LLM_DRAFT_REFINEMENT_ENABLED: bool = True
+    LLM_DRAFT_MAX_TOKENS: int = 220
+    LLM_WARM_POOL_ENABLED: bool = True
+    LLM_WARM_POOL_PROMPT: str = "Reply with exactly: READY"
+    LLM_PROMPT_CACHE_ENABLED: bool = True
+    LLM_PROMPT_CACHE_TTL_SECONDS: int = 45
 
     # Chat context limits
     CHAT_MAX_CONTEXT_MESSAGES: int = 20
     CHAT_MAX_CONTEXT_CHARS: int = 16000  # ~4K tokens
+    CHAT_DEEP_ANALYSIS_MULTIPLIER: int = 2
+    CHAT_DEEP_ANALYSIS_MAX_CONTEXT_MESSAGES: int = 60
+    CHAT_DEEP_ANALYSIS_MAX_CONTEXT_CHARS: int = 120000
+    CHAT_ENABLE_STREAM_PHASES: bool = True
+    CHAT_ENABLE_QUALITY_GUARDRAILS: bool = True
+    CHAT_ANTI_FLUFF_DEFAULT: bool = True
+    CHAT_RAG_LATENCY_BUDGET_MS: int = 800
+    CHAT_SUGGESTED_FOLLOWUPS: int = 3
 
     # Session / Security
     SESSION_SECRET: SecretStr = SecretStr(secrets.token_urlsafe(48))

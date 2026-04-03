@@ -59,9 +59,10 @@ import { TasksAdmin } from "@/components/Admin/TasksAdmin";
 import { SkillsPanel } from "@/components/Skills/SkillsPanel";
 import { AdminHelpButton } from "@/components/Admin/AdminHelpButton";
 import { OrganizationAdmin } from "@/components/Admin/OrganizationAdmin";
+import { EvalDashboard } from "@/components/Admin/EvalDashboard";
 import { useOrgStore } from "@/store/orgStore";
 
-type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks" | "organization";
+type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks" | "organization" | "evals";
 
 const POPULAR_MODELS = [
   { name: "llama3.3:70b",         family: "Llama",     params: "70B",   size: "43 GB",   desc: "Meta's most capable open model" },
@@ -801,6 +802,7 @@ export function AdminPage() {
     {
       label: "AI & Automation",
       tabs: [
+        { id: "evals", label: "Eval Dashboard", icon: Activity },
         ...(featureEnabled.agents ? [{ id: "agents" as Tab, label: "AI Agents", icon: Bot }] : []),
         ...(featureEnabled.knowledge ? [{ id: "knowledge" as Tab, label: "Knowledge", icon: BookOpen }] : []),
         ...(featureEnabled.skills ? [{ id: "skills" as Tab, label: "Skills", icon: Zap }] : []),
@@ -2277,6 +2279,19 @@ export function AdminPage() {
             ) : (
               <p className="text-sm text-surface-400 text-center py-8">No feedback data available.</p>
             )}
+          </div>
+        )}
+
+        {tab === "evals" && (
+          <div className="card overflow-hidden">
+            <div className="px-5 py-4 border-b bg-surface-50 dark:bg-surface-850 flex items-center gap-2">
+              <Activity size={16} className="text-primary-500" />
+              <span className="text-sm font-semibold">Eval Dashboard</span>
+              <span className="text-xs text-surface-400 ml-auto">Latency, trace timelines, and approval actions</span>
+            </div>
+            <div className="p-5">
+              <EvalDashboard />
+            </div>
           </div>
         )}
 

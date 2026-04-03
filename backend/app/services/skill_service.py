@@ -3,6 +3,7 @@
 import uuid
 import logging
 import time
+import json
 from datetime import datetime, timezone
 
 from sqlalchemy import select, func, update
@@ -17,6 +18,62 @@ logger = logging.getLogger(__name__)
 
 class SkillService:
     """Manages skill CRUD and execution."""
+
+    async def _generate_structured_with_retry(
+        self,
+        skill_name: str,
+        step_desc: str,
+        prompt: str,
+        output_schema: dict,
+        max_retries: int = 2,
+    ) -> str:
+        """Generate JSON output with schema checks and repair retries."""
+        schema_text = json.dumps(output_schema, ensure_ascii=True)
+        system_msg = (
+            f"You are executing skill: {skill_name}. Step: {step_desc}. "
+            "Return ONLY valid JSON without markdown fences."
+        )
+        user_prompt = (
+            prompt
+            + "\n\nReturn a JSON object that conforms to this schema:\n"
+            + schema_text
+        )
+
+        last_error = "unknown"
+        for attempt in range(max_retries + 1):
+            raw = await llm_service.generate([
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_prompt},
+            ])
+            cleaned = raw.strip().removeprefix("```json").removesuffix("```").strip()
+
+            try:
+                data = json.loads(cleaned)
+                if not isinstance(data, dict):
+                    raise ValueError("Output must be a JSON object")
+
+                required = output_schema.get("required", []) if isinstance(output_schema, dict) else []
+                if required and isinstance(required, list):
+                    missing = [k for k in required if k not in data]
+                    if missing:
+                        raise ValueError(f"Missing required keys: {', '.join(missing)}")
+
+                # Keep normalized JSON to simplify downstream parsing.
+                return json.dumps(data, ensure_ascii=True)
+            except Exception as exc:
+                last_error = str(exc)
+                if attempt >= max_retries:
+                    break
+                user_prompt = (
+                    "Your previous output was invalid. "
+                    f"Error: {last_error}.\n"
+                    "Return ONLY corrected JSON matching the schema exactly.\n\n"
+                    + prompt
+                    + "\n\nSchema:\n"
+                    + schema_text
+                )
+
+        raise ValueError(f"Structured output validation failed after retries: {last_error}")
 
     async def list_skills(
         self,
@@ -93,7 +150,8 @@ class SkillService:
 
             for step in skill.steps:
                 action = step.get("action", "llm_generate")
-                prompt = step.get("params", {}).get("prompt", "")
+                params = step.get("params", {}) if isinstance(step.get("params"), dict) else {}
+                prompt = params.get("prompt") or step.get("prompt", "")
 
                 # Template substitution
                 for key, val in context.items():
@@ -101,11 +159,20 @@ class SkillService:
                         prompt = prompt.replace(f"{{{key}}}", val)
 
                 if action in ("llm_generate", "llm_summarize"):
-                    messages = [
-                        {"role": "system", "content": f"You are executing skill: {skill.name}. Step: {step.get('description', '')}"},
-                        {"role": "user", "content": prompt},
-                    ]
-                    response = await llm_service.generate(messages)
+                    output_schema = params.get("output_schema")
+                    if output_schema and isinstance(output_schema, dict):
+                        response = await self._generate_structured_with_retry(
+                            skill_name=skill.name,
+                            step_desc=step.get("description", ""),
+                            prompt=prompt,
+                            output_schema=output_schema,
+                        )
+                    else:
+                        messages = [
+                            {"role": "system", "content": f"You are executing skill: {skill.name}. Step: {step.get('description', '')}"},
+                            {"role": "user", "content": prompt},
+                        ]
+                        response = await llm_service.generate(messages)
                     context[f"step_{step.get('step', len(result_parts) + 1)}"] = response
                     result_parts.append(response)
                 elif action == "format_output":

@@ -20,6 +20,7 @@ from app.models.ai_memory import AIMemory
 from app.models.agent_skill import AgentSkill, SkillExecution
 from app.models.scheduled_task import ScheduledTask, TaskExecution
 from app.models.notification import Notification
+from app.models.eval_trace import RequestTrace, ActionExecutionRequest
 
 # V3 Models — Organization Structure
 from app.models.company import Company
@@ -34,6 +35,7 @@ __all__ = [
     "KnowledgeBase", "KnowledgeDocument", "DocumentChunk",
     "Agent", "AIMemory", "AgentSkill", "SkillExecution",
     "ScheduledTask", "TaskExecution", "Notification",
+    "RequestTrace", "ActionExecutionRequest",
     # V3 — Organization
     "Company", "Department", "Designation",
 ]

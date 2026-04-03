@@ -27,7 +27,7 @@ function getInitials(name: string): string {
 interface Props {
   message: Message;
   onEdit?: (messageId: string, newContent: string) => void;
-  onRegenerate?: (messageId: string) => void;
+  onRegenerate?: (messageId: string, style?: "same" | "shorter" | "deeper" | "citations" | "executive") => void;
   isLastAssistant?: boolean;
 }
 
@@ -43,6 +43,12 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
   const { bookmarkedIds, toggleBookmark } = useBookmarkStore();
   const feedback = feedbackMap[message.id];
   const isBookmarked = bookmarkedIds.has(message.id);
+
+  const scoreBand = (score: number): "high" | "medium" | "low" => {
+    if (score >= 0.78) return "high";
+    if (score >= 0.55) return "medium";
+    return "low";
+  };
 
   useEffect(() => {
     if (isEditing && editRef.current) {
@@ -258,6 +264,32 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
                   {message.content}
                 </ReactMarkdown>
               </div>
+              {message.citations && message.citations.length > 0 && (
+                <div className="mt-3 border-t border-surface-200 dark:border-surface-700 pt-2">
+                  <p className="text-xs font-medium text-surface-500 mb-2">Sources</p>
+                  <div className="space-y-2">
+                    {message.citations.slice(0, 5).map((c, idx) => (
+                      <details key={`${c.source}-${idx}`} className="rounded-md border border-surface-200 dark:border-surface-700 px-2 py-1.5">
+                        <summary className="cursor-pointer text-xs text-surface-600 dark:text-surface-300">
+                          {c.source} (score {c.score.toFixed(2)} • {scoreBand(c.score)} confidence)
+                        </summary>
+                        <p className="mt-1 text-xs text-surface-500 dark:text-surface-400 whitespace-pre-wrap">
+                          {c.snippet}
+                        </p>
+                      </details>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {message.quality_issues && message.quality_issues.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {message.quality_issues.map((issue) => (
+                    <span key={issue} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                      quality: {issue.split("_").join(" ")}
+                    </span>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -305,13 +337,40 @@ export function MessageBubble({ message, onEdit, onRegenerate, isLastAssistant }
                 <Bookmark size={14} className={isBookmarked ? "fill-amber-500" : ""} />
               </button>
               {isLastAssistant && onRegenerate && (
-                <button
-                  onClick={() => onRegenerate(message.id)}
-                  className="p-1 rounded text-surface-400 hover:text-primary-500"
-                  aria-label="Regenerate response"
-                >
-                  <RefreshCw size={14} />
-                </button>
+                <>
+                  <button
+                    onClick={() => onRegenerate(message.id, "same")}
+                    className="p-1 rounded text-surface-400 hover:text-primary-500"
+                    aria-label="Regenerate response"
+                    title="Regenerate"
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                  <button
+                    onClick={() => onRegenerate(message.id, "shorter")}
+                    className="text-[10px] px-1.5 py-0.5 rounded text-surface-400 hover:text-primary-500"
+                    aria-label="Regenerate shorter"
+                    title="Shorter"
+                  >
+                    Short
+                  </button>
+                  <button
+                    onClick={() => onRegenerate(message.id, "deeper")}
+                    className="text-[10px] px-1.5 py-0.5 rounded text-surface-400 hover:text-primary-500"
+                    aria-label="Regenerate deeper"
+                    title="Deeper"
+                  >
+                    Deep
+                  </button>
+                  <button
+                    onClick={() => onRegenerate(message.id, "citations")}
+                    className="text-[10px] px-1.5 py-0.5 rounded text-surface-400 hover:text-primary-500"
+                    aria-label="Regenerate with citations"
+                    title="With citations"
+                  >
+                    Cite
+                  </button>
+                </>
               )}
               {message.model && (
                 <span className="text-[10px] text-surface-400 self-center ml-1">

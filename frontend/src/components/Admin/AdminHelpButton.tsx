@@ -2,7 +2,7 @@ import { useState } from "react";
 import { HelpCircle, X, ChevronRight, ChevronDown } from "lucide-react";
 import clsx from "clsx";
 
-type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks" | "organization";
+type Tab = "overview" | "settings" | "users" | "audit" | "models" | "database" | "announcements" | "templates" | "feedback" | "agents" | "knowledge" | "skills" | "tasks" | "organization" | "evals";
 
 interface HelpSection {
   title: string;
@@ -135,6 +135,15 @@ const HELP_DATA: Record<Tab, HelpSection> = {
       { q: "How do I create a company?", a: "Go to the Companies sub-tab, click 'Add Company', fill in the name and code, then save." },
       { q: "How do mappings work?", a: "Departments map to companies (M2M) and designations map to departments (M2M). Use the chip-toggle UI when editing to assign mappings." },
       { q: "How do users select their org?", a: "New domain users see a setup dialog on first login. Users can change from Settings > Organization Profile anytime." },
+    ],
+  },
+  evals: {
+    title: "Eval Dashboard",
+    items: [
+      { q: "What does Eval Dashboard show?", a: "Latency trends, request trace timelines, citation/quality flags, and action execution workflow status." },
+      { q: "How do I inspect a request?", a: "Open a trace session to view ordered events: prompt received, model routing, retrieval attachment, draft/refine, and completion." },
+      { q: "How does approval-gated execution work?", a: "Create action requests with an idempotency key, then approve/reject. Approved actions can be executed once safely." },
+      { q: "What is an idempotency key?", a: "A unique key that prevents duplicate action execution when retries or network resubmissions occur." },
     ],
   },
 };

@@ -56,7 +56,7 @@
 </tr>
 <tr>
 <td><img src="docs/screenshot/Admin Setting.png" alt="Admin Settings"><br><b>Admin Settings</b> — LDAP config, security, help button</td>
-<td><img src="docs/screenshot/Database Setting.png" alt="Database Management"><br><b>Database</b> — 29 tables, export/import, PostgreSQL 18</td>
+<td><img src="docs/screenshot/Database Setting.png" alt="Database Management"><br><b>Database</b> — 31 tables, export/import, PostgreSQL 18</td>
 </tr>
 <tr>
 <td colspan="2" align="center"><img src="docs/screenshot/Health Report.png" alt="Health Dashboard" width="50%"><br><b>Health Report</b> — System, Database, LLM status at a glance</td>
@@ -71,12 +71,15 @@
 - **Private & Secure** — All AI inference runs locally via [Ollama](https://ollama.ai). Zero cloud dependency.
 - **Active Directory / LDAP** — Authenticate users against your existing AD/LDAP directory.
 - **Multi-Model Support** — 27 popular models cataloged; download, update, and delete from the admin panel.
-- **Admin Panel** — 14 tabs in 3 groups (System, Content, AI & Automation) for full platform management, with contextual floating help button.
+- **Admin Panel** — 15 tabs in 3 groups (System, Content, AI & Automation), including an Eval Dashboard for request traces and approval workflows.
 - **Streaming Responses** — Real-time token streaming with optimized rendering.
 - **Full-Text Search** — PostgreSQL-powered search across all conversations and messages.
 - **Custom System Prompts** — Per-user customizable AI behavior and preferences.
 - **Dark / Light / System Theme** — User-selectable theme with system auto-detection.
-- **Database Management** — Admin tools for export (JSON/ZIP), import, schema inspection, and data maintenance across all 29 tables.
+- **Database Management** — Admin tools for export (JSON/ZIP), import, schema inspection, and data maintenance across all 31 tables.
+- **Eval Dashboard** — Admin observability for latency, quality flags, model distribution, request timelines, and execution governance.
+- **Trace Timeline** — Per-request phase timeline (prompt, model routing, retrieval, draft/refine, completion) for troubleshooting and QA.
+- **Approval-Gated Actions** — Idempotency-keyed action requests with approve/reject/execute controls and full auditability.
 - **One-Click Setup** — Automated setup scripts for Windows (`setup.ps1`) and Linux (`setup.sh`).
 - **Scales to 200+ Users** — Configurable connection pools, worker counts, and GPU acceleration.
 - **Hardware-Agnostic** — Works on CPU-only servers, GPU servers, or mixed environments.
@@ -112,12 +115,12 @@
 | Metric | Value |
 |--------|-------|
 | **Features** | 45+ |
-| **API Endpoints** | ~139 across 18 route files |
-| **Database Tables** | 29 (14 core + 10 AI/automation + 5 organization) |
-| **Alembic Migrations** | 10 |
+| **API Endpoints** | 146+ across 18 route files |
+| **Database Tables** | 31 (14 core + 10 AI/automation + 5 organization + 2 eval/governance) |
+| **Alembic Migrations** | 14 |
 | **Backend Services** | 13 (6 core + 6 AI + 1 org) |
 | **Frontend Stores** | 12 (Zustand) |
-| **Admin Panel Tabs** | 14 in 3 groups |
+| **Admin Panel Tabs** | 15 in 3 groups |
 | **Feature Flags** | 6 |
 
 ---
@@ -278,7 +281,7 @@ AD_ENABLED=false
 │                                 │  │ Memory /     │ │ │
 │  ┌──────────┐                  │  │ Skills / RAG │ │ │
 │  │PostgreSQL│◀─────────────────│  └──────────────┘ │ │
-│  │ 29 tables│                  │  ┌──────────────┐ │ │
+│  │ 31 tables│                  │  ┌──────────────┐ │ │
 │  └──────────┘                  │  │ Scheduler /  │ │ │
 │                                 │  │ Notifications│ │ │
 │  ┌──────────┐                  │  └──────────────┘ │ │
@@ -424,7 +427,7 @@ See [.env.example](.env.example) for all tuning parameters.
 </details>
 
 <details>
-<summary><strong>Admin</strong> (18 endpoints)</summary>
+<summary><strong>Admin</strong> (25 endpoints)</summary>
 
 | Method | Endpoint                          | Description              | Auth     |
 |--------|-----------------------------------|--------------------------|----------|
@@ -446,6 +449,13 @@ See [.env.example](.env.example) for all tuning parameters.
 | POST   | /api/admin/database/import        | Import data              | Admin    |
 | DELETE | /api/admin/database/clear/:table  | Clear table data         | Admin    |
 | DELETE | /api/admin/database/clear-all     | Clear all data           | Admin    |
+| GET    | /api/admin/eval/summary           | Eval metrics summary     | Admin    |
+| GET    | /api/admin/eval/traces            | Request trace timelines  | Admin    |
+| GET    | /api/admin/eval/actions           | List action requests     | Admin    |
+| POST   | /api/admin/eval/actions/request   | Create idempotent action | Admin    |
+| POST   | /api/admin/eval/actions/:id/approve | Approve action request | Admin    |
+| POST   | /api/admin/eval/actions/:id/reject  | Reject action request  | Admin    |
+| POST   | /api/admin/eval/actions/:id/execute | Execute approved action | Admin    |
 
 </details>
 

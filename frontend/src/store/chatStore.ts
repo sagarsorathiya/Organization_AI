@@ -24,6 +24,20 @@ function defaultFileName(format: GeneratedFormat): string {
   return `assistant-output-${ts}.${format}`;
 }
 
+function extractVisionImages(attachments?: MessageAttachment[]): string[] {
+  if (!attachments || attachments.length === 0) return [];
+
+  const images: string[] = [];
+  for (const att of attachments) {
+    if (att.type !== "image" || !att.url) continue;
+    const match = att.url.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/);
+    if (match?.[1]) {
+      images.push(match[1]);
+    }
+  }
+  return images;
+}
+
 interface GeneratedFileResponse {
   id: string;
   name: string;
@@ -66,6 +80,7 @@ interface ChatState {
   isLoadingMessages: boolean;
   isStreaming: boolean;
   streamingContent: string;
+  streamingPhase: string | null;
   error: string | null;
   _abortController: AbortController | null;
   sidebarSearch: string;
@@ -74,6 +89,10 @@ interface ChatState {
   selectedModel: string | null;
   attachmentsEnabled: boolean;
   attachmentsMaxSizeMb: number;
+  deepAnalysisMode: boolean;
+  lastFailedPrompt: string | null;
+  lastFailedModel: string | null;
+  lastFailedOptions?: { displayContent?: string; attachments?: MessageAttachment[] };
 
   loadConversations: () => Promise<void>;
   selectConversation: (id: string) => Promise<void>;
@@ -91,6 +110,8 @@ interface ChatState {
   setSidebarSearch: (q: string) => void;
   loadModels: () => Promise<void>;
   setSelectedModel: (model: string | null) => void;
+  setDeepAnalysisMode: (enabled: boolean) => void;
+  retryLastRequest: (mode?: "same" | "fast" | "deep") => Promise<void>;
   loadAttachmentsEnabled: () => Promise<void>;
   getFilteredConversations: () => Conversation[];
 }
@@ -103,6 +124,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
   isLoadingMessages: false,
   isStreaming: false,
   streamingContent: "",
+  streamingPhase: null,
   error: null,
   _abortController: null,
   sidebarSearch: "",
@@ -111,6 +133,10 @@ export const useChatStore = create<ChatState>((set, getState) => ({
   selectedModel: null,
   attachmentsEnabled: true,
   attachmentsMaxSizeMb: 10,
+  deepAnalysisMode: false,
+  lastFailedPrompt: null,
+  lastFailedModel: null,
+  lastFailedOptions: undefined,
 
   loadConversations: async () => {
     set({ isLoadingConversations: true });
@@ -218,6 +244,7 @@ export const useChatStore = create<ChatState>((set, getState) => ({
         conversation_id: state.activeConversationId,
         model,
         agent_id: agentId || undefined,
+        deep_analysis: state.deepAnalysisMode,
       });
 
       // If this was a new conversation, update the ID
@@ -247,14 +274,14 @@ export const useChatStore = create<ChatState>((set, getState) => ({
     if (_abortController) {
       _abortController.abort();
     }
-    set({ _abortController: null, isStreaming: false, streamingContent: "" });
+    set({ _abortController: null, isStreaming: false, streamingContent: "", streamingPhase: null });
   },
 
   sendMessageStream: async (content: string, model?: string, options?: { displayContent?: string; attachments?: MessageAttachment[] }) => {
     const state = getState();
     if (state.isStreaming) return; // F11: prevent race condition
     const abortController = new AbortController();
-    set({ isStreaming: true, streamingContent: "", _abortController: abortController });
+    set({ isStreaming: true, streamingContent: "", streamingPhase: null, _abortController: abortController });
 
     // Add optimistic user message
     const tempUserMsg: Message = {
@@ -281,6 +308,8 @@ export const useChatStore = create<ChatState>((set, getState) => ({
         conversation_id: state.activeConversationId,
         model,
         agent_id: agentId || undefined,
+        deep_analysis: state.deepAnalysisMode,
+        vision_images: extractVisionImages(options?.attachments),
       }, abortController.signal);
 
       for await (const chunk of stream) {
@@ -292,6 +321,11 @@ export const useChatStore = create<ChatState>((set, getState) => ({
         } else if (chunk.type === "token") {
           fullContent += chunk.content;
           set({ streamingContent: fullContent });
+        } else if (chunk.type === "phase") {
+          set({ streamingPhase: chunk.phase });
+        } else if (chunk.type === "reset") {
+          fullContent = "";
+          set({ streamingContent: "" });
         } else if (chunk.type === "done") {
           // Add final assistant message
           const assistantMsg: Message = {
@@ -299,15 +333,22 @@ export const useChatStore = create<ChatState>((set, getState) => ({
             conversation_id: convId,
             role: "assistant",
             content: fullContent,
-            model: model || null,
+            model: chunk.model || model || null,
             token_count: null,
             created_at: new Date().toISOString(),
+            citations: chunk.citations || [],
+            quality_issues: chunk.quality_issues || [],
+            followups: chunk.followups || [],
           };
           set((s) => ({
             messages: [...s.messages, assistantMsg],
             isStreaming: false,
             streamingContent: "",
+            streamingPhase: null,
             _abortController: null,
+            lastFailedPrompt: null,
+            lastFailedModel: null,
+            lastFailedOptions: undefined,
           }));
 
           // If the user's prompt asked for a file, generate downloadable outputs.
@@ -343,8 +384,12 @@ export const useChatStore = create<ChatState>((set, getState) => ({
           set({
             isStreaming: false,
             streamingContent: "",
+            streamingPhase: null,
             _abortController: null,
             error: chunk.content || "An error occurred while generating the response.",
+            lastFailedPrompt: content,
+            lastFailedModel: model || null,
+            lastFailedOptions: options,
           });
           return;
         }
@@ -367,14 +412,19 @@ export const useChatStore = create<ChatState>((set, getState) => ({
             messages: [...s.messages, partialMsg],
             isStreaming: false,
             streamingContent: "",
+            streamingPhase: null,
             _abortController: null,
           }));
         } else {
           set({
             isStreaming: false,
             streamingContent: "",
+            streamingPhase: null,
             _abortController: null,
             error: "Stream ended unexpectedly. Please try again.",
+            lastFailedPrompt: content,
+            lastFailedModel: model || null,
+            lastFailedOptions: options,
           });
         }
       }
@@ -396,14 +446,19 @@ export const useChatStore = create<ChatState>((set, getState) => ({
           messages: [...s.messages, assistantMsg],
           isStreaming: false,
           streamingContent: "",
+          streamingPhase: null,
           _abortController: null,
         }));
       } else {
         set({
           isStreaming: false,
           streamingContent: "",
+          streamingPhase: null,
           _abortController: null,
           error: wasAborted ? null : "Stream failed",
+          lastFailedPrompt: wasAborted ? null : content,
+          lastFailedModel: wasAborted ? null : (model || null),
+          lastFailedOptions: wasAborted ? undefined : options,
         });
       }
     }
@@ -444,6 +499,39 @@ export const useChatStore = create<ChatState>((set, getState) => ({
   },
 
   setSelectedModel: (model: string | null) => set({ selectedModel: model }),
+
+  setDeepAnalysisMode: (enabled: boolean) => set({ deepAnalysisMode: enabled }),
+
+  retryLastRequest: async (mode = "same") => {
+    const state = getState();
+    if (!state.lastFailedPrompt) return;
+
+    let retryModel = state.lastFailedModel || undefined;
+    let retryDeep = state.deepAnalysisMode;
+
+    if (mode === "fast") {
+      const fast = state.availableModels.find((m) => /gemma4:e2b|gemma4:e4b|llama3\.2:3b/i.test(m));
+      if (fast) retryModel = fast;
+      retryDeep = false;
+      set({ deepAnalysisMode: false });
+    }
+
+    if (mode === "deep") {
+      retryDeep = true;
+      set({ deepAnalysisMode: true });
+    }
+
+    // Ensure state reflects the retry strategy before dispatching request.
+    if (retryDeep !== state.deepAnalysisMode) {
+      set({ deepAnalysisMode: retryDeep });
+    }
+
+    await getState().sendMessageStream(
+      state.lastFailedPrompt,
+      retryModel,
+      state.lastFailedOptions,
+    );
+  },
 
   loadAttachmentsEnabled: async () => {
     try {

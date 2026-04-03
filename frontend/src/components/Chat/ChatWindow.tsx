@@ -75,12 +75,14 @@ export function ChatWindow() {
     isLoadingMessages,
     isStreaming,
     streamingContent,
+    streamingPhase,
     activeConversationId,
     error,
     setError,
     editAndResend,
     sendMessageStream,
     selectedModel,
+    retryLastRequest,
   } = useChatStore();
   const { loadConversationFeedback } = useFeedbackStore();
   const { loadBookmarks } = useBookmarkStore();
@@ -106,14 +108,22 @@ export function ChatWindow() {
   );
 
   const handleRegenerate = useCallback(
-    (messageId: string) => {
+    (messageId: string, style: "same" | "shorter" | "deeper" | "citations" | "executive" = "same") => {
       // Find the last user message before this assistant message
       const idx = messages.findIndex((m) => m.id === messageId);
       if (idx <= 0) return;
       const userMsg = messages[idx - 1];
       if (userMsg?.role !== "user") return;
-      // Re-send the user's message
-      sendMessageStream(userMsg.content, selectedModel || undefined);
+
+      const styleInstruction: Record<string, string> = {
+        same: "",
+        shorter: "\n\nRegenerate with a shorter answer in 5 bullets max.",
+        deeper: "\n\nRegenerate with deeper analysis, assumptions, risks, and next steps.",
+        citations: "\n\nRegenerate with explicit citations and confidence levels.",
+        executive: "\n\nRegenerate as an executive brief with summary, implications, and actions.",
+      };
+      const content = userMsg.content + (styleInstruction[style] || "");
+      sendMessageStream(content, selectedModel || undefined);
     },
     [messages, sendMessageStream, selectedModel]
   );
@@ -241,10 +251,13 @@ export function ChatWindow() {
       {/* Error banner */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-4 py-2 text-sm text-red-600 dark:text-red-400 flex justify-between items-center">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="font-medium hover:underline">
-            Dismiss
-          </button>
+          <div className="flex items-center gap-3">
+            <span>{error}</span>
+            <button onClick={() => retryLastRequest("same")} className="text-xs px-2 py-1 rounded bg-white/60 dark:bg-surface-800 hover:bg-white dark:hover:bg-surface-700">Retry same</button>
+            <button onClick={() => retryLastRequest("fast")} className="text-xs px-2 py-1 rounded bg-white/60 dark:bg-surface-800 hover:bg-white dark:hover:bg-surface-700">Retry fast</button>
+            <button onClick={() => retryLastRequest("deep")} className="text-xs px-2 py-1 rounded bg-white/60 dark:bg-surface-800 hover:bg-white dark:hover:bg-surface-700">Retry deep</button>
+          </div>
+          <button onClick={() => setError(null)} className="font-medium hover:underline">Dismiss</button>
         </div>
       )}
 
@@ -330,7 +343,28 @@ export function ChatWindow() {
                   ))}
                 </div>
               ))}
-              {isStreaming && <StreamingMessage content={streamingContent} />}
+              {isStreaming && <StreamingMessage content={streamingContent} phase={streamingPhase || undefined} />}
+
+              {!isStreaming && messages.length > 0 && (() => {
+                const last = [...messages].reverse().find((m) => m.role === "assistant");
+                if (!last?.followups || last.followups.length === 0) return null;
+                return (
+                  <div className="mt-3 p-3 rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/60">
+                    <p className="text-xs text-surface-500 mb-2">Suggested follow-ups</p>
+                    <div className="flex flex-wrap gap-2">
+                      {last.followups.map((q, idx) => (
+                        <button
+                          key={`${idx}-${q}`}
+                          onClick={() => sendMessageStream(q, selectedModel || undefined)}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-surface-300 dark:border-surface-600 hover:bg-white dark:hover:bg-surface-700"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>

@@ -9,6 +9,8 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
     model: str | None = None
     agent_id: str | None = None
+    deep_analysis: bool = False
+    vision_images: list[str] = []
 
 
 class GenerateFileRequest(BaseModel):
@@ -23,6 +25,13 @@ class AttachmentMeta(BaseModel):
     name: str
     type: str = "document"
     url: str
+
+
+class CitationMeta(BaseModel):
+    source: str
+    score: float
+    snippet: str
+    document_id: str | None = None
 
 
 class GenerateFileResponse(BaseModel):
@@ -40,6 +49,9 @@ class MessageResponse(BaseModel):
     model: str | None = None
     token_count: int | None = None
     attachments: list[AttachmentMeta] = []
+    citations: list[CitationMeta] = []
+    quality_issues: list[str] = []
+    followups: list[str] = []
     created_at: datetime
 
     model_config = {"from_attributes": True}

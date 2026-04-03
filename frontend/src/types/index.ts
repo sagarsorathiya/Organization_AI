@@ -44,6 +44,13 @@ export interface MessageAttachment {
   url?: string;
 }
 
+export interface Citation {
+  source: string;
+  score: number;
+  snippet: string;
+  document_id?: string | null;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -54,6 +61,9 @@ export interface Message {
   created_at: string;
   displayContent?: string;
   attachments?: MessageAttachment[];
+  citations?: Citation[];
+  quality_issues?: string[];
+  followups?: string[];
 }
 
 export interface ChatRequest {
@@ -61,6 +71,8 @@ export interface ChatRequest {
   conversation_id?: string;
   model?: string;
   agent_id?: string;
+  deep_analysis?: boolean;
+  vision_images?: string[];
 }
 
 export interface ChatResponse {
@@ -83,6 +95,19 @@ export interface StreamToken {
 export interface StreamDone {
   type: "done";
   message_id: string;
+  model?: string;
+  citations?: Citation[];
+  quality_issues?: string[];
+  followups?: string[];
+}
+
+export interface StreamPhase {
+  type: "phase";
+  phase: string;
+}
+
+export interface StreamReset {
+  type: "reset";
 }
 
 export interface StreamError {
@@ -90,7 +115,7 @@ export interface StreamError {
   content: string;
 }
 
-export type StreamChunk = StreamMeta | StreamToken | StreamDone | StreamError;
+export type StreamChunk = StreamMeta | StreamToken | StreamDone | StreamError | StreamPhase | StreamReset;
 
 export interface UserSettings {
   theme: "light" | "dark" | "system";
@@ -463,4 +488,56 @@ export interface Designation {
   is_active: boolean;
   department_ids: string[];
   created_at: string | null;
+}
+
+export interface EvalSummary {
+  window_hours: number;
+  unique_requests: number;
+  total_events: number;
+  completed_responses: number;
+  avg_latency_ms: number | null;
+  quality_issue_events: number;
+  retry_count: number;
+  events_by_phase: { phase: string; count: number }[];
+  events_by_model: { model: string; count: number }[];
+}
+
+export interface TraceEvent {
+  id: string;
+  request_id: string;
+  user_id: string | null;
+  conversation_id: string | null;
+  message_id: string | null;
+  phase: string;
+  model: string | null;
+  latency_ms: number | null;
+  retry_count: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface TraceSession {
+  request_id: string;
+  conversation_id: string | null;
+  user_id: string | null;
+  events: TraceEvent[];
+}
+
+export interface ActionExecutionRequest {
+  id: string;
+  idempotency_key: string;
+  action_type: string;
+  payload: Record<string, unknown>;
+  status: "pending_approval" | "approved" | "executed" | "rejected" | "failed";
+  requires_approval: boolean;
+  requested_by: string | null;
+  approved_by: string | null;
+  request_trace_id: string | null;
+  retry_count: number;
+  result: Record<string, unknown> | null;
+  error_message: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  reviewed_at: string | null;
+  executed_at: string | null;
 }

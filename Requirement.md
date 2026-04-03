@@ -24,11 +24,11 @@ The system must:
 | **Frontend Framework** | React 18.3 + TypeScript 5.5 + Vite 5.4 |
 | **Database** | PostgreSQL 16 (async via SQLAlchemy 2.0 + asyncpg) |
 | **AI Runtime** | Ollama (llama3.1:8b default, 27 models cataloged) |
-| **API Endpoints** | ~119 across 17 route files |
-| **Database Tables** | 24 across 9 Alembic migrations |
+| **API Endpoints** | 146+ across 18 route files |
+| **Database Tables** | 31 across 14 Alembic migrations |
 | **Backend Services** | 12 (6 V1 + 6 V2) |
 | **Frontend Stores** | 11 (7 V1 + 4 V2) |
-| **Admin Panel Tabs** | 13 in 3 groups |
+| **Admin Panel Tabs** | 15 in 3 groups |
 | **V2 Feature Flags** | 6 (agents, memory, skills, RAG, scheduler, notifications) |
 🔐 Core Security & Privacy Principles
 
@@ -334,7 +334,7 @@ Logs must include:
 
 Role-based access control with `require_admin` middleware.
 
-**13 tabs organized in 3 groups:**
+**15 tabs organized in 3 groups:**
 
 System Group:
 ✅ Overview — system health, database, LLM status, uptime, metrics
@@ -350,10 +350,12 @@ Content Group:
 ✅ Feedback — statistics, satisfaction metrics, recent feedback
 
 AI & Automation Group (V2):
+✅ Eval Dashboard — latency/quality metrics, model distribution, and request trace observability
 ✅ AI Agents — CRUD, duplicate, toggle active, usage stats
 ✅ Knowledge Base — CRUD, document upload (13 formats), sync, vector search
 ✅ Skills — CRUD, execution stats, input schemas
 ✅ Scheduled Tasks — CRUD, cron scheduling, run-now, execution history
+✅ Action Governance — idempotency keys + approval-gated action request/approve/reject/execute flow
 
 Admins can:
 
@@ -570,6 +572,10 @@ Admins can:
 
 ✅ Request ID / correlation tracing
 
+✅ Request trace timeline persistence (prompt, routing, retrieval, retries, completion)
+
+✅ Idempotent admin action execution with approval gates
+
 ✅ Admin route protection via require_admin middleware
 
 🚀 Deployment Model ✅
@@ -622,7 +628,7 @@ Key screens:
 
 ✅ Settings (with usage dashboard & bulk export)
 
-✅ Admin panel (13 tabs in 3 groups: System, Content, AI & Automation)
+✅ Admin panel (15 tabs in 3 groups: System, Content, AI & Automation)
 
 ✅ Bookmarks page
 
@@ -652,11 +658,11 @@ Produce:
 
 ✅ Full project structure
 
-✅ Backend API (FastAPI + ~119 endpoints across 17 route files)
+✅ Backend API (FastAPI + 146+ endpoints across 18 route files)
 
 ✅ AD authentication module (LDAP/LDAPS)
 
-✅ Database schema (24 tables, 9 Alembic migrations)
+✅ Database schema (31 tables, 14 Alembic migrations)
 
 ✅ Chat UI (React 18 + TypeScript + Vite + Tailwind CSS)
 

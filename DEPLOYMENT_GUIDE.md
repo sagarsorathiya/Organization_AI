@@ -615,7 +615,7 @@ After logging in, verify these features:
 - **Password Change:** Go to Settings → Change Password (visible for local accounts only)
 - **Admin Password Reset:** Go to Admin Panel → Users → "Reset Password" button on any local user
 - **File Uploads:** Click the attachment button in chat, upload a file, and verify it's processed
-- **Database Export:** Go to Admin Panel → Database → Export (exports all 13 tables as JSON)
+- **Database Export:** Go to Admin Panel → Database → Export (exports all 31 tables as JSON)
 - **Bulk Export:** Go to Settings → Bulk Export to download all conversations as a ZIP file
 
 ---

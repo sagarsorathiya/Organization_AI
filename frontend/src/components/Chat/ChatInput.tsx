@@ -5,6 +5,8 @@ import { uploadFile } from "@/api/client";
 import { toast } from "sonner";
 import { TemplateSelector } from "./TemplateSelector";
 import { AgentSelector } from "./AgentSelector";
+import { useAuthStore } from "@/store/authStore";
+import { useAgentStore } from "@/store/agentStore";
 
 interface UploadResponse {
   filename: string;
@@ -18,6 +20,30 @@ interface UploadResponse {
 const ACCEPTED_TYPES = ".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.md,.json,.xml,.html,.rtf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg";
 const ACCEPTED_EXTENSIONS = new Set(ACCEPTED_TYPES.split(","));
 
+function applySlashCommand(input: string): string {
+  const trimmed = input.trim();
+  const commandMatch = trimmed.match(/^\/(summarize|analyze|draft-email|extract-actions)\b\s*(.*)$/i);
+  if (!commandMatch) return input;
+
+  const cmd = commandMatch[1].toLowerCase();
+  const payload = commandMatch[2] || "";
+
+  if (cmd === "summarize") {
+    return `Summarize the following into an executive summary, key points, and action items:\n\n${payload}`;
+  }
+  if (cmd === "analyze") {
+    return `Analyze the following with assumptions, risks, and recommendations:\n\n${payload}`;
+  }
+  if (cmd === "draft-email") {
+    return `Draft a professional email with subject, concise body, and clear next steps based on:\n\n${payload}`;
+  }
+  if (cmd === "extract-actions") {
+    return `Extract concrete action items with owners and deadlines from:\n\n${payload}`;
+  }
+
+  return input;
+}
+
 export function ChatInput() {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -25,6 +51,8 @@ export function ChatInput() {
   const [showModels, setShowModels] = useState(false);
   const [attachedFile, setAttachedFile] = useState<{ name: string; text: string; truncated: boolean; image_url?: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const { user } = useAuthStore();
+  const { selectedAgent } = useAgentStore();
   const {
     sendMessageStream,
     stopStreaming,
@@ -33,6 +61,8 @@ export function ChatInput() {
     defaultModel,
     selectedModel,
     setSelectedModel,
+    deepAnalysisMode,
+    setDeepAnalysisMode,
     loadModels,
     clearChat,
     attachmentsEnabled,
@@ -82,7 +112,9 @@ export function ChatInput() {
     const trimmed = input.trim();
     if (!trimmed || isStreaming) return;
 
-    let messageContent = trimmed;
+    const normalized = applySlashCommand(trimmed);
+
+    let messageContent = normalized;
     const attachments: { name: string; type: "document" | "image"; url?: string }[] = [];
     if (attachedFile.length > 0) {
       const fileParts = attachedFile.map((f) => {
@@ -93,7 +125,7 @@ export function ChatInput() {
         attachments.push({ name: f.name, type: "document" });
         return `[Attached file: ${f.name}]\n\n--- File Content ---\n${f.text}\n--- End of File ---`;
       });
-      messageContent = `${fileParts.join("\n\n")}\n\n${trimmed}`;
+      messageContent = `${fileParts.join("\n\n")}\n\n${normalized}`;
       setAttachedFile([]);
     }
 
@@ -173,6 +205,39 @@ export function ChatInput() {
 
   const activeModel = selectedModel || defaultModel;
 
+  const quickPrompts = (() => {
+    const dept = (user?.department || "").toLowerCase();
+    const category = (selectedAgent?.category || "").toLowerCase();
+
+    if (category.includes("it") || dept.includes("it") || dept.includes("engineering")) {
+      return [
+        "Troubleshoot this error step-by-step with likely causes and fixes",
+        "Create a runbook checklist for this incident",
+        "Summarize this log and highlight root-cause clues",
+      ];
+    }
+    if (category.includes("human") || dept.includes("hr")) {
+      return [
+        "Summarize policy implications and required actions",
+        "Draft an employee communication with clear next steps",
+        "Generate an onboarding checklist for a new role",
+      ];
+    }
+    if (category.includes("finance") || dept.includes("finance")) {
+      return [
+        "Build an executive variance summary with key drivers",
+        "List financial risks, impact, and mitigations",
+        "Create a monthly close checklist with owners",
+      ];
+    }
+
+    return [
+      "Summarize this in 5 bullets and 3 action items",
+      "Compare options and recommend the best one with rationale",
+      "Create a phased plan with milestones and risks",
+    ];
+  })();
+
   return (
     <div className="border-t bg-white dark:bg-surface-900 px-4 py-3">
       <div className="max-w-3xl mx-auto">
@@ -192,6 +257,18 @@ export function ChatInput() {
               <ChevronDown size={12} />
             </button>
             <AgentSelector />
+            <button
+              onClick={() => setDeepAnalysisMode(!deepAnalysisMode)}
+              className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${
+                deepAnalysisMode
+                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                  : "bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400"
+              }`}
+              aria-label="Toggle deep analysis mode"
+              title="Use larger context and deeper reasoning"
+            >
+              Deep Analysis: {deepAnalysisMode ? "On" : "Off"}
+            </button>
             {showModels && (
               <div className="absolute bottom-full left-0 mb-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto min-w-[200px]">
                 {availableModels.map((m) => (
@@ -215,6 +292,24 @@ export function ChatInput() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Attached files preview */}
+        {!isStreaming && input.length === 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {quickPrompts.map((p) => (
+              <button
+                key={p}
+                onClick={() => {
+                  setInput(p);
+                  textareaRef.current?.focus();
+                }}
+                className="text-xs px-2.5 py-1.5 rounded-lg border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800"
+              >
+                {p}
+              </button>
+            ))}
           </div>
         )}
 
@@ -312,6 +407,9 @@ export function ChatInput() {
         </div>
         <p className="text-xs text-surface-400 text-center mt-2">
           All conversations are private and processed locally within your organization.
+        </p>
+        <p className="text-[11px] text-surface-400 text-center mt-1">
+          Slash commands: /summarize /analyze /draft-email /extract-actions
         </p>
       </div>
     </div>

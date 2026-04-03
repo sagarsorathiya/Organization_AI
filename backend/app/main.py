@@ -193,6 +193,7 @@ async def on_startup():
             KnowledgeBase, KnowledgeDocument, DocumentChunk,
             Agent, AIMemory, AgentSkill, SkillExecution,
             ScheduledTask, TaskExecution, Notification,
+            RequestTrace, ActionExecutionRequest,
         )
 
         async with engine.begin() as conn:
@@ -233,6 +234,13 @@ async def on_startup():
     # Keep retention enforcement running periodically without requiring restarts
     if _data_retention_task is None or _data_retention_task.done():
         _data_retention_task = asyncio.create_task(_data_retention_loop())
+
+    # Warm model runtime in the background to reduce first-token latency.
+    try:
+        from app.services.llm_service import llm_service
+        asyncio.create_task(llm_service.warm_pool())
+    except Exception:
+        logger.exception("Failed to schedule LLM warm pool")
 
 
 @app.on_event("shutdown")
@@ -436,6 +444,7 @@ _DEFAULT_AGENTS = [
         "category": "Human Resources",
         "system_prompt": "You are an expert HR Policy Assistant for the organization. You help employees understand company policies, benefits, leave procedures, workplace guidelines, and employee handbook contents. Always cite specific policy sections when possible. If you're unsure about a policy, say so and recommend contacting HR directly. Be professional, empathetic, and clear.",
         "temperature": 0.3,
+        "allowed_departments": ["Human Resources", "HR"],
     },
     {
         "name": "IT Helpdesk",
@@ -445,6 +454,7 @@ _DEFAULT_AGENTS = [
         "category": "IT Support",
         "system_prompt": "You are an IT Helpdesk Assistant. Help users troubleshoot technical issues, set up software, resolve connectivity problems, and follow IT best practices. Provide step-by-step instructions. Always ask for error messages and system details when relevant. Recommend escalation to the IT team for hardware issues or security incidents.",
         "temperature": 0.2,
+        "allowed_departments": ["IT", "Engineering"],
     },
     {
         "name": "Code Review Assistant",
@@ -518,24 +528,84 @@ _DEFAULT_AGENTS = [
         "system_prompt": "You are a Project Planning Assistant. Help create project plans with clear objectives, work breakdown structures, timelines, milestones, resource allocation, dependencies, and risk assessments. Use standard PM methodologies. Suggest tools and templates. Flag potential risks and suggest mitigations.",
         "temperature": 0.3,
     },
+    {
+        "name": "HR Operations Tool Pack",
+        "slug": "hr-ops-pack",
+        "description": "Role-based HR assistant with guarded, policy-first workflows and structured outputs.",
+        "icon": "🧩",
+        "category": "Human Resources",
+        "system_prompt": "You are the HR Operations Tool Pack assistant. Use structured JSON outputs when requested. Prioritize policy-backed recommendations, include source references, and request human approval before any sensitive action. Never fabricate employee data.",
+        "temperature": 0.2,
+        "preferred_model": "gemma4:e4b",
+        "allowed_departments": ["Human Resources", "HR"],
+    },
+    {
+        "name": "IT Operations Tool Pack",
+        "slug": "it-ops-pack",
+        "description": "Role-based IT assistant for triage, runbooks, and incident summaries with guardrails.",
+        "icon": "🛠️",
+        "category": "IT Support",
+        "system_prompt": "You are the IT Operations Tool Pack assistant. Provide stepwise troubleshooting and incident-ready summaries. Use least-privilege guidance, never expose secrets, and ask for confirmation before risky changes.",
+        "temperature": 0.2,
+        "preferred_model": "gemma4:e4b",
+        "allowed_departments": ["IT", "Engineering"],
+    },
+    {
+        "name": "Finance Operations Tool Pack",
+        "slug": "finance-ops-pack",
+        "description": "Role-based finance assistant for reconciliations, variance analysis, and report drafting.",
+        "icon": "💼",
+        "category": "Finance",
+        "system_prompt": "You are the Finance Operations Tool Pack assistant. Return precise, auditable outputs with assumptions and confidence levels. Flag risk and compliance concerns clearly. Avoid legal or tax certainty claims.",
+        "temperature": 0.2,
+        "preferred_model": "gemma4:e4b",
+        "allowed_departments": ["Finance"],
+    },
+    {
+        "name": "Business Operations Tool Pack",
+        "slug": "ops-tool-pack",
+        "description": "Cross-functional operations assistant for planning, SOP drafting, and execution tracking.",
+        "icon": "📦",
+        "category": "Operations",
+        "system_prompt": "You are the Business Operations Tool Pack assistant. Produce practical SOPs, rollout plans, and risk matrices. Prefer concise plans with owners, deadlines, and measurable outcomes.",
+        "temperature": 0.3,
+        "preferred_model": "gemma4:e4b",
+        "allowed_departments": ["Operations", "Program Management", "Project Management"],
+    },
 ]
 
 
 async def _seed_default_agents():
-    """Seed default AI agents if none exist."""
-    from sqlalchemy import select, func
+    """Seed default AI agents and add missing system agents idempotently."""
+    from sqlalchemy import select
     from app.database import async_session_factory
     from app.models.agent import Agent
 
     async with async_session_factory() as db:
-        count = (await db.execute(
-            select(func.count()).select_from(Agent).where(Agent.is_system == True)
-        )).scalar() or 0
+        existing = (await db.execute(
+            select(Agent).where(Agent.is_system == True)
+        )).scalars().all()
+        existing_by_slug = {a.slug: a for a in existing}
 
-        if count > 0:
-            return
+        created = 0
+        updated = 0
 
         for agent_data in _DEFAULT_AGENTS:
+            existing_agent = existing_by_slug.get(agent_data["slug"])
+            if existing_agent:
+                existing_agent.name = agent_data["name"]
+                existing_agent.description = agent_data["description"]
+                existing_agent.icon = agent_data["icon"]
+                existing_agent.category = agent_data["category"]
+                existing_agent.system_prompt = agent_data["system_prompt"]
+                existing_agent.temperature = agent_data["temperature"]
+                existing_agent.preferred_model = agent_data.get("preferred_model")
+                existing_agent.allowed_departments = agent_data.get("allowed_departments")
+                existing_agent.is_active = True
+                existing_agent.is_system = True
+                updated += 1
+                continue
+
             db.add(Agent(
                 name=agent_data["name"],
                 slug=agent_data["slug"],
@@ -544,13 +614,16 @@ async def _seed_default_agents():
                 category=agent_data["category"],
                 system_prompt=agent_data["system_prompt"],
                 temperature=agent_data["temperature"],
+                preferred_model=agent_data.get("preferred_model"),
+                allowed_departments=agent_data.get("allowed_departments"),
                 is_active=True,
                 is_system=True,
                 is_default=False,
             ))
+            created += 1
 
         await db.commit()
-        logger.info("Seeded %d default AI agents", len(_DEFAULT_AGENTS))
+        logger.info("Default AI agents sync complete: created=%d updated=%d", created, updated)
 
 
 # ---- Default Skills ----

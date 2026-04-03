@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import select, func, desc, text, inspect, and_, Table
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +37,7 @@ from app.models.notification import Notification
 from app.models.company import Company
 from app.models.department import Department, company_departments, department_designations
 from app.models.designation import Designation
+from app.models.eval_trace import RequestTrace, ActionExecutionRequest
 from app.schemas.admin import (
     AuditLogEntry,
     AuditLogListResponse,
@@ -57,6 +59,85 @@ from app.services.ad_service import ad_service
 from app.config import settings as app_settings
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+
+class ActionRequestCreate(BaseModel):
+    idempotency_key: str = Field(..., min_length=8, max_length=128)
+    action_type: str = Field(..., min_length=3, max_length=128)
+    payload: dict = Field(default_factory=dict)
+    requires_approval: bool = True
+    request_trace_id: str | None = None
+
+
+class ActionDecisionRequest(BaseModel):
+    reason: str | None = None
+    execute_after_approval: bool = True
+
+
+def _serialize_trace_event(event: RequestTrace) -> dict:
+    return {
+        "id": str(event.id),
+        "request_id": str(event.request_id),
+        "user_id": str(event.user_id) if event.user_id else None,
+        "conversation_id": str(event.conversation_id) if event.conversation_id else None,
+        "message_id": str(event.message_id) if event.message_id else None,
+        "phase": event.phase,
+        "model": event.model,
+        "latency_ms": event.latency_ms,
+        "retry_count": event.retry_count,
+        "metadata": event.metadata_ or {},
+        "created_at": event.created_at.isoformat() if event.created_at else None,
+    }
+
+
+def _serialize_action_request(ar: ActionExecutionRequest) -> dict:
+    return {
+        "id": str(ar.id),
+        "idempotency_key": ar.idempotency_key,
+        "action_type": ar.action_type,
+        "payload": ar.payload,
+        "status": ar.status,
+        "requires_approval": ar.requires_approval,
+        "requested_by": str(ar.requested_by) if ar.requested_by else None,
+        "approved_by": str(ar.approved_by) if ar.approved_by else None,
+        "request_trace_id": str(ar.request_trace_id) if ar.request_trace_id else None,
+        "retry_count": ar.retry_count,
+        "result": ar.result,
+        "error_message": ar.error_message,
+        "created_at": ar.created_at.isoformat() if ar.created_at else None,
+        "updated_at": ar.updated_at.isoformat() if ar.updated_at else None,
+        "reviewed_at": ar.reviewed_at.isoformat() if ar.reviewed_at else None,
+        "executed_at": ar.executed_at.isoformat() if ar.executed_at else None,
+    }
+
+
+async def _execute_action_request(action: ActionExecutionRequest) -> tuple[dict | None, str | None]:
+    """Execution stub for approval-gated actions.
+
+    This framework executes read/write categories safely and is designed to be
+    extended by concrete tool integrations.
+    """
+    payload = action.payload or {}
+    action_type = (action.action_type or "").lower()
+
+    if action_type.startswith("read."):
+        return {
+            "executed": True,
+            "mode": "read",
+            "action_type": action.action_type,
+            "echo": payload,
+        }, None
+
+    if action_type.startswith("write."):
+        return {
+            "executed": True,
+            "mode": "write",
+            "action_type": action.action_type,
+            "applied": True,
+            "echo": payload,
+        }, None
+
+    return None, f"Unsupported action_type '{action.action_type}'. Use read.* or write.*"
 
 
 def _user_response(u: User) -> UserResponse:
@@ -463,6 +544,312 @@ async def usage_metrics(
     return UsageMetrics(**(await user_service.get_usage_metrics(db)))
 
 
+@router.get("/eval/summary")
+async def eval_summary(
+    hours: int = Query(24, ge=1, le=720),
+    _admin=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """High-level evaluation metrics for model quality/performance monitoring."""
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    total_events = (
+        await db.execute(
+            select(func.count()).select_from(RequestTrace).where(RequestTrace.created_at >= since)
+        )
+    ).scalar() or 0
+
+    completed = (
+        await db.execute(
+            select(func.count()).select_from(RequestTrace).where(
+                RequestTrace.created_at >= since,
+                RequestTrace.phase == "response_completed",
+            )
+        )
+    ).scalar() or 0
+
+    avg_latency = (
+        await db.execute(
+            select(func.avg(RequestTrace.latency_ms)).where(
+                RequestTrace.created_at >= since,
+                RequestTrace.phase == "response_completed",
+                RequestTrace.latency_ms.isnot(None),
+            )
+        )
+    ).scalar()
+
+    unique_requests = (
+        await db.execute(
+            select(func.count(func.distinct(RequestTrace.request_id))).where(RequestTrace.created_at >= since)
+        )
+    ).scalar() or 0
+
+    quality_issue_events = (
+        await db.execute(
+            select(func.count()).select_from(RequestTrace).where(
+                RequestTrace.created_at >= since,
+                RequestTrace.phase == "response_completed",
+                RequestTrace.metadata_["quality_issues"].astext != "null",
+            )
+        )
+    ).scalar() or 0
+
+    retries_total = (
+        await db.execute(
+            select(func.sum(ActionExecutionRequest.retry_count)).where(ActionExecutionRequest.created_at >= since)
+        )
+    ).scalar() or 0
+
+    traces_by_phase_rows = (
+        await db.execute(
+            select(RequestTrace.phase, func.count())
+            .where(RequestTrace.created_at >= since)
+            .group_by(RequestTrace.phase)
+            .order_by(func.count().desc())
+        )
+    ).all()
+
+    traces_by_model_rows = (
+        await db.execute(
+            select(RequestTrace.model, func.count())
+            .where(RequestTrace.created_at >= since, RequestTrace.model.isnot(None))
+            .group_by(RequestTrace.model)
+            .order_by(func.count().desc())
+            .limit(10)
+        )
+    ).all()
+
+    return {
+        "window_hours": hours,
+        "unique_requests": unique_requests,
+        "total_events": total_events,
+        "completed_responses": completed,
+        "avg_latency_ms": float(avg_latency) if avg_latency is not None else None,
+        "quality_issue_events": quality_issue_events,
+        "retry_count": int(retries_total),
+        "events_by_phase": [{"phase": p, "count": c} for p, c in traces_by_phase_rows],
+        "events_by_model": [{"model": m, "count": c} for m, c in traces_by_model_rows],
+    }
+
+
+@router.get("/eval/traces")
+async def eval_traces(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    conversation_id: str | None = None,
+    _admin=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return request traces grouped into timeline sessions."""
+    q = select(RequestTrace)
+    if conversation_id:
+        try:
+            import uuid as _uuid
+
+            cid = _uuid.UUID(conversation_id)
+            q = q.where(RequestTrace.conversation_id == cid)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid conversation_id")
+
+    q = q.order_by(RequestTrace.created_at.desc()).limit(limit * 12).offset(offset)
+    events = list((await db.execute(q)).scalars().all())
+
+    grouped: dict[str, list[RequestTrace]] = {}
+    for event in events:
+        rid = str(event.request_id)
+        grouped.setdefault(rid, []).append(event)
+
+    sessions: list[dict] = []
+    for rid, evts in grouped.items():
+        evts_sorted = sorted(evts, key=lambda e: e.created_at)
+        head = evts_sorted[0]
+        sessions.append(
+            {
+                "request_id": rid,
+                "conversation_id": str(head.conversation_id) if head.conversation_id else None,
+                "user_id": str(head.user_id) if head.user_id else None,
+                "events": [_serialize_trace_event(e) for e in evts_sorted],
+            }
+        )
+
+    sessions.sort(key=lambda s: s["events"][0]["created_at"], reverse=True)
+    return {"sessions": sessions[:limit], "total_sessions": len(grouped)}
+
+
+@router.get("/eval/actions")
+async def list_action_requests(
+    status: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    _admin=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    q = select(ActionExecutionRequest)
+    if status:
+        q = q.where(ActionExecutionRequest.status == status)
+    q = q.order_by(ActionExecutionRequest.created_at.desc()).limit(limit)
+    rows = list((await db.execute(q)).scalars().all())
+    return {"actions": [_serialize_action_request(r) for r in rows]}
+
+
+@router.post("/eval/actions/request")
+async def create_action_request(
+    body: ActionRequestCreate,
+    admin_token=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    existing = (
+        await db.execute(
+            select(ActionExecutionRequest).where(
+                ActionExecutionRequest.idempotency_key == body.idempotency_key
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
+        return {"deduplicated": True, "action": _serialize_action_request(existing)}
+
+    trace_id = None
+    if body.request_trace_id:
+        try:
+            import uuid as _uuid
+
+            trace_id = _uuid.UUID(body.request_trace_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid request_trace_id")
+
+    import uuid as _uuid
+    admin_user_id = _uuid.UUID(admin_token.sub)
+
+    action = ActionExecutionRequest(
+        idempotency_key=body.idempotency_key,
+        action_type=body.action_type,
+        payload=body.payload,
+        requires_approval=body.requires_approval,
+        status="pending_approval" if body.requires_approval else "approved",
+        requested_by=admin_user_id,
+        request_trace_id=trace_id,
+    )
+    db.add(action)
+    await db.flush()
+
+    if not action.requires_approval:
+        result, error = await _execute_action_request(action)
+        if error:
+            action.status = "failed"
+            action.error_message = error
+        else:
+            action.status = "executed"
+            action.result = result
+            action.executed_at = datetime.now(timezone.utc)
+
+    await db.flush()
+    return {"deduplicated": False, "action": _serialize_action_request(action)}
+
+
+@router.post("/eval/actions/{action_id}/approve")
+async def approve_action_request(
+    action_id: str,
+    body: ActionDecisionRequest,
+    admin_token=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        import uuid as _uuid
+
+        aid = _uuid.UUID(action_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid action_id")
+
+    action = (await db.execute(select(ActionExecutionRequest).where(ActionExecutionRequest.id == aid))).scalar_one_or_none()
+    if not action:
+        raise HTTPException(status_code=404, detail="Action request not found")
+
+    admin_user_id = _uuid.UUID(admin_token.sub)
+
+    if action.status in {"executed", "rejected"}:
+        return {"action": _serialize_action_request(action)}
+
+    action.status = "approved"
+    action.approved_by = admin_user_id
+    action.reviewed_at = datetime.now(timezone.utc)
+
+    if body.execute_after_approval:
+        result, error = await _execute_action_request(action)
+        if error:
+            action.status = "failed"
+            action.error_message = error
+        else:
+            action.status = "executed"
+            action.result = result
+            action.executed_at = datetime.now(timezone.utc)
+
+    await db.flush()
+    return {"action": _serialize_action_request(action)}
+
+
+@router.post("/eval/actions/{action_id}/reject")
+async def reject_action_request(
+    action_id: str,
+    body: ActionDecisionRequest,
+    admin_token=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        import uuid as _uuid
+
+        aid = _uuid.UUID(action_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid action_id")
+
+    action = (await db.execute(select(ActionExecutionRequest).where(ActionExecutionRequest.id == aid))).scalar_one_or_none()
+    if not action:
+        raise HTTPException(status_code=404, detail="Action request not found")
+
+    admin_user_id = _uuid.UUID(admin_token.sub)
+
+    action.status = "rejected"
+    action.approved_by = admin_user_id
+    action.reviewed_at = datetime.now(timezone.utc)
+    action.error_message = body.reason or "Rejected by approver"
+    await db.flush()
+    return {"action": _serialize_action_request(action)}
+
+
+@router.post("/eval/actions/{action_id}/execute")
+async def execute_action_request(
+    action_id: str,
+    _admin=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        import uuid as _uuid
+
+        aid = _uuid.UUID(action_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid action_id")
+
+    action = (await db.execute(select(ActionExecutionRequest).where(ActionExecutionRequest.id == aid))).scalar_one_or_none()
+    if not action:
+        raise HTTPException(status_code=404, detail="Action request not found")
+
+    if action.requires_approval and action.status not in {"approved", "executed"}:
+        raise HTTPException(status_code=409, detail="Action requires approval before execution")
+
+    if action.status == "executed":
+        return {"action": _serialize_action_request(action), "idempotent": True}
+
+    result, error = await _execute_action_request(action)
+    action.retry_count = (action.retry_count or 0) + 1
+    if error:
+        action.status = "failed"
+        action.error_message = error
+    else:
+        action.status = "executed"
+        action.result = result
+        action.executed_at = datetime.now(timezone.utc)
+    await db.flush()
+    return {"action": _serialize_action_request(action), "idempotent": False}
+
+
 @router.get("/users", response_model=UserListResponse)
 async def list_users(
     offset: int = Query(0, ge=0),
@@ -666,6 +1053,8 @@ _TABLE_MODELS = {
     "scheduled_tasks": ScheduledTask,
     "task_executions": TaskExecution,
     "notifications": Notification,
+    "request_traces": RequestTrace,
+    "action_execution_requests": ActionExecutionRequest,
     # V3 — Organization
     "companies": Company,
     "departments": Department,

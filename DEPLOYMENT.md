@@ -59,8 +59,8 @@
 | Service | Technology | Default Port | Purpose |
 |---------|-----------|-------------|---------|
 | Frontend | React 18.3 + TypeScript 5.5 + Vite 5.4 (built to static) | 80/443 | User interface (PWA) |
-| Backend | Python 3.12, FastAPI 0.115, Uvicorn | 8000 | REST API (~119 endpoints), auth, chat, agents, RAG, scheduler |
-| Database | PostgreSQL 16 (async SQLAlchemy 2.0) | 5432 | 24 tables across 9 Alembic migrations |
+| Backend | Python 3.12, FastAPI 0.115, Uvicorn | 8000 | REST API (146+ endpoints), auth, chat, agents, RAG, scheduler, eval/governance |
+| Database | PostgreSQL 16 (async SQLAlchemy 2.0) | 5432 | 31 tables across 14 Alembic migrations |
 | LLM | Ollama | 11434 | Local AI model inference + embeddings |
 | Proxy | Nginx | 80/443 | TLS termination, static serving, API proxy |
 
@@ -364,7 +364,7 @@ See [Section 7: HTTPS / TLS Configuration](#7-https--tls-configuration).
 
 ## 6. Database Migrations
 
-Migrations are managed by Alembic. There are 9 migrations:
+Migrations are managed by Alembic. There are 14 migrations:
 
 | Migration | Purpose |
 |-----------|---------|
@@ -377,6 +377,11 @@ Migrations are managed by Alembic. There are 9 migrations:
 | `007_add_token_blacklist` | Token blacklist table for JWT revocation |
 | `008_add_missing_columns` | Additional columns for existing tables |
 | `009_add_v2_tables` | AI agents, memories, skills, knowledge bases, documents, chunks, scheduled tasks, task executions, notifications |
+| `010_add_org_structure` | Companies, departments, designations, org profile structure |
+| `011_add_last_reviewed_by_to_knowledge_documents` | Knowledge document review metadata |
+| `012_add_agent_knowledge_base_ids` | Multi-KB linkage support for agents |
+| `013_add_generated_files_table` | Generated file artifact persistence |
+| `014_add_eval_trace_and_action_requests` | Request traces + idempotent approval-gated action requests |
 
 ### Run Migrations
 
@@ -752,7 +757,7 @@ docker compose exec -T db pg_dump -U org_ai_user org_ai | Out-File "$backupDir\d
 
 ### 12.2 Built-in Export
 
-The Admin Panel includes a **Database → Export** feature that exports all 24 tables as JSON. Use this for quick manual backups.
+The Admin Panel includes a **Database → Export** feature that exports all 31 tables as JSON. Use this for quick manual backups.
 
 Users can also export all their conversations as a **ZIP archive** from **Settings → Bulk Export**. Each conversation is saved as an individual Markdown or JSON file inside the ZIP. Individual conversations can be exported as **.md** (Markdown) or **.pdf** (styled PDF) from the chat toolbar.
 

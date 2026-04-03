@@ -88,6 +88,8 @@ async def send_message(
             model=body.model,
             db=db,
             agent_id=agent_id,
+            deep_analysis=body.deep_analysis,
+            vision_images=body.vision_images,
         )
     except PermissionError:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -112,6 +114,9 @@ async def send_message(
             content=assistant_msg.content,
             model=assistant_msg.model,
             token_count=assistant_msg.token_count,
+            citations=getattr(assistant_msg, "_citations", []),
+            quality_issues=getattr(assistant_msg, "_quality_issues", []),
+            followups=getattr(assistant_msg, "_followups", []),
             created_at=assistant_msg.created_at,
         ),
         conversation_id=str(conv.id),
@@ -154,6 +159,8 @@ async def send_message_stream(
             content=body.message,
             model=body.model,
             agent_id=agent_id,
+            deep_analysis=body.deep_analysis,
+            vision_images=body.vision_images,
         ),
         media_type="application/x-ndjson",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},

@@ -5,13 +5,14 @@ import remarkGfm from "remark-gfm";
 
 interface Props {
   content: string;
+  phase?: string;
 }
 
 /**
  * Throttled streaming message: renders markdown at most every 80ms
  * to prevent UI jank when tokens arrive faster than the renderer.
  */
-export const StreamingMessage = memo(function StreamingMessage({ content }: Props) {
+export const StreamingMessage = memo(function StreamingMessage({ content, phase }: Props) {
   const [rendered, setRendered] = useState(content);
   const rafRef = useRef<number | null>(null);
   const lastUpdateRef = useRef(0);
@@ -59,6 +60,7 @@ export const StreamingMessage = memo(function StreamingMessage({ content }: Prop
         <div className="inline-block text-left rounded-2xl rounded-tl-md px-4 py-3 bg-surface-100 dark:bg-surface-800 text-surface-800 dark:text-surface-200 max-w-full">
           {rendered ? (
             <div className="markdown-content prose-sm max-w-none">
+              {phase && <p className="text-[11px] text-surface-400 mb-2">{phase}</p>}
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {rendered}
               </ReactMarkdown>
@@ -70,7 +72,7 @@ export const StreamingMessage = memo(function StreamingMessage({ content }: Prop
                 <span className="w-2 h-2 bg-surface-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
                 <span className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" />
               </div>
-              <span className="text-sm text-surface-400 italic">Thinking...</span>
+              <span className="text-sm text-surface-400 italic">{phase || "Thinking..."}</span>
             </div>
           )}
         </div>
